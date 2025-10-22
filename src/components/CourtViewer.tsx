@@ -28,6 +28,7 @@ const CourtViewer = () => {
   const [courtType, setCourtType] = useState("pickleball");
   const [surfaceColor, setSurfaceColor] = useState("#1A3D8E");
   const [lineColor, setLineColor] = useState("#FFFFFF");
+  const [kitchenColor, setKitchenColor] = useState("#6DBE45");
   const [lineWidth, setLineWidth] = useState(2);
   const [showLabels, setShowLabels] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -56,7 +57,7 @@ const CourtViewer = () => {
           <line x1={x0} y1={y0 + netY - nvzDepth} x2={x0 + courtW} y2={y0 + netY - nvzDepth} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0} y1={y0 + netY + nvzDepth} x2={x0 + courtW} y2={y0 + netY + nvzDepth} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0 + courtW / 2} y1={y0} x2={x0 + courtW / 2} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-          <rect x={x0} y={y0 + netY - nvzDepth} width={courtW} height={nvzDepth * 2} fill="#ffffff" opacity="0.08" />
+          <rect x={x0} y={y0 + netY - nvzDepth} width={courtW} height={nvzDepth * 2} fill={kitchenColor} opacity="0.3" />
           <line x1={x0} y1={y0 + netY} x2={x0 + courtW} y2={y0 + netY} stroke="black" strokeWidth={Math.max(2, linePx / 2)} strokeDasharray="4" />
           {showLabels && (
             <g className="text-xs fill-secondary">
@@ -184,6 +185,27 @@ const CourtViewer = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {courtType === "pickleball" && (
+                <div className="space-y-2">
+                  <Label>Kitchen Area Color (Laykold)</Label>
+                  <Select value={kitchenColor} onValueChange={setKitchenColor}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover max-h-80">
+                      {LAYKOLD_COLORS.map((color) => (
+                        <SelectItem key={color.hex} value={color.hex}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded border" style={{ backgroundColor: color.hex }} />
+                            {color.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Line Width: {lineWidth.toFixed(2)} inches</Label>

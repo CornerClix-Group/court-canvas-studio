@@ -82,6 +82,7 @@ const ContactForm = () => {
                     <SelectContent className="bg-popover">
                       <SelectItem value="Pickleball">Pickleball</SelectItem>
                       <SelectItem value="Tennis">Tennis</SelectItem>
+                      <SelectItem value="Basketball">Basketball</SelectItem>
                       <SelectItem value="Multi-Sport">Multi-Sport</SelectItem>
                       <SelectItem value="Renovation / Resurfacing">Renovation / Resurfacing</SelectItem>
                     </SelectContent>

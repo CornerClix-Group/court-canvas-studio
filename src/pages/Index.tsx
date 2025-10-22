@@ -4,6 +4,7 @@ import RecentProjects from "@/components/RecentProjects";
 import BuildProcess from "@/components/BuildProcess";
 import CourtViewer from "@/components/CourtViewer";
 import Services from "@/components/Services";
+import Testimonials from "@/components/Testimonials";
 import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
 
@@ -17,6 +18,7 @@ const Index = () => {
         <BuildProcess />
         <CourtViewer />
         <Services />
+        <Testimonials />
         <ContactForm />
       </main>
       <Footer />

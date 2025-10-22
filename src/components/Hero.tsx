@@ -17,8 +17,9 @@ const Hero = () => {
             Precision Courts. <span className="text-primary">Built for Play.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-            We design, build, and maintain pro-grade <span className="font-bold text-foreground">pickleball</span> and{" "}
-            <span className="font-bold text-foreground">tennis</span> courts. Laykold surface expertise, exacting drainage
+            We design, build, and maintain pro-grade <span className="font-bold text-foreground">pickleball</span>,{" "}
+            <span className="font-bold text-foreground">tennis</span>, and{" "}
+            <span className="font-bold text-foreground">basketball</span> courts. Laykold surface expertise, exacting drainage
             & grading, LED lighting, and turn-key delivery.
           </p>
           <div className="flex flex-wrap gap-3">
