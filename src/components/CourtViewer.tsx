@@ -29,6 +29,7 @@ const CourtViewer = () => {
   const [surfaceColor, setSurfaceColor] = useState("#1A3D8E");
   const [lineColor, setLineColor] = useState("#FFFFFF");
   const [kitchenColor, setKitchenColor] = useState("#6DBE45");
+  const [outOfBoundsColor, setOutOfBoundsColor] = useState("#0076BE");
   const [lineWidth, setLineWidth] = useState(2);
   const [showLabels, setShowLabels] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -41,29 +42,34 @@ const CourtViewer = () => {
     if (courtType === "pickleball") {
       const courtW = 20 * scale;
       const courtL = 44 * scale;
+      const oobPadding = 10 * scale; // 10 feet out of bounds
       const netY = courtL / 2;
       const nvzDepth = 7 * scale;
       const w = 1000, h = 700;
-      const x0 = (w - courtW) / 2;
-      const y0 = (h - courtL) / 2;
+      const x0 = (w - courtW - oobPadding * 2) / 2;
+      const y0 = (h - courtL - oobPadding * 2) / 2;
 
       return (
         <svg xmlns="http://www.w3.org/2000/svg" width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="w-full">
-          <rect x={x0} y={y0} width={courtW} height={courtL} fill={surfaceColor} rx="8" />
-          <line x1={x0} y1={y0} x2={x0} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-          <line x1={x0 + courtW} y1={y0} x2={x0 + courtW} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-          <line x1={x0} y1={y0} x2={x0 + courtW} y2={y0} stroke={lineColor} strokeWidth={linePx} />
-          <line x1={x0} y1={y0 + courtL} x2={x0 + courtW} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-          <line x1={x0} y1={y0 + netY - nvzDepth} x2={x0 + courtW} y2={y0 + netY - nvzDepth} stroke={lineColor} strokeWidth={linePx} />
-          <line x1={x0} y1={y0 + netY + nvzDepth} x2={x0 + courtW} y2={y0 + netY + nvzDepth} stroke={lineColor} strokeWidth={linePx} />
-          <line x1={x0 + courtW / 2} y1={y0} x2={x0 + courtW / 2} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-          <rect x={x0} y={y0 + netY - nvzDepth} width={courtW} height={nvzDepth * 2} fill={kitchenColor} opacity="0.3" />
-          <line x1={x0} y1={y0 + netY} x2={x0 + courtW} y2={y0 + netY} stroke="black" strokeWidth={Math.max(2, linePx / 2)} strokeDasharray="4" />
+          {/* Out of bounds area */}
+          <rect x={x0} y={y0} width={courtW + oobPadding * 2} height={courtL + oobPadding * 2} fill={outOfBoundsColor} rx="8" />
+          {/* Court surface */}
+          <rect x={x0 + oobPadding} y={y0 + oobPadding} width={courtW} height={courtL} fill={surfaceColor} rx="4" />
+          <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={x0 + oobPadding + courtW} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={x0 + oobPadding} y1={y0 + oobPadding + courtL} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={x0 + oobPadding} y1={y0 + oobPadding + netY - nvzDepth} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + netY - nvzDepth} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={x0 + oobPadding} y1={y0 + oobPadding + netY + nvzDepth} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + netY + nvzDepth} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={x0 + oobPadding + courtW / 2} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW / 2} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+          <rect x={x0 + oobPadding} y={y0 + oobPadding + netY - nvzDepth} width={courtW} height={nvzDepth * 2} fill={kitchenColor} opacity="0.3" />
+          <line x1={x0 + oobPadding} y1={y0 + oobPadding + netY} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + netY} stroke="black" strokeWidth={Math.max(2, linePx / 2)} strokeDasharray="4" />
           {showLabels && (
             <g className="text-xs fill-secondary">
-              <text x={x0 + courtW / 2} y={y0 - 10} textAnchor="middle" className="text-xs">Baseline</text>
-              <text x={x0 + courtW / 2} y={y0 + courtL + 20} textAnchor="middle" className="text-xs">Baseline</text>
-              <text x={x0 + courtW / 2 + 8} y={y0 + netY} className="text-xs">Net</text>
+              <text x={x0 + oobPadding + courtW / 2} y={y0 + oobPadding - 10} textAnchor="middle" className="text-xs">Baseline</text>
+              <text x={x0 + oobPadding + courtW / 2} y={y0 + oobPadding + courtL + 20} textAnchor="middle" className="text-xs">Baseline</text>
+              <text x={x0 + oobPadding + courtW / 2 + 8} y={y0 + oobPadding + netY} className="text-xs">Net</text>
+              <text x={x0 + oobPadding / 2} y={y0 + oobPadding + courtL / 2} textAnchor="middle" className="text-xs" transform={`rotate(-90 ${x0 + oobPadding / 2} ${y0 + oobPadding + courtL / 2})`}>Out of Bounds</text>
             </g>
           )}
         </svg>
@@ -74,33 +80,38 @@ const CourtViewer = () => {
     const isSingles = courtType === "tennis-singles";
     const courtL = 78 * scale;
     const courtW = (isSingles ? 27 : 36) * scale;
+    const oobPadding = 12 * scale; // 12 feet out of bounds for tennis
     const svcFromNet = 21 * scale;
     const netY = courtL / 2;
     const w = 1200, h = 800;
-    const x0 = (w - courtW) / 2;
-    const y0 = (h - courtL) / 2;
+    const x0 = (w - courtW - oobPadding * 2) / 2;
+    const y0 = (h - courtL - oobPadding * 2) / 2;
 
     return (
       <svg xmlns="http://www.w3.org/2000/svg" width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="w-full">
-        <rect x={x0} y={y0} width={courtW} height={courtL} fill={surfaceColor} rx="8" />
-        <line x1={x0} y1={y0} x2={x0} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-        <line x1={x0 + courtW} y1={y0} x2={x0 + courtW} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
+        {/* Out of bounds area */}
+        <rect x={x0} y={y0} width={courtW + oobPadding * 2} height={courtL + oobPadding * 2} fill={outOfBoundsColor} rx="8" />
+        {/* Court surface */}
+        <rect x={x0 + oobPadding} y={y0 + oobPadding} width={courtW} height={courtL} fill={surfaceColor} rx="4" />
+        <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+        <line x1={x0 + oobPadding + courtW} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
         {!isSingles && (
           <>
-            <line x1={x0 + 4.5 * scale} y1={y0} x2={x0 + 4.5 * scale} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-            <line x1={x0 + courtW - 4.5 * scale} y1={y0} x2={x0 + courtW - 4.5 * scale} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
+            <line x1={x0 + oobPadding + 4.5 * scale} y1={y0 + oobPadding} x2={x0 + oobPadding + 4.5 * scale} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+            <line x1={x0 + oobPadding + courtW - 4.5 * scale} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW - 4.5 * scale} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
           </>
         )}
-        <line x1={x0} y1={y0} x2={x0 + courtW} y2={y0} stroke={lineColor} strokeWidth={linePx} />
-        <line x1={x0} y1={y0 + courtL} x2={x0 + courtW} y2={y0 + courtL} stroke={lineColor} strokeWidth={linePx} />
-        <line x1={x0} y1={y0 + netY - svcFromNet} x2={x0 + courtW} y2={y0 + netY - svcFromNet} stroke={lineColor} strokeWidth={linePx} />
-        <line x1={x0} y1={y0 + netY + svcFromNet} x2={x0 + courtW} y2={y0 + netY + svcFromNet} stroke={lineColor} strokeWidth={linePx} />
-        <line x1={x0 + courtW / 2} y1={y0 + netY - svcFromNet} x2={x0 + courtW / 2} y2={y0 + netY + svcFromNet} stroke={lineColor} strokeWidth={linePx} />
-        <line x1={x0} y1={y0 + netY} x2={x0 + courtW} y2={y0 + netY} stroke="black" strokeWidth={Math.max(2, linePx / 2)} strokeDasharray="4" />
+        <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding} stroke={lineColor} strokeWidth={linePx} />
+        <line x1={x0 + oobPadding} y1={y0 + oobPadding + courtL} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+        <line x1={x0 + oobPadding} y1={y0 + oobPadding + netY - svcFromNet} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + netY - svcFromNet} stroke={lineColor} strokeWidth={linePx} />
+        <line x1={x0 + oobPadding} y1={y0 + oobPadding + netY + svcFromNet} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + netY + svcFromNet} stroke={lineColor} strokeWidth={linePx} />
+        <line x1={x0 + oobPadding + courtW / 2} y1={y0 + oobPadding + netY - svcFromNet} x2={x0 + oobPadding + courtW / 2} y2={y0 + oobPadding + netY + svcFromNet} stroke={lineColor} strokeWidth={linePx} />
+        <line x1={x0 + oobPadding} y1={y0 + oobPadding + netY} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + netY} stroke="black" strokeWidth={Math.max(2, linePx / 2)} strokeDasharray="4" />
         {showLabels && (
           <g className="text-xs fill-secondary">
-            <text x={x0 + courtW / 2} y={y0 - 10} textAnchor="middle" className="text-xs">Baseline</text>
-            <text x={x0 + courtW / 2} y={y0 + courtL + 20} textAnchor="middle" className="text-xs">Baseline</text>
+            <text x={x0 + oobPadding + courtW / 2} y={y0 + oobPadding - 10} textAnchor="middle" className="text-xs">Baseline</text>
+            <text x={x0 + oobPadding + courtW / 2} y={y0 + oobPadding + courtL + 20} textAnchor="middle" className="text-xs">Baseline</text>
+            <text x={x0 + oobPadding / 2} y={y0 + oobPadding + courtL / 2} textAnchor="middle" className="text-xs" transform={`rotate(-90 ${x0 + oobPadding / 2} ${y0 + oobPadding + courtL / 2})`}>Out of Bounds</text>
           </g>
         )}
       </svg>
@@ -206,6 +217,25 @@ const CourtViewer = () => {
                   </Select>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label>Out of Bounds Color (Laykold)</Label>
+                <Select value={outOfBoundsColor} onValueChange={setOutOfBoundsColor}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover max-h-80">
+                    {LAYKOLD_COLORS.map((color) => (
+                      <SelectItem key={color.hex} value={color.hex}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded border" style={{ backgroundColor: color.hex }} />
+                          {color.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
                 <Label>Line Width: {lineWidth.toFixed(2)} inches</Label>
