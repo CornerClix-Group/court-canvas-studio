@@ -34,6 +34,7 @@ const Hero = () => {
             <Badge variant="secondary" className="text-sm px-4 py-2">Laykold Surfaces</Badge>
             <Badge variant="secondary" className="text-sm px-4 py-2">Nationwide</Badge>
             <Badge variant="secondary" className="text-sm px-4 py-2">Design-Build</Badge>
+            <Badge variant="secondary" className="text-sm px-4 py-2">ASBA Member</Badge>
           </div>
         </div>
         <Card className="overflow-hidden shadow-xl">

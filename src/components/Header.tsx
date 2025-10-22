@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Facebook, Instagram, Linkedin } from "lucide-react";
 import logo from "@/assets/courtpro-logo.png";
 
 const Header = () => {
@@ -30,9 +31,22 @@ const Header = () => {
             Contact
           </button>
         </nav>
-        <Button onClick={() => scrollToSection("contact")} size="lg" className="font-semibold">
-          Request a Quote
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-3">
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Facebook">
+              <Facebook className="w-5 h-5" />
+            </a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
+              <Instagram className="w-5 h-5" />
+            </a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="LinkedIn">
+              <Linkedin className="w-5 h-5" />
+            </a>
+          </div>
+          <Button onClick={() => scrollToSection("contact")} size="lg" className="font-semibold">
+            Request a Quote
+          </Button>
+        </div>
       </div>
     </header>
   );
