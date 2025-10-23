@@ -1,21 +1,18 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import pickleballBackyard from "@/assets/projects/pickleball-backyard.jpg";
 import basketballBackyard from "@/assets/projects/basketball-backyard.jpg";
 import pickleballComplex from "@/assets/projects/pickleball-complex.jpg";
 import tennisPB from "@/assets/projects/tennis-pickleball-complex.jpg";
-import multiCourt from "@/assets/projects/multi-court-facility.jpg";
 import basketballNight from "@/assets/projects/basketball-night.jpg";
+import video2 from "@/assets/videos/court-construction-2.mp4";
+import video3 from "@/assets/videos/court-construction-3.mp4";
+import video4 from "@/assets/videos/court-construction-4.mp4";
+import video5 from "@/assets/videos/court-construction-5.mp4";
+import video6 from "@/assets/videos/court-construction-6.mp4";
+import video7 from "@/assets/videos/court-construction-7.mp4";
 
 const projects = [
-  {
-    image: pickleballBackyard,
-    category: "Residential",
-    sport: "Pickleball",
-    title: "Backyard Pickleball Court — Augusta, GA",
-    description: "Custom light blue out-of-bounds, LED lighting, premium fencing, and tournament-grade surface.",
-  },
   {
     image: basketballBackyard,
     category: "Residential",
@@ -27,7 +24,7 @@ const projects = [
     image: pickleballComplex,
     category: "Commercial",
     sport: "Pickleball",
-    title: "4-Court Pickleball Complex — Aiken, SC",
+    title: "2-Court Pickleball Complex — Aiken, SC",
     description: "Tournament facility with Laykold cushioned system, LED lighting, and spectator areas.",
   },
   {
@@ -38,18 +35,53 @@ const projects = [
     description: "Full-size tennis court with 8 dedicated pickleball courts, terracotta out-of-bounds surfacing.",
   },
   {
-    image: multiCourt,
-    category: "Community",
-    sport: "Multi-Sport",
-    title: "Community Tennis & Pickleball Complex — Martinez, GA",
-    description: "Mixed-use facility with regulation tennis and multiple pickleball courts for community play.",
-  },
-  {
     image: basketballNight,
     category: "Residential",
     sport: "Basketball",
     title: "Premium Basketball Court — Grovetown, GA",
     description: "Full-court with multi-color key design, professional hoops, and high-output LED lighting system.",
+  },
+  {
+    video: video2,
+    category: "Construction",
+    sport: "Process",
+    title: "Court Construction Process",
+    description: "Professional grading, base preparation, and surface installation.",
+  },
+  {
+    video: video3,
+    category: "Construction",
+    sport: "Process",
+    title: "Court Construction Process",
+    description: "Expert installation and quality craftsmanship in action.",
+  },
+  {
+    video: video4,
+    category: "Construction",
+    sport: "Process",
+    title: "Court Construction Process",
+    description: "From ground breaking to finished professional court.",
+  },
+  {
+    video: video5,
+    category: "Construction",
+    sport: "Process",
+    title: "Court Construction Process",
+    description: "Precision equipment and skilled workmanship.",
+  },
+  {
+    video: video6,
+    category: "Construction",
+    sport: "Process",
+    title: "Court Construction Process",
+    description: "Building courts that last with professional techniques.",
+  },
+  {
+    video: video7,
+    category: "Construction",
+    sport: "Process",
+    title: "Court Construction Process",
+    description: "Complete turn-key delivery from start to finish.",
   },
 ];
 
@@ -74,12 +106,22 @@ const RecentProjects = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {projects.map((project, index) => (
             <Card key={index} className="overflow-hidden group hover:shadow-xl transition-all duration-300">
-              <div className="overflow-hidden">
-                <img
-                  src={project.image}
-                  alt={project.title}
-                  className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+              <div className="overflow-hidden bg-black">
+                {project.image ? (
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <video
+                    src={project.video}
+                    className="w-full h-64 object-cover"
+                    controls
+                    playsInline
+                    preload="metadata"
+                  />
+                )}
               </div>
               <CardContent className="p-6 space-y-3">
                 <div className="flex gap-2">

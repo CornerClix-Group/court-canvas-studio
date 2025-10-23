@@ -22,19 +22,13 @@ const Hero = () => {
             <span className="font-bold text-foreground">basketball</span> courts. Laykold surface expertise, exacting drainage
             & grading, LED lighting, and turn-key delivery.
           </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 pt-2">
             <Button onClick={() => scrollToSection("viewer")} size="lg" className="font-semibold shadow-lg">
               Open Court Viewer
             </Button>
             <Button onClick={() => scrollToSection("work")} variant="outline" size="lg" className="font-semibold">
               See Our Work
             </Button>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Badge variant="secondary" className="text-sm px-4 py-2">Laykold Surfaces</Badge>
-            <Badge variant="secondary" className="text-sm px-4 py-2">Nationwide</Badge>
-            <Badge variant="secondary" className="text-sm px-4 py-2">Design-Build</Badge>
-            <Badge variant="secondary" className="text-sm px-4 py-2">ASBA Member</Badge>
           </div>
         </div>
         <Card className="overflow-hidden shadow-xl">
