@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Facebook, Instagram, Linkedin } from "lucide-react";
-import logo from "@/assets/courtpro-logo.png";
+import logo from "@/assets/courtpro-logo-transparent.png";
 
 const Header = () => {
   const scrollToSection = (id: string) => {
