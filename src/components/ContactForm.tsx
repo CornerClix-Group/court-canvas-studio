@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const ContactForm = () => {
   const [formData, setFormData] = useState({
@@ -18,16 +19,37 @@ const ContactForm = () => {
     notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const parts = Object.entries(formData).map(([key, value]) => `${key}: ${value}`);
-    const subject = encodeURIComponent("CourtPro Augusta – Quote Request");
-    const body = encodeURIComponent(parts.join("\n"));
-    
-    window.location.href = `mailto:estimates@courtproaugusta.com?subject=${subject}&body=${body}`;
-    
-    toast.success("Opening your email client...");
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+        body: formData,
+      });
+
+      if (error) throw error;
+
+      toast.success("Your quote request has been sent successfully! We'll get back to you soon.");
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        type: "",
+        location: "",
+        timeline: "",
+        notes: "",
+      });
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast.error("Failed to send your request. Please try calling or emailing us directly.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -122,8 +144,8 @@ const ContactForm = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" size="lg" className="font-semibold">
-                  Send Request
+                <Button type="submit" size="lg" className="font-semibold" disabled={isSubmitting}>
+                  {isSubmitting ? "Sending..." : "Send Request"}
                 </Button>
                 <Button
                   type="button"
