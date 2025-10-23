@@ -12,7 +12,7 @@ const Header = () => {
     <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between py-4">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="CourtPro Augusta" className="h-16 w-auto" />
+          <img src={logo} alt="CourtPro Augusta" className="h-24 w-auto" />
         </div>
         <nav className="hidden md:flex gap-8 text-sm font-medium">
           <button onClick={() => scrollToSection("work")} className="hover:text-primary transition-colors">
