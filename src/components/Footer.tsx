@@ -24,8 +24,8 @@ const Footer = () => {
             <h3 className="font-semibold text-foreground mb-3">Contact Us</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>
-                <a href="tel:+17067394208" className="hover:text-primary transition-colors">
-                  706-739-4208
+                <a href="tel:+17064263051" className="hover:text-primary transition-colors">
+                  706-426-3051
                 </a>
               </p>
               <p>
