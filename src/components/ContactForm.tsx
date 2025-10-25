@@ -160,8 +160,8 @@ const ContactForm = () => {
               <div className="text-sm text-muted-foreground pt-4 border-t border-border">
                 <p className="mb-2">
                   <strong>Phone:</strong>{" "}
-                  <a href="tel:+17064263051" className="text-primary hover:underline">
-                    706-426-3051
+                  <a href="tel:+17067394208" className="text-primary hover:underline">
+                    706-739-4208
                   </a>
                 </p>
                 <p>
