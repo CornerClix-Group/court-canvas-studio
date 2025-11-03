@@ -5,31 +5,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
-// Laykold color palette
+// Laykold color palette - Standard Colors
+const STANDARD_COLORS = [
+  { name: "Forest Green", hex: "#3D4A3A" },
+  { name: "Dark Green", hex: "#4A5648" },
+  { name: "Medium Green", hex: "#5A6855" },
+  { name: "Grass Green", hex: "#6E7D63" },
+  { name: "Dark Blue", hex: "#2C3E50" },
+  { name: "Light Blue", hex: "#3498B5" },
+  { name: "Pro Blue", hex: "#426C85" },
+  { name: "Royal Purple", hex: "#3E3854" },
+  { name: "Brick Red", hex: "#7B4641" },
+  { name: "Burgundy", hex: "#4A3337" },
+  { name: "Dark Grey", hex: "#5A6062" },
+  { name: "Desert Sand", hex: "#B5A089" },
+];
+
+// Laykold color palette - Vibrant Colors
+const VIBRANT_COLORS = [
+  { name: "Coral", hex: "#B36B70" },
+  { name: "Scarlet", hex: "#8A4A45" },
+  { name: "Pumpkin", hex: "#D9834E" },
+  { name: "Canary", hex: "#E8C75A" },
+  { name: "Midnight", hex: "#324D6B" },
+  { name: "Teal", hex: "#4B9490" },
+  { name: "Arctic", hex: "#6A9AC4" },
+  { name: "Black", hex: "#3A3B38" },
+  { name: "Key Lime", hex: "#C5CB6E" },
+  { name: "Kiwi", hex: "#A7B35E" },
+  { name: "Silver", hex: "#929A96" },
+  { name: "Mocha", hex: "#7B6759" },
+];
+
+// Combined color palette
 const LAYKOLD_COLORS = [
-  { name: "US Open Blue", hex: "#1A3D8E" },
-  { name: "US Open Green", hex: "#6DBE45" },
-  { name: "Pro Blue", hex: "#004C97" },
-  { name: "Dark Green", hex: "#006341" },
-  { name: "Medium Green", hex: "#009639" },
-  { name: "Forest Green", hex: "#004B28" },
-  { name: "Brick Red", hex: "#A4343A" },
-  { name: "Terracotta", hex: "#C75146" },
-  { name: "Light Blue", hex: "#0076BE" },
-  { name: "Light Green", hex: "#8DC63F" },
-  { name: "Championship Purple", hex: "#532D82" },
-  { name: "Cool Gray", hex: "#9A9A9A" },
-  { name: "Clay Red", hex: "#B84131" },
-  { name: "Tan", hex: "#D9B382" },
   { name: "White", hex: "#FFFFFF" },
+  ...STANDARD_COLORS,
+  ...VIBRANT_COLORS,
 ];
 
 const CourtViewer = () => {
   const [courtType, setCourtType] = useState("pickleball");
-  const [surfaceColor, setSurfaceColor] = useState("#1A3D8E");
+  const [surfaceColor, setSurfaceColor] = useState("#426C85");
   const [lineColor, setLineColor] = useState("#FFFFFF");
-  const [kitchenColor, setKitchenColor] = useState("#6DBE45");
-  const [outOfBoundsColor, setOutOfBoundsColor] = useState("#0076BE");
+  const [kitchenColor, setKitchenColor] = useState("#6E7D63");
+  const [outOfBoundsColor, setOutOfBoundsColor] = useState("#3498B5");
   const [lineWidth, setLineWidth] = useState(2);
   const [showLabels, setShowLabels] = useState(true);
   const [zoom, setZoom] = useState(1);
