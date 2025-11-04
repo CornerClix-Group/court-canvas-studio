@@ -26,7 +26,17 @@ const ContactForm = () => {
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+      // Send to GHL webhook
+      await fetch("https://services.leadconnectorhq.com/hooks/wEXcLP94Y29VkPdnNdKw/webhook-trigger/de6d6d01-16dc-4cd5-b822-86f03f64dc40", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(formData)
+      });
+
+      // Send email notification
+      const { error } = await supabase.functions.invoke('send-contact-email', {
         body: formData,
       });
 
@@ -45,7 +55,7 @@ const ContactForm = () => {
         notes: "",
       });
     } catch (error: any) {
-      console.error("Error sending email:", error);
+      console.error("Error sending request:", error);
       toast.error("Failed to send your request. Please try calling or emailing us directly.");
     } finally {
       setIsSubmitting(false);
