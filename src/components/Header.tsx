@@ -40,7 +40,7 @@ const Header = () => {
           <a href="https://www.facebook.com/people/CourtPro-Augusta/61582961717793/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Facebook">
             <Facebook className="w-5 h-5" />
           </a>
-          <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
+          <a href="https://www.instagram.com/courtpro_augusta/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
             <Instagram className="w-5 h-5" />
           </a>
           <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="LinkedIn">
