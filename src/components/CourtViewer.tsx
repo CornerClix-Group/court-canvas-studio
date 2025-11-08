@@ -148,23 +148,55 @@ const CourtViewer = () => {
       const courtW = 50 * scale;
       const courtL = 94 * scale;
       const oobPadding = 10 * scale;
+      const keyW = 16 * scale; // Width of free throw lane
+      const keyL = 19 * scale; // Length from baseline to free throw line
+      const threePointRadius = 23.75 * scale; // 3-point arc radius
+      const centerCircleRadius = 6 * scale;
       const w = 1200, h = 900;
       const x0 = (w - courtW - oobPadding * 2) / 2;
       const y0 = (h - courtL - oobPadding * 2) / 2;
+      const cx = x0 + oobPadding + courtW / 2;
 
       return (
         <svg xmlns="http://www.w3.org/2000/svg" width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="w-full">
+          {/* Out of bounds */}
           <rect x={x0} y={y0} width={courtW + oobPadding * 2} height={courtL + oobPadding * 2} fill={outOfBoundsColor} rx="8" />
+          {/* Court surface */}
           <rect x={x0 + oobPadding} y={y0 + oobPadding} width={courtW} height={courtL} fill={surfaceColor} rx="4" />
+          
+          {/* Perimeter */}
           <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0 + oobPadding + courtW} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0 + oobPadding} y1={y0 + oobPadding + courtL} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Half court line */}
           <line x1={x0 + oobPadding} y1={y0 + oobPadding + courtL / 2} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL / 2} stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Center circle */}
+          <circle cx={cx} cy={y0 + oobPadding + courtL / 2} r={centerCircleRadius} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Bottom court - Key/Paint */}
+          <rect x={cx - keyW / 2} y={y0 + oobPadding + courtL - keyL} width={keyW} height={keyL} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          {/* Free throw circle */}
+          <circle cx={cx} cy={y0 + oobPadding + courtL - keyL} r={6 * scale} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          {/* 3-point arc - bottom */}
+          <path d={`M ${cx - 22 * scale} ${y0 + oobPadding + courtL} A ${threePointRadius} ${threePointRadius} 0 0 1 ${cx + 22 * scale} ${y0 + oobPadding + courtL}`} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          <line x1={cx - 22 * scale} y1={y0 + oobPadding + courtL} x2={cx - 22 * scale} y2={y0 + oobPadding + courtL - 5.25 * scale} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={cx + 22 * scale} y1={y0 + oobPadding + courtL} x2={cx + 22 * scale} y2={y0 + oobPadding + courtL - 5.25 * scale} stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Top court - Key/Paint */}
+          <rect x={cx - keyW / 2} y={y0 + oobPadding} width={keyW} height={keyL} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          {/* Free throw circle */}
+          <circle cx={cx} cy={y0 + oobPadding + keyL} r={6 * scale} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          {/* 3-point arc - top */}
+          <path d={`M ${cx - 22 * scale} ${y0 + oobPadding} A ${threePointRadius} ${threePointRadius} 0 0 0 ${cx + 22 * scale} ${y0 + oobPadding}`} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          <line x1={cx - 22 * scale} y1={y0 + oobPadding} x2={cx - 22 * scale} y2={y0 + oobPadding + 5.25 * scale} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={cx + 22 * scale} y1={y0 + oobPadding} x2={cx + 22 * scale} y2={y0 + oobPadding + 5.25 * scale} stroke={lineColor} strokeWidth={linePx} />
+          
           {showLabels && (
             <g className="text-xs fill-secondary">
-              <text x={x0 + oobPadding + courtW / 2} y={y0 + oobPadding - 10} textAnchor="middle" className="text-xs">Basketball Full Court</text>
-              <text x={x0 + oobPadding + courtW / 2} y={y0 + oobPadding + courtL / 2} textAnchor="middle" className="text-xs">Half Court Line</text>
+              <text x={cx} y={y0 + oobPadding - 10} textAnchor="middle">Basketball Full Court (94' × 50')</text>
             </g>
           )}
         </svg>
@@ -175,21 +207,48 @@ const CourtViewer = () => {
       const courtW = 50 * scale;
       const courtL = 47 * scale;
       const oobPadding = 10 * scale;
+      const keyW = 16 * scale;
+      const keyL = 19 * scale;
+      const threePointRadius = 23.75 * scale;
+      const centerCircleRadius = 6 * scale;
       const w = 1200, h = 700;
       const x0 = (w - courtW - oobPadding * 2) / 2;
       const y0 = (h - courtL - oobPadding * 2) / 2;
+      const cx = x0 + oobPadding + courtW / 2;
 
       return (
         <svg xmlns="http://www.w3.org/2000/svg" width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="w-full">
+          {/* Out of bounds */}
           <rect x={x0} y={y0} width={courtW + oobPadding * 2} height={courtL + oobPadding * 2} fill={outOfBoundsColor} rx="8" />
+          {/* Court surface */}
           <rect x={x0 + oobPadding} y={y0 + oobPadding} width={courtW} height={courtL} fill={surfaceColor} rx="4" />
+          
+          {/* Perimeter */}
           <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0 + oobPadding + courtW} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding} stroke={lineColor} strokeWidth={linePx} />
           <line x1={x0 + oobPadding} y1={y0 + oobPadding + courtL} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding + courtL} stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Half court line at top (center of full court) */}
+          <line x1={x0 + oobPadding} y1={y0 + oobPadding} x2={x0 + oobPadding + courtW} y2={y0 + oobPadding} stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Center circle (partial, at top) */}
+          <path d={`M ${cx - centerCircleRadius} ${y0 + oobPadding} A ${centerCircleRadius} ${centerCircleRadius} 0 0 0 ${cx + centerCircleRadius} ${y0 + oobPadding}`} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Key/Paint */}
+          <rect x={cx - keyW / 2} y={y0 + oobPadding + courtL - keyL} width={keyW} height={keyL} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* Free throw circle */}
+          <circle cx={cx} cy={y0 + oobPadding + courtL - keyL} r={6 * scale} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          
+          {/* 3-point arc */}
+          <path d={`M ${cx - 22 * scale} ${y0 + oobPadding + courtL} A ${threePointRadius} ${threePointRadius} 0 0 1 ${cx + 22 * scale} ${y0 + oobPadding + courtL}`} fill="none" stroke={lineColor} strokeWidth={linePx} />
+          <line x1={cx - 22 * scale} y1={y0 + oobPadding + courtL} x2={cx - 22 * scale} y2={y0 + oobPadding + courtL - 5.25 * scale} stroke={lineColor} strokeWidth={linePx} />
+          <line x1={cx + 22 * scale} y1={y0 + oobPadding + courtL} x2={cx + 22 * scale} y2={y0 + oobPadding + courtL - 5.25 * scale} stroke={lineColor} strokeWidth={linePx} />
+          
           {showLabels && (
             <g className="text-xs fill-secondary">
-              <text x={x0 + oobPadding + courtW / 2} y={y0 + oobPadding - 10} textAnchor="middle" className="text-xs">Basketball Half Court</text>
+              <text x={cx} y={y0 + oobPadding + courtL + 20} textAnchor="middle">Basketball Half Court (47' × 50')</text>
             </g>
           )}
         </svg>

@@ -84,6 +84,9 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
       const courtW = 50;
       const courtL = 94;
       const oobPadding = 10;
+      const keyW = 16;
+      const keyL = 19;
+      const lw = lineWidth / 12;
       
       return (
         <group>
@@ -99,25 +102,55 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
             <meshStandardMaterial color={surfaceColor} />
           </mesh>
           
-          {/* Lines */}
+          {/* Perimeter lines */}
           <mesh position={[-courtW / 2, surfaceHeight + lineHeight / 2, 0]}>
-            <boxGeometry args={[lineWidth / 12, lineHeight, courtL]} />
+            <boxGeometry args={[lw, lineHeight, courtL]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
           <mesh position={[courtW / 2, surfaceHeight + lineHeight / 2, 0]}>
-            <boxGeometry args={[lineWidth / 12, lineHeight, courtL]} />
+            <boxGeometry args={[lw, lineHeight, courtL]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
           <mesh position={[0, surfaceHeight + lineHeight / 2, -courtL / 2]}>
-            <boxGeometry args={[courtW, lineHeight, lineWidth / 12]} />
+            <boxGeometry args={[courtW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
           <mesh position={[0, surfaceHeight + lineHeight / 2, courtL / 2]}>
-            <boxGeometry args={[courtW, lineHeight, lineWidth / 12]} />
+            <boxGeometry args={[courtW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
+          
+          {/* Half court line */}
           <mesh position={[0, surfaceHeight + lineHeight / 2, 0]}>
-            <boxGeometry args={[courtW, lineHeight, lineWidth / 12]} />
+            <boxGeometry args={[courtW, lineHeight, lw]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          
+          {/* Bottom court - Key */}
+          <mesh position={[-keyW / 2, surfaceHeight + lineHeight / 2, courtL / 2 - keyL / 2]}>
+            <boxGeometry args={[lw, lineHeight, keyL]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          <mesh position={[keyW / 2, surfaceHeight + lineHeight / 2, courtL / 2 - keyL / 2]}>
+            <boxGeometry args={[lw, lineHeight, keyL]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          <mesh position={[0, surfaceHeight + lineHeight / 2, courtL / 2 - keyL]}>
+            <boxGeometry args={[keyW, lineHeight, lw]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          
+          {/* Top court - Key */}
+          <mesh position={[-keyW / 2, surfaceHeight + lineHeight / 2, -courtL / 2 + keyL / 2]}>
+            <boxGeometry args={[lw, lineHeight, keyL]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          <mesh position={[keyW / 2, surfaceHeight + lineHeight / 2, -courtL / 2 + keyL / 2]}>
+            <boxGeometry args={[lw, lineHeight, keyL]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          <mesh position={[0, surfaceHeight + lineHeight / 2, -courtL / 2 + keyL]}>
+            <boxGeometry args={[keyW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
         </group>
@@ -128,6 +161,9 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
       const courtW = 50;
       const courtL = 47;
       const oobPadding = 10;
+      const keyW = 16;
+      const keyL = 19;
+      const lw = lineWidth / 12;
       
       return (
         <group>
@@ -143,21 +179,35 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
             <meshStandardMaterial color={surfaceColor} />
           </mesh>
           
-          {/* Lines */}
+          {/* Perimeter lines */}
           <mesh position={[-courtW / 2, surfaceHeight + lineHeight / 2, 0]}>
-            <boxGeometry args={[lineWidth / 12, lineHeight, courtL]} />
+            <boxGeometry args={[lw, lineHeight, courtL]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
           <mesh position={[courtW / 2, surfaceHeight + lineHeight / 2, 0]}>
-            <boxGeometry args={[lineWidth / 12, lineHeight, courtL]} />
+            <boxGeometry args={[lw, lineHeight, courtL]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
           <mesh position={[0, surfaceHeight + lineHeight / 2, -courtL / 2]}>
-            <boxGeometry args={[courtW, lineHeight, lineWidth / 12]} />
+            <boxGeometry args={[courtW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
           <mesh position={[0, surfaceHeight + lineHeight / 2, courtL / 2]}>
-            <boxGeometry args={[courtW, lineHeight, lineWidth / 12]} />
+            <boxGeometry args={[courtW, lineHeight, lw]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          
+          {/* Key */}
+          <mesh position={[-keyW / 2, surfaceHeight + lineHeight / 2, courtL / 2 - keyL / 2]}>
+            <boxGeometry args={[lw, lineHeight, keyL]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          <mesh position={[keyW / 2, surfaceHeight + lineHeight / 2, courtL / 2 - keyL / 2]}>
+            <boxGeometry args={[lw, lineHeight, keyL]} />
+            <meshStandardMaterial color={lineColor} />
+          </mesh>
+          <mesh position={[0, surfaceHeight + lineHeight / 2, courtL / 2 - keyL]}>
+            <boxGeometry args={[keyW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
         </group>
