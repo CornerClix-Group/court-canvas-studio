@@ -2,8 +2,7 @@ import ReactGA from "react-ga4";
 import { sha256 } from "js-sha256";
 import Cookies from "js-cookie";
 
-// Replace with your actual GA4 measurement ID
-const GA4_MEASUREMENT_ID = "G-XXXXXXXXXX"; // TODO: Replace with actual GA4 ID
+const GA4_MEASUREMENT_ID = "G-2TFVZFCEV4";
 
 let isInitialized = false;
 
