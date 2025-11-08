@@ -1,11 +1,23 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Facebook, Instagram, Linkedin } from "lucide-react";
+import { Facebook, Instagram, Linkedin, Menu } from "lucide-react";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import logo from "@/assets/courtpro-logo-transparent.png";
 
 const Header = () => {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     element?.scrollIntoView({ behavior: "smooth" });
+    setDrawerOpen(false);
   };
 
   return (
@@ -32,7 +44,39 @@ const Header = () => {
               Contact
             </button>
           </nav>
-          <Button onClick={() => scrollToSection("contact")} size="lg" className="font-semibold">
+          
+          {/* Mobile Menu */}
+          <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <DrawerTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Menu</DrawerTitle>
+              </DrawerHeader>
+              <nav className="flex flex-col gap-4 p-4">
+                <button onClick={() => scrollToSection("work")} className="text-left py-2 hover:text-primary transition-colors">
+                  Our Work
+                </button>
+                <button onClick={() => scrollToSection("process")} className="text-left py-2 hover:text-primary transition-colors">
+                  Process
+                </button>
+                <button onClick={() => scrollToSection("viewer")} className="text-left py-2 hover:text-primary transition-colors">
+                  Court Viewer
+                </button>
+                <button onClick={() => scrollToSection("services")} className="text-left py-2 hover:text-primary transition-colors">
+                  Services
+                </button>
+                <button onClick={() => scrollToSection("contact")} className="text-left py-2 hover:text-primary transition-colors">
+                  Contact
+                </button>
+              </nav>
+            </DrawerContent>
+          </Drawer>
+          
+          <Button onClick={() => scrollToSection("contact")} size="lg" className="hidden md:inline-flex font-semibold">
             Request a Quote
           </Button>
         </div>
