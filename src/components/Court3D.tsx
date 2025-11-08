@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Line } from "@react-three/drei";
 import * as THREE from "three";
 
 interface Court3DProps {
@@ -86,8 +86,41 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
       const oobPadding = 10;
       const keyW = 16;
       const keyL = 19;
+      const cornerOffsetX = 22;
+      const threePointRadius = 23.75;
+      const basketOffset = 4.75;
+      const centerCircleR = 6;
       const lw = lineWidth / 12;
       
+      const yLine = surfaceHeight + lineHeight + 0.001;
+
+      // Helpers to build circle/arc lines in XZ plane
+      const circlePoints = (centerZ: number, r: number, segments = 96) => {
+        const curve = new THREE.EllipseCurve(0, 0, r, r, 0, Math.PI * 2);
+        const pts = curve.getPoints(segments);
+        return pts.map((p) => new THREE.Vector3(p.x, yLine, p.y + centerZ));
+      };
+      const arcPoints = (
+        centerZ: number,
+        r: number,
+        start: number,
+        end: number,
+        segments = 96,
+      ) => {
+        const curve = new THREE.EllipseCurve(0, 0, r, r, start, end);
+        const pts = curve.getPoints(segments);
+        return pts.map((p) => new THREE.Vector3(p.x, yLine, p.y + centerZ));
+      };
+
+      // Hoop centers
+      const hoopBottomZ = courtL / 2 - basketOffset;
+      const hoopTopZ = -courtL / 2 + basketOffset;
+
+      // Intersection with straight corner lines
+      const delta = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - cornerOffsetX * cornerOffsetX));
+      const arcBottomZ = hoopBottomZ - delta;
+      const arcTopZ = hoopTopZ + delta;
+
       return (
         <group>
           {/* Out of bounds */}
@@ -126,7 +159,8 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
             <meshStandardMaterial color={lineColor} />
           </mesh>
           
-          {/* Bottom court - Key */}
+          {/* Keys (paint) */}
+          {/* Bottom */}
           <mesh position={[-keyW / 2, surfaceHeight + lineHeight / 2, courtL / 2 - keyL / 2]}>
             <boxGeometry args={[lw, lineHeight, keyL]} />
             <meshStandardMaterial color={lineColor} />
@@ -139,8 +173,7 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
             <boxGeometry args={[keyW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
-          
-          {/* Top court - Key */}
+          {/* Top */}
           <mesh position={[-keyW / 2, surfaceHeight + lineHeight / 2, -courtL / 2 + keyL / 2]}>
             <boxGeometry args={[lw, lineHeight, keyL]} />
             <meshStandardMaterial color={lineColor} />
@@ -153,6 +186,47 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
             <boxGeometry args={[keyW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
+
+          {/* Circles */}
+          {/* Center circle */}
+          <Line points={circlePoints(0, centerCircleR)} color={lineColor} />
+          {/* Free throw circles */}
+          <Line points={circlePoints(courtL / 2 - keyL, 6)} color={lineColor} />
+          <Line points={circlePoints(-courtL / 2 + keyL, 6)} color={lineColor} />
+
+          {/* 3-point - bottom */}
+          {/* Corner straight lines */}
+          <Line points={[
+            new THREE.Vector3(-cornerOffsetX, yLine, courtL / 2),
+            new THREE.Vector3(-cornerOffsetX, yLine, arcBottomZ),
+          ]} color={lineColor} />
+          <Line points={[
+            new THREE.Vector3(cornerOffsetX, yLine, courtL / 2),
+            new THREE.Vector3(cornerOffsetX, yLine, arcBottomZ),
+          ]} color={lineColor} />
+          {/* Arc */}
+          {(() => {
+            const alpha = Math.acos(cornerOffsetX / threePointRadius);
+            return (
+              <Line points={arcPoints(hoopBottomZ, threePointRadius, Math.PI + alpha, 2 * Math.PI - alpha)} color={lineColor} />
+            );
+          })()}
+
+          {/* 3-point - top */}
+          <Line points={[
+            new THREE.Vector3(-cornerOffsetX, yLine, -courtL / 2),
+            new THREE.Vector3(-cornerOffsetX, yLine, arcTopZ),
+          ]} color={lineColor} />
+          <Line points={[
+            new THREE.Vector3(cornerOffsetX, yLine, -courtL / 2),
+            new THREE.Vector3(cornerOffsetX, yLine, arcTopZ),
+          ]} color={lineColor} />
+          {(() => {
+            const alpha = Math.acos(cornerOffsetX / threePointRadius);
+            return (
+              <Line points={arcPoints(hoopTopZ, threePointRadius, alpha, Math.PI - alpha)} color={lineColor} />
+            );
+          })()}
         </group>
       );
     }
@@ -163,8 +237,33 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
       const oobPadding = 10;
       const keyW = 16;
       const keyL = 19;
+      const cornerOffsetX = 22;
+      const threePointRadius = 23.75;
+      const basketOffset = 4.75;
       const lw = lineWidth / 12;
-      
+      const yLine = surfaceHeight + lineHeight + 0.001;
+
+      const circlePoints = (centerZ: number, r: number, segments = 96) => {
+        const curve = new THREE.EllipseCurve(0, 0, r, r, 0, Math.PI * 2);
+        const pts = curve.getPoints(segments);
+        return pts.map((p) => new THREE.Vector3(p.x, yLine, p.y + centerZ));
+      };
+      const arcPoints = (
+        centerZ: number,
+        r: number,
+        start: number,
+        end: number,
+        segments = 96,
+      ) => {
+        const curve = new THREE.EllipseCurve(0, 0, r, r, start, end);
+        const pts = curve.getPoints(segments);
+        return pts.map((p) => new THREE.Vector3(p.x, yLine, p.y + centerZ));
+      };
+
+      const hoopBottomZ = courtL / 2 - basketOffset;
+      const delta = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - cornerOffsetX * cornerOffsetX));
+      const arcBottomZ = hoopBottomZ - delta;
+
       return (
         <group>
           {/* Out of bounds */}
@@ -196,7 +295,7 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
             <boxGeometry args={[courtW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
-          
+
           {/* Key */}
           <mesh position={[-keyW / 2, surfaceHeight + lineHeight / 2, courtL / 2 - keyL / 2]}>
             <boxGeometry args={[lw, lineHeight, keyL]} />
@@ -210,6 +309,25 @@ const Court3D = ({ courtType, surfaceColor, lineColor, kitchenColor, outOfBounds
             <boxGeometry args={[keyW, lineHeight, lw]} />
             <meshStandardMaterial color={lineColor} />
           </mesh>
+
+          {/* Free throw circle */}
+          <Line points={circlePoints(courtL / 2 - keyL, 6)} color={lineColor} />
+
+          {/* 3-point - bottom */}
+          <Line points={[
+            new THREE.Vector3(-cornerOffsetX, yLine, courtL / 2),
+            new THREE.Vector3(-cornerOffsetX, yLine, arcBottomZ),
+          ]} color={lineColor} />
+          <Line points={[
+            new THREE.Vector3(cornerOffsetX, yLine, courtL / 2),
+            new THREE.Vector3(cornerOffsetX, yLine, arcBottomZ),
+          ]} color={lineColor} />
+          {(() => {
+            const alpha = Math.acos(cornerOffsetX / threePointRadius);
+            return (
+              <Line points={arcPoints(hoopBottomZ, threePointRadius, Math.PI + alpha, 2 * Math.PI - alpha)} color={lineColor} />
+            );
+          })()}
         </group>
       );
     }
