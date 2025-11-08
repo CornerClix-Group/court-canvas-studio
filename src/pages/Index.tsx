@@ -8,6 +8,7 @@ import Testimonials from "@/components/Testimonials";
 import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
+import CookieBanner from "@/components/CookieBanner";
 
 const Index = () => {
   return (
@@ -24,6 +25,7 @@ const Index = () => {
       </main>
       <Footer />
       <Chatbot />
+      <CookieBanner />
     </div>
   );
 };

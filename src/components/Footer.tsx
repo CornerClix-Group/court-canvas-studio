@@ -56,8 +56,14 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="pt-6 border-t border-border text-xs text-muted-foreground">
-          This site features Laykold color options. CourtPro Augusta is not affiliated with Laykold.
+        <div className="pt-6 border-t border-border">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
+            <p>This site features Laykold color options. CourtPro Augusta is not affiliated with Laykold.</p>
+            <div className="flex gap-4">
+              <a href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</a>
+              <a href="/terms" className="hover:text-primary transition-colors">Terms of Service</a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
