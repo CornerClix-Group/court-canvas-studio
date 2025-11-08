@@ -26,8 +26,8 @@ const ContactForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Send to GHL webhook
-      await fetch("https://services.leadconnectorhq.com/hooks/wEXcLP94Y29VkPdnNdKw/webhook-trigger/de6d6d01-16dc-4cd5-b822-86f03f64dc40", {
+      // Send to n8n webhook
+      await fetch("https://n8n.srv1047215.hstgr.cloud/webhook/courtpro-leads", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
