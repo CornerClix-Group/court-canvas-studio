@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
@@ -5,6 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const CourtResurfacing = () => {
+  useEffect(() => {
+    document.title = "Court Resurfacing & Crack Repair Augusta | CourtPro";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Tennis and pickleball court resurfacing in Augusta, GA. We fix cracks, puddles, and fade. Restore your court with CourtPro Augusta. Free estimates.");
+    }
+  }, []);
+
   const scrollToContact = () => {
     const element = document.getElementById("contact");
     element?.scrollIntoView({ behavior: "smooth" });
@@ -17,76 +26,77 @@ const CourtResurfacing = () => {
         {/* Hero Section */}
         <section className="py-16 md:py-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
           <div className="max-w-7xl mx-auto px-4">
-            <h1 className="text-3xl md:text-5xl font-black leading-tight text-secondary mb-6">
-              Court Resurfacing & Renovations in Augusta
+            <h1 className="text-3xl md:text-5xl font-black leading-tight text-secondary mb-4">
+              Tennis & Pickleball Court Resurfacing & Repair
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-3xl mb-8">
-              Expert court resurfacing, crack remediation, leveling, drainage fixes, and precision line 
-              repainting. Restore your tennis, pickleball, or basketball court to like-new condition. 
-              Serving Augusta, Evans, Martinez, and the surrounding CSRA area.
+            <p className="text-xl md:text-2xl text-primary font-semibold mb-6">
+              Restore your court's safety, appearance, and playability.
+            </p>
+            <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl mb-8">
+              Is your court faded, cracking, or holding water ("birdbaths")? The Georgia and South Carolina sun can be harsh on court surfaces. CourtPro Augusta provides comprehensive restoration services to bring your court back to life. We don't just paint over problems; we fix the underlying issues.
             </p>
             <Button onClick={scrollToContact} size="lg" className="font-semibold shadow-lg">
-              Request a Quote
+              Get a Free Estimate
             </Button>
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Our Restoration Services */}
         <section className="py-16 md:py-24 bg-background">
           <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-black text-secondary mb-12">
-              Our Resurfacing Services
+              Our Restoration Services
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 gap-8">
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Complete Resurfacing</h3>
+                  <h3 className="font-bold text-xl text-secondary">Crack Repair</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Full court resurfacing with premium Laykold acrylic or cushioned systems.
+                    We utilize advanced crack-filling systems and membrane technologies to bridge existing cracks and prevent them from mirroring through the new surface.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Crack Remediation</h3>
+                  <h3 className="font-bold text-xl text-secondary">Resurfacing</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Professional crack repair using industry-leading techniques and materials.
+                    Application of new acrylic resurfacer and color coats to restore texture (speed of play) and vibrant aesthetics.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Drainage Solutions</h3>
+                  <h3 className="font-bold text-xl text-secondary">Puddle Correction</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Fix standing water issues with proper grading and drainage system installation.
+                    We patch and level low spots (birdbaths) to ensure your court dries quickly after a rainstorm.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Line Repainting</h3>
+                  <h3 className="font-bold text-xl text-secondary">Re-Striping</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Precision line striping for tennis, pickleball, basketball, or multi-sport configurations.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
-                <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Color Changes</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Update your court colors with fresh Laykold surfacing in your choice of colors.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
-                <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Net & Post Replacement</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Replace worn net systems and posts with professional-grade equipment.
+                    Precision line painting for tennis, pickleball, or basketball with crisp, sharp edges.
                   </p>
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </section>
+
+        {/* Advice Section */}
+        <section className="py-16 md:py-24 bg-card">
+          <div className="max-w-7xl mx-auto px-4">
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-8">
+                <h2 className="text-2xl md:text-3xl font-black text-secondary mb-4">
+                  When to Resurface Your Court
+                </h2>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  Most hard courts require resurfacing every 5–7 years. If you notice fading colors, slippery texture, or surface delamination, it's time to call the experts at CourtPro.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </section>
 
