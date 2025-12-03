@@ -4,6 +4,17 @@ import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import JsonLd, { businessData } from "@/components/JsonLd";
+
+const serviceSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Court Resurfacing & Repair",
+  description: "Tennis and pickleball court resurfacing, crack repair, puddle correction, and re-striping services in Augusta, GA and surrounding areas.",
+  provider: businessData,
+  areaServed: businessData.areaServed,
+  serviceType: "Court Maintenance",
+};
 
 const CourtResurfacing = () => {
   useEffect(() => {
@@ -21,6 +32,7 @@ const CourtResurfacing = () => {
 
   return (
     <div className="min-h-screen">
+      <JsonLd data={serviceSchema} />
       <Header />
       <main>
         {/* Hero Section */}

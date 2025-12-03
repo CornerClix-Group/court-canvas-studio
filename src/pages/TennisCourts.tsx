@@ -4,6 +4,17 @@ import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import JsonLd, { businessData } from "@/components/JsonLd";
+
+const serviceSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Tennis Court Construction",
+  description: "Professional tennis court construction with laser grading, post-tension concrete foundations, and custom Laykold surfacing for homes, schools, and clubs.",
+  provider: businessData,
+  areaServed: businessData.areaServed,
+  serviceType: "Court Construction",
+};
 
 const TennisCourts = () => {
   useEffect(() => {
@@ -21,6 +32,7 @@ const TennisCourts = () => {
 
   return (
     <div className="min-h-screen">
+      <JsonLd data={serviceSchema} />
       <Header />
       <main>
         {/* Hero Section */}
