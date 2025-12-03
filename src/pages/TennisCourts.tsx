@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import Chatbot from "@/components/Chatbot";
+import CookieBanner from "@/components/CookieBanner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import JsonLd, { businessData } from "@/components/JsonLd";
@@ -108,6 +110,8 @@ const TennisCourts = () => {
         <ContactForm />
       </main>
       <Footer />
+      <Chatbot />
+      <CookieBanner />
     </div>
   );
 };

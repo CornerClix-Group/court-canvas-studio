@@ -47,8 +47,8 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
         state: formData.state,
       });
 
-      // POST to GHL webhook
-      const webhookUrl = "https://YOUR-GHL-WEBHOOK-URL.com"; // TODO: Replace with actual webhook URL
+      // POST to n8n webhook for lead capture
+      const webhookUrl = "https://n8n.srv1047215.hstgr.cloud/webhook/courtpro-leads";
       
       const response = await fetch(webhookUrl, {
         method: "POST",

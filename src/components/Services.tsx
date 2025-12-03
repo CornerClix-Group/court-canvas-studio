@@ -24,7 +24,7 @@ const services = [
     title: "Multi-Sport Courts",
     description:
       "Versatile courts for pickleball, tennis, basketball, and more. Custom line configurations to maximize your space.",
-    link: null,
+    link: "/multi-sport-courts",
   },
   {
     title: "Renovations & Resurfacing",
