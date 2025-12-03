@@ -11,19 +11,19 @@ import JsonLd, { businessData } from "@/components/JsonLd";
 const serviceSchema = {
   "@context": "https://schema.org",
   "@type": "Service",
-  name: "Basketball Court Construction",
-  description: "Custom basketball court construction for residential and commercial properties including full-court and half-court designs with premium Laykold surfacing.",
+  name: "Multi-Sport Court Construction",
+  description: "Versatile multi-sport court construction combining pickleball, tennis, basketball, and more with custom line configurations for homes and facilities.",
   provider: businessData,
   areaServed: businessData.areaServed,
   serviceType: "Court Construction",
 };
 
-const BasketballCourts = () => {
+const MultiSportCourts = () => {
   useEffect(() => {
-    document.title = "Basketball Court Builders Augusta & Evans | CourtPro";
+    document.title = "Multi-Sport Court Builders Augusta | CourtPro";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute("content", "Custom basketball court construction in Augusta, GA. Full-court and half-court designs with premium surfacing, LED lighting, and professional hoop systems.");
+      metaDescription.setAttribute("content", "Multi-sport court construction in Augusta, GA. Combine pickleball, tennis, basketball on one surface. Custom line configurations for maximum versatility.");
     }
   }, []);
 
@@ -41,13 +41,13 @@ const BasketballCourts = () => {
         <section className="py-16 md:py-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
           <div className="max-w-7xl mx-auto px-4">
             <h1 className="text-3xl md:text-5xl font-black leading-tight text-secondary mb-4">
-              Custom Basketball Court Construction in Augusta
+              Multi-Sport Court Construction in Augusta
             </h1>
             <p className="text-xl md:text-2xl text-primary font-semibold mb-6">
-              From backyard half-courts to full-size regulation courts, we build game-ready surfaces designed to perform.
+              One court, endless possibilities. Maximize your space with versatile multi-sport designs.
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl mb-8">
-              Whether you're looking to add a half-court to your Evans backyard, build a full-size court for your Grovetown property, or develop a multi-court facility, CourtPro Augusta delivers professional-grade basketball courts with precision engineering and premium finishes. We handle everything from site preparation to the final slam dunk.
+              Why choose one sport when you can have them all? CourtPro Augusta specializes in designing multi-sport courts that seamlessly combine pickleball, tennis, basketball, and more on a single surface. Perfect for families, schools, HOAs, and recreation centers looking to maximize their investment.
             </p>
             <Button onClick={scrollToContact} size="lg" className="font-semibold shadow-lg">
               Get a Free Quote
@@ -55,34 +55,34 @@ const BasketballCourts = () => {
           </div>
         </section>
 
-        {/* The CourtPro Advantage */}
+        {/* Popular Combinations */}
         <section className="py-16 md:py-24 bg-background">
           <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-black text-secondary mb-12">
-              The CourtPro Advantage
+              Popular Combinations
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Premium Surfacing</h3>
+                  <h3 className="font-bold text-xl text-secondary">Tennis + Pickleball</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    We use official Laykold® acrylic systems for optimal ball bounce, traction, and durability in Georgia's climate.
+                    The most popular combo—fit 2-4 pickleball courts on a single tennis court with clearly defined lines in contrasting colors.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Pro-Grade Hoop Systems</h3>
+                  <h3 className="font-bold text-xl text-secondary">Basketball + Pickleball</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    We install adjustable and fixed-height goal systems with tempered glass or acrylic backboards built to last.
+                    Perfect for families—a half-court basketball setup with pickleball lines overlaid for maximum versatility.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">LED Court Lighting</h3>
+                  <h3 className="font-bold text-xl text-secondary">Triple Sport</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    High-output LED systems for evening games with even illumination and minimal glare—play after dark.
+                    Basketball, pickleball, and tennis on one surface—ideal for schools and community centers with limited space.
                   </p>
                 </CardContent>
               </Card>
@@ -90,62 +90,62 @@ const BasketballCourts = () => {
           </div>
         </section>
 
-        {/* Court Options */}
+        {/* Design Expertise */}
         <section className="py-16 md:py-24 bg-card">
           <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-black text-secondary mb-12">
-              Court Options
+              Our Design Expertise
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 gap-8">
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Full-Court (94' x 50')</h3>
+                  <h3 className="font-bold text-xl text-secondary">Strategic Line Colors</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Regulation NBA/NCAA dimensions with complete line markings, center circle, three-point lines, and keys.
+                    We use contrasting colors from the Laykold palette to ensure each sport's lines are clearly distinguishable without visual clutter.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Half-Court (47' x 50')</h3>
+                  <h3 className="font-bold text-xl text-secondary">Proper Dimensions</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Perfect for residential properties—full regulation half-court with three-point line, key, and free-throw circle.
+                    Every sport maintains regulation dimensions—no compromises on playability or safety.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Multi-Sport Courts</h3>
+                  <h3 className="font-bold text-xl text-secondary">Equipment Planning</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Combine basketball with pickleball or tennis lines for maximum versatility without visual clutter.
+                    We help you select removable nets, adjustable hoops, and portable equipment for quick sport transitions.
                   </p>
                 </CardContent>
               </Card>
               <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
                 <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Custom Color Schemes</h3>
+                  <h3 className="font-bold text-xl text-secondary">Future-Proof Design</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Choose from the full Laykold color chart to match your favorite team, school colors, or home aesthetic.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
-                <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Post-Tension Concrete</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Crack-resistant foundation built to withstand Georgia's clay soil and temperature fluctuations.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary">
-                <CardContent className="p-6 space-y-3">
-                  <h3 className="font-bold text-xl text-secondary">Containment Fencing</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Keep the ball in play with professional fencing systems designed for basketball courts.
+                    Want to add another sport later? We plan for expansion so you can add new lines without full resurfacing.
                   </p>
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </section>
+
+        {/* Value Proposition */}
+        <section className="py-16 md:py-24 bg-background">
+          <div className="max-w-7xl mx-auto px-4">
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-8">
+                <h2 className="text-2xl md:text-3xl font-black text-secondary mb-4">
+                  Maximize Your Investment
+                </h2>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  A multi-sport court costs only 10-15% more than a single-sport court but delivers 3x the value. Keep the whole family active, host diverse events, and future-proof your property with a versatile playing surface.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </section>
 
@@ -159,4 +159,4 @@ const BasketballCourts = () => {
   );
 };
 
-export default BasketballCourts;
+export default MultiSportCourts;

@@ -11,6 +11,7 @@ import PickleballCourts from "./pages/PickleballCourts";
 import TennisCourts from "./pages/TennisCourts";
 import CourtResurfacing from "./pages/CourtResurfacing";
 import BasketballCourts from "./pages/BasketballCourts";
+import MultiSportCourts from "./pages/MultiSportCourts";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/tennis-courts" element={<TennisCourts />} />
           <Route path="/court-resurfacing" element={<CourtResurfacing />} />
           <Route path="/basketball-courts" element={<BasketballCourts />} />
+          <Route path="/multi-sport-courts" element={<MultiSportCourts />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
