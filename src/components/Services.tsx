@@ -18,7 +18,7 @@ const services = [
     title: "Basketball Courts",
     description:
       "Full-size and half-court designs. Premium surfacing, regulation lines, hoop systems, LED lighting, and multi-sport striping options.",
-    link: null,
+    link: "/basketball-courts",
   },
   {
     title: "Multi-Sport Courts",
