@@ -45,43 +45,49 @@ const projects = [
     video: video2,
     category: "Construction",
     sport: "Process",
-    title: "Court Construction Process",
+    title: "Site Grading & Base Preparation",
     description: "Professional grading, base preparation, and surface installation.",
+    videoLabel: "Time-lapse video showing professional site grading and base preparation for a sport court",
   },
   {
     video: video3,
     category: "Construction",
     sport: "Process",
-    title: "Court Construction Process",
+    title: "Foundation Installation",
     description: "Expert installation and quality craftsmanship in action.",
+    videoLabel: "Video of expert craftsmen installing court foundation with precision equipment",
   },
   {
     video: video4,
     category: "Construction",
     sport: "Process",
-    title: "Court Construction Process",
+    title: "Complete Build Process",
     description: "From ground breaking to finished professional court.",
+    videoLabel: "Time-lapse from ground breaking to finished professional court installation",
   },
   {
     video: video5,
     category: "Construction",
     sport: "Process",
-    title: "Court Construction Process",
+    title: "Precision Equipment Work",
     description: "Precision equipment and skilled workmanship.",
+    videoLabel: "Video showcasing precision equipment and skilled workmanship during court construction",
   },
   {
     video: video6,
     category: "Construction",
     sport: "Process",
-    title: "Court Construction Process",
+    title: "Professional Techniques",
     description: "Building courts that last with professional techniques.",
+    videoLabel: "Video demonstrating professional court building techniques and quality materials",
   },
   {
     video: video7,
     category: "Construction",
     sport: "Process",
-    title: "Court Construction Process",
+    title: "Turn-Key Delivery",
     description: "Complete turn-key delivery from start to finish.",
+    videoLabel: "Complete construction process video from initial site work to final court delivery",
   },
 ];
 
@@ -92,11 +98,11 @@ const RecentProjects = () => {
   };
 
   return (
-    <section id="work" className="py-16 md:py-24 bg-card">
+    <section id="work" className="py-16 md:py-24 bg-card" aria-labelledby="recent-projects-heading">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-12">
           <div>
-            <h2 className="text-3xl md:text-4xl font-black text-secondary mb-2">Recent Projects</h2>
+            <h2 id="recent-projects-heading" className="text-3xl md:text-4xl font-black text-secondary mb-2">Recent Projects</h2>
             <p className="text-muted-foreground text-lg">Real courts we've built across the Augusta region</p>
           </div>
           <Button onClick={scrollToContact} variant="outline" size="lg" className="font-semibold">
@@ -120,7 +126,19 @@ const RecentProjects = () => {
                     controls
                     playsInline
                     preload="metadata"
-                  />
+                    aria-label={project.videoLabel}
+                    title={project.title}
+                    aria-describedby={`video-desc-${index}`}
+                  >
+                    <track 
+                      kind="descriptions" 
+                      label="English descriptions"
+                      srcLang="en"
+                      src="" 
+                      default
+                    />
+                    Your browser does not support the video tag.
+                  </video>
                 )}
               </div>
               <CardContent className="p-6 space-y-3">
@@ -129,7 +147,7 @@ const RecentProjects = () => {
                   <Badge variant="secondary">{project.sport}</Badge>
                 </div>
                 <h3 className="font-bold text-lg text-secondary">{project.title}</h3>
-                <p className="text-muted-foreground">{project.description}</p>
+                <p id={`video-desc-${index}`} className="text-muted-foreground">{project.description}</p>
               </CardContent>
             </Card>
           ))}
