@@ -13,8 +13,8 @@ const Hero = () => {
     <section className="py-16 md:py-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <div className="max-w-7xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6">
-          <h1 className="text-4xl md:text-6xl font-black leading-tight text-secondary text-center md:text-left">
-            Precision Courts. <span className="text-primary">Built for Play.</span>
+          <h1 className="text-3xl md:text-5xl font-black leading-tight text-secondary text-center md:text-left">
+            Precision Court Builders in Augusta: <span className="text-primary">Pickleball, Tennis & Multi-Sport</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
             We design, build, and maintain pro-grade <span className="font-bold text-foreground">pickleball</span>,{" "}
