@@ -56,6 +56,14 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Local SEO */}
+        <div className="pt-6 border-t border-border mb-6">
+          <h4 className="font-semibold text-foreground mb-2 text-sm">Serving the CSRA:</h4>
+          <p className="text-sm text-muted-foreground">
+            Proudly serving Augusta, Evans, Martinez, Grovetown, North Augusta, Aiken, and the surrounding areas.
+          </p>
+        </div>
+
         <div className="pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
             <p>This site features Laykold color options. CourtPro Augusta is not affiliated with Laykold.</p>
