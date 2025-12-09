@@ -24,6 +24,7 @@ interface InvoiceData {
   total: number;
   notes: string | null;
   status: string;
+  paid_at: string | null;
   customers: {
     contact_name: string;
     company_name: string | null;
@@ -55,9 +56,24 @@ const formatDate = (dateStr: string): string => {
 // Generate PDF using a simple text-based approach that creates valid PDF
 function generatePdfContent(invoice: InvoiceData): Uint8Array {
   const customer = invoice.customers;
+  const isPaid = invoice.status === "paid";
   
   // Build content lines
   const lines: string[] = [];
+  
+  // Add PAID stamp at the top if invoice is paid
+  if (isPaid) {
+    lines.push("");
+    lines.push("*".repeat(60));
+    lines.push("*" + " ".repeat(20) + "*** PAID ***" + " ".repeat(20) + "*");
+    if (invoice.paid_at) {
+      const paidDate = formatDate(invoice.paid_at);
+      const padding = Math.max(0, Math.floor((58 - paidDate.length - 6) / 2));
+      lines.push("*" + " ".repeat(padding) + `Paid: ${paidDate}` + " ".repeat(58 - padding - paidDate.length - 6) + "*");
+    }
+    lines.push("*".repeat(60));
+    lines.push("");
+  }
   
   // Company header
   lines.push("COURTPRO AUGUSTA");
@@ -118,6 +134,15 @@ function generatePdfContent(invoice: InvoiceData): Uint8Array {
   }
   lines.push("=".repeat(67));
   lines.push("TOTAL DUE:".padStart(47) + formatCurrency(invoice.total).padStart(20));
+  
+  // Show payment info for paid invoices
+  if (isPaid) {
+    lines.push("");
+    lines.push("=".repeat(67));
+    lines.push("AMOUNT PAID:".padStart(47) + formatCurrency(invoice.total).padStart(20));
+    lines.push("BALANCE DUE:".padStart(47) + formatCurrency(0).padStart(20));
+  }
+  
   lines.push("");
   
   // Notes
@@ -130,20 +155,25 @@ function generatePdfContent(invoice: InvoiceData): Uint8Array {
   lines.push("");
   lines.push("-".repeat(60));
   lines.push("");
-  lines.push("PAYMENT INFORMATION:");
-  lines.push("Please make checks payable to: CourtPro Augusta");
-  lines.push("For ACH/Wire transfers, please contact us for bank details.");
+  
+  if (isPaid) {
+    lines.push("PAYMENT RECEIVED - THANK YOU!");
+  } else {
+    lines.push("PAYMENT INFORMATION:");
+    lines.push("Please make checks payable to: CourtPro Augusta");
+    lines.push("For ACH/Wire transfers, please contact us for bank details.");
+  }
   lines.push("");
   lines.push("Thank you for your business!");
   
   const content = lines.join("\n");
   
   // Create a simple PDF structure
-  const pdf = createSimplePdf(content);
+  const pdf = createSimplePdf(content, isPaid);
   return pdf;
 }
 
-function createSimplePdf(textContent: string): Uint8Array {
+function createSimplePdf(textContent: string, isPaid: boolean = false): Uint8Array {
   const lines = textContent.split("\n");
   
   // PDF structure
@@ -159,12 +189,18 @@ function createSimplePdf(textContent: string): Uint8Array {
   offsets.push(pdf.length + objects.join("").length);
   objects.push("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
   
-  // Object 3: Page
+  // Object 3: Page - with extended graphics state for transparency
   offsets.push(pdf.length + objects.join("").length);
-  objects.push("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n");
+  objects.push("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /ExtGState << /GS1 7 0 R >> >> >>\nendobj\n");
   
-  // Object 5: Font (define before content stream)
+  // Object 5: Courier Font
   const fontObj = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
+  
+  // Object 6: Helvetica Bold Font for PAID stamp
+  const boldFontObj = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+  
+  // Object 7: Graphics state for transparency
+  const gsObj = "7 0 obj\n<< /Type /ExtGState /CA 0.3 /ca 0.3 >>\nendobj\n";
   
   // Build content stream
   let contentStream = "BT\n/F1 9 Tf\n";
@@ -185,15 +221,36 @@ function createSimplePdf(textContent: string): Uint8Array {
     contentStream += `1 0 0 1 ${leftMargin} ${yPos} Tm\n(${escapedLine}) Tj\n`;
     yPos -= lineHeight;
   }
-  contentStream += "ET";
+  contentStream += "ET\n";
+  
+  // Add diagonal PAID watermark if paid
+  if (isPaid) {
+    contentStream += "q\n"; // Save graphics state
+    contentStream += "/GS1 gs\n"; // Apply transparency
+    contentStream += "0 0.5 0 rg\n"; // Green color
+    contentStream += "BT\n";
+    contentStream += "/F2 72 Tf\n"; // Large bold font
+    // Rotate 45 degrees and position in center
+    contentStream += "0.707 0.707 -0.707 0.707 200 350 Tm\n";
+    contentStream += "(PAID) Tj\n";
+    contentStream += "ET\n";
+    contentStream += "Q\n"; // Restore graphics state
+  }
   
   // Object 4: Content stream
   offsets.push(pdf.length + objects.join("").length);
   objects.push(`4 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream\nendobj\n`);
   
-  // Add font object
+  // Add font objects
   offsets.push(pdf.length + objects.join("").length);
   objects.push(fontObj);
+  
+  offsets.push(pdf.length + objects.join("").length);
+  objects.push(boldFontObj);
+  
+  // Add graphics state object
+  offsets.push(pdf.length + objects.join("").length);
+  objects.push(gsObj);
   
   // Recalculate offsets
   let currentOffset = pdf.length;

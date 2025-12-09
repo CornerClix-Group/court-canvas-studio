@@ -35,6 +35,8 @@ interface Invoice {
   total: number;
   notes: string | null;
   due_date: string | null;
+  paid_at: string | null;
+  amount_paid: number | null;
 }
 
 export default function InvoiceBuilder() {
@@ -56,6 +58,8 @@ export default function InvoiceBuilder() {
   const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState<Date | null>(addDays(new Date(), 30));
   const [invoiceId, setInvoiceId] = useState<string | null>(id || null);
+  const [paidAt, setPaidAt] = useState<string | null>(null);
+  const [amountPaid, setAmountPaid] = useState<number>(0);
 
   // Calculate totals
   const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
@@ -124,6 +128,8 @@ export default function InvoiceBuilder() {
     setTaxRate(invoice.tax_rate || 0);
     setNotes(invoice.notes || "");
     setDueDate(invoice.due_date ? new Date(invoice.due_date) : null);
+    setPaidAt(invoice.paid_at);
+    setAmountPaid(invoice.amount_paid || 0);
 
     // Load line items
     const { data: items } = await supabase
@@ -350,8 +356,47 @@ export default function InvoiceBuilder() {
     );
   }
 
+  const isPaid = status === "paid";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* PAID Watermark Overlay */}
+      {isPaid && (
+        <div className="fixed inset-0 pointer-events-none z-10 flex items-center justify-center overflow-hidden">
+          <div 
+            className="text-green-500/20 font-black text-[180px] tracking-widest rotate-[-30deg] select-none whitespace-nowrap"
+            style={{ fontFamily: 'Arial Black, sans-serif' }}
+          >
+            PAID
+          </div>
+        </div>
+      )}
+      
+      {/* Paid Banner */}
+      {isPaid && (
+        <Card className="bg-green-500/10 border-green-500/30">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Receipt className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-green-700 text-lg">Invoice Paid in Full</h3>
+                  <p className="text-green-600 text-sm">
+                    {paidAt ? `Paid on ${format(new Date(paidAt), "MMMM d, yyyy")}` : "Payment received"}
+                    {amountPaid > 0 && ` • ${formatCurrency(amountPaid)}`}
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-green-600 text-white text-lg px-4 py-2">
+                PAID
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -376,6 +421,8 @@ export default function InvoiceBuilder() {
                     ? "bg-blue-500/10 text-blue-500"
                     : status === "paid"
                     ? "bg-green-500/10 text-green-500"
+                    : status === "partial"
+                    ? "bg-yellow-500/10 text-yellow-600"
                     : ""
                 }
               >
