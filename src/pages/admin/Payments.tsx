@@ -156,7 +156,8 @@ export default function AdminPayments() {
   );
 
   const handleSendReceipt = (payment: Payment) => {
-    if (!payment.invoices?.customers?.email) {
+    const customerEmail = payment.invoices?.customers?.email || payment.customers?.email;
+    if (!customerEmail) {
       toast({
         variant: "destructive",
         title: "No Email Address",
@@ -171,6 +172,8 @@ export default function AdminPayments() {
   const confirmSendReceipt = async () => {
     if (!selectedPayment) return;
 
+    const customerEmail = selectedPayment.invoices?.customers?.email || selectedPayment.customers?.email;
+    
     setSendingReceipt(true);
     try {
       const { error } = await supabase.functions.invoke("send-receipt-email", {
@@ -181,7 +184,7 @@ export default function AdminPayments() {
 
       toast({
         title: "Receipt Sent",
-        description: `Receipt email sent to ${selectedPayment.invoices?.customers?.email}`,
+        description: `Receipt email sent to ${customerEmail}`,
       });
       
       // Refresh payments to show updated receipt_sent_at
@@ -404,11 +407,11 @@ export default function AdminPayments() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
                                   onClick={() => handleSendReceipt(payment)}
-                                  disabled={!payment.invoices?.customers?.email}
+                                  disabled={!payment.invoices?.customers?.email && !payment.customers?.email}
                                 >
                                   <Mail className="mr-2 h-4 w-4" />
                                   Send Receipt
-                                  {!payment.invoices?.customers?.email && (
+                                  {!payment.invoices?.customers?.email && !payment.customers?.email && (
                                     <span className="ml-2 text-xs text-muted-foreground">(No email)</span>
                                   )}
                                 </DropdownMenuItem>
@@ -431,7 +434,7 @@ export default function AdminPayments() {
       </Tabs>
 
       {/* Receipt Email Preview Modal */}
-      {selectedPayment && selectedPayment.invoices && selectedPayment.invoices.customers && (
+      {selectedPayment && (selectedPayment.invoices?.customers || selectedPayment.customers) && (
         <ReceiptEmailPreview
           open={showReceiptPreview}
           onOpenChange={(open) => {
@@ -444,18 +447,19 @@ export default function AdminPayments() {
             payment_date: selectedPayment.payment_date,
             payment_method: selectedPayment.payment_method,
             reference_number: selectedPayment.reference_number,
-            notes: selectedPayment.notes,
+            payment_type: selectedPayment.payment_type,
+            description: selectedPayment.description,
           }}
-          invoice={{
+          invoice={selectedPayment.invoices ? {
             id: selectedPayment.invoices.id,
             invoice_number: selectedPayment.invoices.invoice_number,
             total: selectedPayment.invoices.total,
             amount_paid: selectedPayment.invoices.amount_paid,
-          }}
+          } : null}
           customer={{
-            contact_name: selectedPayment.invoices.customers.contact_name,
-            company_name: selectedPayment.invoices.customers.company_name,
-            email: selectedPayment.invoices.customers.email,
+            contact_name: selectedPayment.invoices?.customers?.contact_name || selectedPayment.customers?.contact_name || '',
+            company_name: selectedPayment.invoices?.customers?.company_name || selectedPayment.customers?.company_name || null,
+            email: selectedPayment.invoices?.customers?.email || selectedPayment.customers?.email || null,
           }}
           onSendEmail={confirmSendReceipt}
           sending={sendingReceipt}
