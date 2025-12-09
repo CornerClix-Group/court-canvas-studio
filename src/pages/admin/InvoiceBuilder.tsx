@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LineItemsEditor, LineItem } from "@/components/admin/LineItemsEditor";
 import { CustomerSelect } from "@/components/admin/CustomerSelect";
 import { PaymentTermsSelect } from "@/components/admin/PaymentTermsSelect";
+import { COMPANY_INFO } from "@/lib/companyInfo";
 import {
   ArrowLeft,
   Save,
@@ -20,6 +21,7 @@ import {
   Receipt,
   Loader2,
   Mail,
+  Building2,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 
@@ -429,9 +431,12 @@ export default function InvoiceBuilder() {
                 {status}
               </Badge>
             </div>
-            <p className="text-muted-foreground mt-1 font-mono">
-              {invoiceNumber}
-            </p>
+            <Input
+              value={invoiceNumber}
+              onChange={(e) => setInvoiceNumber(e.target.value)}
+              className="mt-1 font-mono w-48"
+              placeholder="INV-2025-0001"
+            />
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -447,7 +452,7 @@ export default function InvoiceBuilder() {
             )}
             Save Draft
           </Button>
-          {invoiceId && status !== "draft" && (
+          {invoiceId && (
             <Button
               variant="outline"
               onClick={handleSendEmail}
@@ -488,12 +493,28 @@ export default function InvoiceBuilder() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* From Company */}
+          <Card className="bg-muted/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Building2 className="w-4 h-4" />
+                From
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="font-semibold">{COMPANY_INFO.displayName}</p>
+              <p className="text-sm text-muted-foreground">{COMPANY_INFO.address.street} {COMPANY_INFO.address.suite}</p>
+              <p className="text-sm text-muted-foreground">{COMPANY_INFO.address.city}, {COMPANY_INFO.address.state} {COMPANY_INFO.address.zip}</p>
+              <p className="text-sm text-muted-foreground mt-1">{COMPANY_INFO.phone}</p>
+            </CardContent>
+          </Card>
+
           {/* Customer */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                Customer
+                Bill To
               </CardTitle>
             </CardHeader>
             <CardContent>
