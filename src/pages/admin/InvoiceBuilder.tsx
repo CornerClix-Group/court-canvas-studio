@@ -556,7 +556,8 @@ export default function InvoiceBuilder() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="font-semibold">{COMPANY_INFO.displayName}</p>
+              <p className="font-semibold">{COMPANY_INFO.legalName}</p>
+              <p className="font-semibold">dba {COMPANY_INFO.dbaName}</p>
               <p className="text-sm text-muted-foreground">{COMPANY_INFO.address.street} {COMPANY_INFO.address.suite}</p>
               <p className="text-sm text-muted-foreground">{COMPANY_INFO.address.city}, {COMPANY_INFO.address.state} {COMPANY_INFO.address.zip}</p>
               <p className="text-sm text-muted-foreground mt-1">{COMPANY_INFO.phone}</p>
