@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.send-invoice-email]
 verify_jwt = true
 
+[functions.send-receipt-email]
+verify_jwt = true
+
 [functions.mercury-sync]
 verify_jwt = true
 
