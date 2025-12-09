@@ -1,4 +1,5 @@
 import { Facebook, Instagram } from "lucide-react";
+import { Link } from "react-router-dom";
 import asbaLogo from "@/assets/asba-logo.png";
 
 const Footer = () => {
@@ -67,6 +68,7 @@ const Footer = () => {
             <div className="flex gap-4">
               <a href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</a>
               <a href="/terms" className="hover:text-primary transition-colors">Terms of Service</a>
+              <Link to="/admin/auth" className="hover:text-primary transition-colors">Staff Login</Link>
             </div>
           </div>
         </div>
