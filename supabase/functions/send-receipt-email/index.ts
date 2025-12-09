@@ -5,11 +5,12 @@ import { Resend } from "https://esm.sh/resend@4.0.0";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const COMPANY_INFO = {
-  name: "CourtHaus Construction, LLC dba CourtPro Augusta",
-  address: "3651 Walton Way Extension",
-  cityStateZip: "Augusta, GA 30909",
-  phone: "(762) 123-4567",
-  email: "accounts@courtproaugusta.com",
+  legalName: "CourtHaus Construction, LLC",
+  dbaName: "dba CourtPro Augusta",
+  address: "500 Furys Ferry Rd. Suite 107",
+  cityStateZip: "Augusta, GA 30907",
+  phone: "(706) 309-1993",
+  email: "receipts@courtproaugusta.com",
 };
 
 const corsHeaders = {
@@ -191,7 +192,8 @@ function generateReceiptHTML(
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="text-align: center;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.name}</p>
+                        <p style="margin: 0 0 2px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.legalName}</p>
+                        <p style="margin: 0 0 5px 0; font-size: 13px; font-weight: 500; color: #333333;">${COMPANY_INFO.dbaName}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.address}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.cityStateZip}</p>
                         <p style="margin: 0; font-size: 13px; color: #666666;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
@@ -315,7 +317,8 @@ function generateStandaloneReceiptHTML(
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="text-align: center;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.name}</p>
+                        <p style="margin: 0 0 2px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.legalName}</p>
+                        <p style="margin: 0 0 5px 0; font-size: 13px; font-weight: 500; color: #333333;">${COMPANY_INFO.dbaName}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.address}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.cityStateZip}</p>
                         <p style="margin: 0; font-size: 13px; color: #666666;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
@@ -421,7 +424,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       customer = customerData;
       html = generateReceiptHTML(payment as Payment, invoice!, customer);
-      subject = `Payment Receipt ${receiptNumber} - ${COMPANY_INFO.name}`;
+      subject = `Payment Receipt ${receiptNumber} - ${COMPANY_INFO.legalName} ${COMPANY_INFO.dbaName}`;
       
     } else if (payment.customer_id) {
       // Standalone payment (deposit, prepayment, miscellaneous)
@@ -444,7 +447,7 @@ const handler = async (req: Request): Promise<Response> => {
       customer = customerData;
       const paymentTypeLabel = formatPaymentType(payment.payment_type);
       html = generateStandaloneReceiptHTML(payment as Payment, customer);
-      subject = `${paymentTypeLabel} Receipt ${receiptNumber} - ${COMPANY_INFO.name}`;
+      subject = `${paymentTypeLabel} Receipt ${receiptNumber} - ${COMPANY_INFO.legalName} ${COMPANY_INFO.dbaName}`;
       
     } else {
       return new Response(
@@ -463,7 +466,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Generating receipt email for customer:", customer.email);
 
     const emailResponse = await resend.emails.send({
-      from: `${COMPANY_INFO.name} <onboarding@resend.dev>`,
+      from: `CourtPro Augusta <onboarding@resend.dev>`,
       to: [customer.email],
       subject,
       html,
