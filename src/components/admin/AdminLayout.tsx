@@ -15,6 +15,8 @@ import {
   X,
   UserCircle,
   ChevronRight,
+  FolderKanban,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,9 +24,11 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/leads", label: "Leads", icon: UserCircle },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/projects", label: "Projects", icon: FolderKanban },
   { href: "/admin/estimates", label: "Estimates", icon: FileText },
   { href: "/admin/invoices", label: "Invoices", icon: Receipt },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
+  { href: "/admin/team", label: "Team", icon: Shield },
 ];
 
 export default function AdminLayout() {

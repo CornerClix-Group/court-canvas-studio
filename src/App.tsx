@@ -22,6 +22,9 @@ import AdminInvoices from "./pages/admin/Invoices";
 import AdminPayments from "./pages/admin/Payments";
 import InvoiceBuilder from "./pages/admin/InvoiceBuilder";
 import EstimateBuilder from "./pages/admin/EstimateBuilder";
+import AdminProjects from "./pages/admin/Projects";
+import ProjectDetail from "./pages/admin/ProjectDetail";
+import AdminTeam from "./pages/admin/Team";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +58,9 @@ const App = () => (
             <Route path="invoices/:id" element={<InvoiceBuilder />} />
             <Route path="invoices/from-estimate/:estimateId" element={<InvoiceBuilder />} />
             <Route path="payments" element={<AdminPayments />} />
+            <Route path="projects" element={<AdminProjects />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="team" element={<AdminTeam />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
