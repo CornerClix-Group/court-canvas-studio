@@ -12,6 +12,14 @@ import TennisCourts from "./pages/TennisCourts";
 import CourtResurfacing from "./pages/CourtResurfacing";
 import BasketballCourts from "./pages/BasketballCourts";
 import MultiSportCourts from "./pages/MultiSportCourts";
+import AdminAuth from "./pages/admin/Auth";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminLeads from "./pages/admin/Leads";
+import AdminCustomers from "./pages/admin/Customers";
+import AdminEstimates from "./pages/admin/Estimates";
+import AdminInvoices from "./pages/admin/Invoices";
+import AdminPayments from "./pages/admin/Payments";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +38,18 @@ const App = () => (
           <Route path="/court-resurfacing" element={<CourtResurfacing />} />
           <Route path="/basketball-courts" element={<BasketballCourts />} />
           <Route path="/multi-sport-courts" element={<MultiSportCourts />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/auth" element={<AdminAuth />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="leads" element={<AdminLeads />} />
+            <Route path="customers" element={<AdminCustomers />} />
+            <Route path="estimates" element={<AdminEstimates />} />
+            <Route path="invoices" element={<AdminInvoices />} />
+            <Route path="payments" element={<AdminPayments />} />
+          </Route>
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
