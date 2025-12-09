@@ -14,7 +14,7 @@ const COMPANY_INFO = {
     zip: "30907",
     full: "500 Furys Ferry Rd. Suite 107, Augusta, GA 30907",
   },
-  phone: "(762) 218-2974",
+  phone: "(706) 309-1993",
   email: "estimates@courtproaugusta.com",
   website: "courtproaugusta.com",
 };
