@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -12,10 +13,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CreditCard, DollarSign, Calendar, Building2 } from "lucide-react";
+import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail } from "lucide-react";
 import { format } from "date-fns";
 import BankTransactionsSection from "@/components/admin/BankTransactionsSection";
+import { ReceiptEmailPreview } from "@/components/admin/ReceiptEmailPreview";
 
 interface Payment {
   id: string;
@@ -27,10 +35,16 @@ interface Payment {
   notes: string | null;
   created_at: string;
   invoices: {
+    id: string;
     invoice_number: string;
+    total: number;
+    amount_paid: number | null;
+    customer_id: string | null;
     customers: {
+      id: string;
       contact_name: string;
       company_name: string | null;
+      email: string | null;
     } | null;
   } | null;
 }
@@ -39,6 +53,8 @@ const methodColors: Record<string, string> = {
   cash: "bg-green-500/10 text-green-500 border-green-500/20",
   check: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   card: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  credit_card: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  bank_transfer: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   ach: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   other: "bg-muted text-muted-foreground border-muted",
 };
@@ -49,6 +65,11 @@ export default function AdminPayments() {
   const [search, setSearch] = useState("");
   const { toast } = useToast();
 
+  // Receipt preview state
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [sendingReceipt, setSendingReceipt] = useState(false);
+
   const fetchPayments = async () => {
     try {
       const { data, error } = await supabase
@@ -56,10 +77,16 @@ export default function AdminPayments() {
         .select(`
           *,
           invoices (
+            id,
             invoice_number,
+            total,
+            amount_paid,
+            customer_id,
             customers (
+              id,
               contact_name,
-              company_name
+              company_name,
+              email
             )
           )
         `)
@@ -105,6 +132,48 @@ export default function AdminPayments() {
     (sum, payment) => sum + payment.amount,
     0
   );
+
+  const handleSendReceipt = (payment: Payment) => {
+    if (!payment.invoices?.customers?.email) {
+      toast({
+        variant: "destructive",
+        title: "No Email Address",
+        description: "Customer does not have an email address on file.",
+      });
+      return;
+    }
+    setSelectedPayment(payment);
+    setShowReceiptPreview(true);
+  };
+
+  const confirmSendReceipt = async () => {
+    if (!selectedPayment) return;
+
+    setSendingReceipt(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-receipt-email", {
+        body: { paymentId: selectedPayment.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Receipt Sent",
+        description: `Receipt email sent to ${selectedPayment.invoices?.customers?.email}`,
+      });
+    } catch (error) {
+      console.error("Error sending receipt:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to Send",
+        description: "Failed to send receipt email. Please try again.",
+      });
+    } finally {
+      setSendingReceipt(false);
+      setShowReceiptPreview(false);
+      setSelectedPayment(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -194,6 +263,7 @@ export default function AdminPayments() {
                         <TableHead>Amount</TableHead>
                         <TableHead>Method</TableHead>
                         <TableHead>Reference</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -234,9 +304,9 @@ export default function AdminPayments() {
                             {payment.payment_method ? (
                               <Badge
                                 variant="outline"
-                                className={methodColors[payment.payment_method]}
+                                className={methodColors[payment.payment_method] || methodColors.other}
                               >
-                                {payment.payment_method}
+                                {payment.payment_method.replace("_", " ")}
                               </Badge>
                             ) : (
                               "—"
@@ -244,6 +314,27 @@ export default function AdminPayments() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {payment.reference_number || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleSendReceipt(payment)}
+                                  disabled={!payment.invoices?.customers?.email}
+                                >
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  Send Receipt
+                                  {!payment.invoices?.customers?.email && (
+                                    <span className="ml-2 text-xs text-muted-foreground">(No email)</span>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -259,6 +350,38 @@ export default function AdminPayments() {
           <BankTransactionsSection />
         </TabsContent>
       </Tabs>
+
+      {/* Receipt Email Preview Modal */}
+      {selectedPayment && selectedPayment.invoices && selectedPayment.invoices.customers && (
+        <ReceiptEmailPreview
+          open={showReceiptPreview}
+          onOpenChange={(open) => {
+            setShowReceiptPreview(open);
+            if (!open) setSelectedPayment(null);
+          }}
+          payment={{
+            id: selectedPayment.id,
+            amount: selectedPayment.amount,
+            payment_date: selectedPayment.payment_date,
+            payment_method: selectedPayment.payment_method,
+            reference_number: selectedPayment.reference_number,
+            notes: selectedPayment.notes,
+          }}
+          invoice={{
+            id: selectedPayment.invoices.id,
+            invoice_number: selectedPayment.invoices.invoice_number,
+            total: selectedPayment.invoices.total,
+            amount_paid: selectedPayment.invoices.amount_paid,
+          }}
+          customer={{
+            contact_name: selectedPayment.invoices.customers.contact_name,
+            company_name: selectedPayment.invoices.customers.company_name,
+            email: selectedPayment.invoices.customers.email,
+          }}
+          onSendEmail={confirmSendReceipt}
+          sending={sendingReceipt}
+        />
+      )}
     </div>
   );
 }
