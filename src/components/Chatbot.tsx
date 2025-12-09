@@ -107,7 +107,7 @@ const Chatbot = () => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+          className="fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg z-50"
           size="icon"
         >
           <MessageCircle className="h-6 w-6" />
@@ -115,7 +115,7 @@ const Chatbot = () => {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[380px] h-[600px] bg-background border rounded-lg shadow-2xl flex flex-col z-50">
+        <div className="fixed bottom-20 right-6 w-[380px] h-[600px] bg-background border rounded-lg shadow-2xl flex flex-col z-50">
           <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
