@@ -307,6 +307,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          location_id: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -322,6 +323,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          location_id?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -337,6 +339,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          location_id?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -354,7 +357,59 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "leads_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      locations: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          is_headquarters: boolean | null
+          name: string
+          phone: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_headquarters?: boolean | null
+          name: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_headquarters?: boolean | null
+          name?: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -424,6 +479,207 @@ export type Database = {
         }
         Relationships: []
       }
+      project_milestones: {
+        Row: {
+          completed_by: string | null
+          completed_date: string | null
+          created_at: string
+          id: string
+          milestone_name: string
+          milestone_type: string
+          notes: string | null
+          project_id: string
+          scheduled_date: string | null
+          sort_order: number
+          status: string
+        }
+        Insert: {
+          completed_by?: string | null
+          completed_date?: string | null
+          created_at?: string
+          id?: string
+          milestone_name: string
+          milestone_type: string
+          notes?: string | null
+          project_id: string
+          scheduled_date?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Update: {
+          completed_by?: string | null
+          completed_date?: string | null
+          created_at?: string
+          id?: string
+          milestone_name?: string
+          milestone_type?: string
+          notes?: string | null
+          project_id?: string
+          scheduled_date?: string | null
+          sort_order?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          milestone_id: string | null
+          photo_type: string | null
+          photo_url: string
+          project_id: string
+          taken_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          milestone_id?: string | null
+          photo_type?: string | null
+          photo_url: string
+          project_id: string
+          taken_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          milestone_id?: string | null
+          photo_type?: string | null
+          photo_url?: string
+          project_id?: string
+          taken_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_photos_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_photos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          actual_completion_date: string | null
+          actual_start_date: string | null
+          assigned_to: string | null
+          contract_value: number | null
+          created_at: string
+          customer_id: string | null
+          estimate_id: string | null
+          id: string
+          location_id: string | null
+          notes: string | null
+          project_name: string
+          scheduled_start_date: string | null
+          site_address: string | null
+          site_city: string | null
+          site_lat: number | null
+          site_lng: number | null
+          site_state: string | null
+          site_zip: string | null
+          sport_type: string | null
+          status: string
+          system_type: string | null
+          target_completion_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_completion_date?: string | null
+          actual_start_date?: string | null
+          assigned_to?: string | null
+          contract_value?: number | null
+          created_at?: string
+          customer_id?: string | null
+          estimate_id?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          project_name: string
+          scheduled_start_date?: string | null
+          site_address?: string | null
+          site_city?: string | null
+          site_lat?: number | null
+          site_lng?: number | null
+          site_state?: string | null
+          site_zip?: string | null
+          sport_type?: string | null
+          status?: string
+          system_type?: string | null
+          target_completion_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_completion_date?: string | null
+          actual_start_date?: string | null
+          assigned_to?: string | null
+          contract_value?: number | null
+          created_at?: string
+          customer_id?: string | null
+          estimate_id?: string | null
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          project_name?: string
+          scheduled_start_date?: string | null
+          site_address?: string | null
+          site_city?: string | null
+          site_lat?: number | null
+          site_lng?: number | null
+          site_state?: string | null
+          site_zip?: string | null
+          sport_type?: string | null
+          status?: string
+          system_type?: string | null
+          target_completion_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -458,9 +714,19 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_manager_or_above: { Args: { _user_id: string }; Returns: boolean }
+      is_owner: { Args: { _user_id: string }; Returns: boolean }
+      is_sales_or_above: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "staff"
+      app_role:
+        | "admin"
+        | "staff"
+        | "owner"
+        | "sales"
+        | "project_manager"
+        | "crew_lead"
+        | "accounting"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -588,7 +854,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff"],
+      app_role: [
+        "admin",
+        "staff",
+        "owner",
+        "sales",
+        "project_manager",
+        "crew_lead",
+        "accounting",
+      ],
     },
   },
 } as const
