@@ -22,6 +22,7 @@ import {
   Loader2,
   Mail,
   Building2,
+  Download,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 
@@ -51,6 +52,7 @@ export default function InvoiceBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [sourceEstimateId, setSourceEstimateId] = useState<string | null>(null);
@@ -343,6 +345,44 @@ export default function InvoiceBuilder() {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    if (!invoiceId) {
+      toast({
+        variant: "destructive",
+        title: "Save First",
+        description: "Please save the invoice before downloading PDF.",
+      });
+      return;
+    }
+
+    setGeneratingPdf(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-invoice-pdf", {
+        body: { invoiceId },
+      });
+
+      if (error) throw error;
+
+      if (data?.pdfUrl) {
+        // Open the PDF in a new tab for download
+        window.open(data.pdfUrl, "_blank");
+        toast({
+          title: "PDF Generated",
+          description: "Your invoice PDF is ready for download.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to generate PDF.",
+      });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -453,18 +493,32 @@ export default function InvoiceBuilder() {
             Save Draft
           </Button>
           {invoiceId && (
-            <Button
-              variant="outline"
-              onClick={handleSendEmail}
-              disabled={saving || sendingEmail}
-            >
-              {sendingEmail ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Mail className="w-4 h-4 mr-2" />
-              )}
-              Email Invoice
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={handleDownloadPdf}
+                disabled={saving || sendingEmail || generatingPdf}
+              >
+                {generatingPdf ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Download PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSendEmail}
+                disabled={saving || sendingEmail || generatingPdf}
+              >
+                {sendingEmail ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="w-4 h-4 mr-2" />
+                )}
+                Email Invoice
+              </Button>
+            </>
           )}
           <Button onClick={() => handleSave(true)} disabled={saving || sendingEmail}>
             {saving ? (
