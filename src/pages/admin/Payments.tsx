@@ -20,23 +20,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, CheckCircle2, Plus, Send, Eye, AlertCircle, Clock } from "lucide-react";
+import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, Plus, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import BankTransactionsSection from "@/components/admin/BankTransactionsSection";
 import { ReceiptEmailPreview } from "@/components/admin/ReceiptEmailPreview";
 import { RecordPaymentFromPaymentsPage } from "@/components/admin/RecordPaymentFromPaymentsPage";
+import { EmailStatusBadge, EmailLog } from "@/components/admin/EmailStatusBadge";
 
-interface EmailLog {
-  id: string;
-  status: string;
-  sent_at: string | null;
-  delivered_at: string | null;
-  opened_at: string | null;
-  bounced_at: string | null;
-  failed_at: string | null;
-  error_message: string | null;
-}
+// EmailLog is now imported from EmailStatusBadge
 
 interface Payment {
   id: string;
@@ -83,116 +74,15 @@ const methodColors: Record<string, string> = {
   other: "bg-muted text-muted-foreground border-muted",
 };
 
-// Email delivery status badge component
-function EmailStatusBadge({ emailLog, receiptSentAt }: { emailLog?: EmailLog | null; receiptSentAt: string | null }) {
-  if (!receiptSentAt && !emailLog) {
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
+// Helper to check if receipt was already sent
+const hasReceiptBeenSent = (payment: Payment) => {
+  return !!(payment.emailLog || payment.receipt_sent_at);
+};
 
-  // If we have email log with tracking info
-  if (emailLog) {
-    const status = emailLog.status;
-    
-    if (status === "opened" && emailLog.opened_at) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1 text-purple-600">
-                <Eye className="w-4 h-4" />
-                <span className="text-xs">Opened</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="text-xs space-y-1">
-                <p>Opened {format(new Date(emailLog.opened_at), "MMM d, yyyy 'at' h:mm a")}</p>
-                {emailLog.delivered_at && (
-                  <p className="text-muted-foreground">Delivered {format(new Date(emailLog.delivered_at), "MMM d 'at' h:mm a")}</p>
-                )}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-    
-    if (status === "delivered" && emailLog.delivered_at) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1 text-green-600">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-xs">Delivered</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Delivered {format(new Date(emailLog.delivered_at), "MMM d, yyyy 'at' h:mm a")}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-    
-    if (status === "bounced" || status === "failed") {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1 text-destructive">
-                <AlertCircle className="w-4 h-4" />
-                <span className="text-xs">Failed</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{emailLog.error_message || "Email delivery failed"}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-    
-    // Status is "sent" - waiting for delivery confirmation
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 text-blue-600">
-              <Send className="w-4 h-4" />
-              <span className="text-xs">Sent</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Sent {emailLog.sent_at ? format(new Date(emailLog.sent_at), "MMM d, yyyy 'at' h:mm a") : ""}</p>
-            <p className="text-muted-foreground text-xs">Awaiting delivery confirmation</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  // Fallback: legacy behavior using receipt_sent_at only
-  if (receiptSentAt) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              <span className="text-xs">Sent</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Sent {format(new Date(receiptSentAt), "MMM d, yyyy 'at' h:mm a")}</p>
-            <p className="text-muted-foreground text-xs">Tracking not available</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  return <span className="text-xs text-muted-foreground">—</span>;
-}
+// Helper to check if receipt email failed
+const receiptFailed = (payment: Payment) => {
+  return payment.emailLog?.status === "failed" || payment.emailLog?.status === "bounced";
+};
 
 export default function AdminPayments() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -519,7 +409,8 @@ export default function AdminPayments() {
                           <TableCell>
                             <EmailStatusBadge 
                               emailLog={payment.emailLog} 
-                              receiptSentAt={payment.receipt_sent_at}
+                              fallbackSentAt={payment.receipt_sent_at}
+                              showResendHint={receiptFailed(payment)}
                             />
                           </TableCell>
                           <TableCell>
@@ -533,9 +424,14 @@ export default function AdminPayments() {
                                 <DropdownMenuItem
                                   onClick={() => handleSendReceipt(payment)}
                                   disabled={!payment.invoices?.customers?.email && !payment.customers?.email}
+                                  className={receiptFailed(payment) ? "text-destructive" : ""}
                                 >
-                                  <Mail className="mr-2 h-4 w-4" />
-                                  Send Receipt
+                                  {hasReceiptBeenSent(payment) ? (
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                  ) : (
+                                    <Mail className="mr-2 h-4 w-4" />
+                                  )}
+                                  {hasReceiptBeenSent(payment) ? "Resend Receipt" : "Send Receipt"}
                                   {!payment.invoices?.customers?.email && !payment.customers?.email && (
                                     <span className="ml-2 text-xs text-muted-foreground">(No email)</span>
                                   )}

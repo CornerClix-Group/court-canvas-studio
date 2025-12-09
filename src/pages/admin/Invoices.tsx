@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { RecordPaymentModal } from "@/components/admin/RecordPaymentModal";
-import { Search, Receipt, Plus, Calendar, DollarSign, CreditCard, Mail, Loader2, FileDown } from "lucide-react";
+import { EmailStatusBadge, EmailLog } from "@/components/admin/EmailStatusBadge";
+import { Search, Receipt, Plus, Calendar, DollarSign, CreditCard, Mail, Loader2, FileDown, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 
 interface Invoice {
@@ -35,11 +36,14 @@ interface Invoice {
   amount_paid: number;
   due_date: string | null;
   created_at: string;
+  sent_at: string | null;
   pdf_url: string | null;
   customers: {
     contact_name: string;
     company_name: string | null;
+    email: string | null;
   } | null;
+  emailLog?: EmailLog | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -71,7 +75,8 @@ export default function AdminInvoices() {
           *,
           customers (
             contact_name,
-            company_name
+            company_name,
+            email
           )
         `)
         .order("created_at", { ascending: false });
@@ -83,7 +88,22 @@ export default function AdminInvoices() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setInvoices(data || []);
+      
+      // Fetch email logs for all invoice IDs
+      const invoiceIds = (data || []).map(inv => inv.id);
+      const { data: emailLogs } = await supabase
+        .from("email_logs")
+        .select("*")
+        .eq("email_type", "invoice")
+        .in("related_id", invoiceIds);
+
+      // Map email logs to invoices
+      const invoicesWithLogs = (data || []).map(invoice => ({
+        ...invoice,
+        emailLog: emailLogs?.find(log => log.related_id === invoice.id) || null,
+      }));
+      
+      setInvoices(invoicesWithLogs as Invoice[]);
     } catch (error) {
       console.error("Error fetching invoices:", error);
       toast({
@@ -124,6 +144,15 @@ export default function AdminInvoices() {
   };
 
   const handleSendEmail = async (invoice: Invoice) => {
+    if (!invoice.customers?.email) {
+      toast({
+        variant: "destructive",
+        title: "No Email Address",
+        description: "Customer does not have an email address on file.",
+      });
+      return;
+    }
+    
     setSendingEmailId(invoice.id);
     try {
       const { error } = await supabase.functions.invoke("send-invoice-email", {
@@ -132,9 +161,10 @@ export default function AdminInvoices() {
 
       if (error) throw error;
 
+      const isResend = invoice.emailLog || invoice.sent_at;
       toast({
-        title: "Invoice Sent",
-        description: `Invoice ${invoice.invoice_number} has been emailed to the customer.`,
+        title: isResend ? "Invoice Resent" : "Invoice Sent",
+        description: `Invoice ${invoice.invoice_number} has been emailed to ${invoice.customers.email}.`,
       });
       fetchInvoices();
     } catch (err: any) {
@@ -191,6 +221,21 @@ export default function AdminInvoices() {
     } finally {
       setGeneratingPdfId(null);
     }
+  };
+
+  // Helper to determine if email can be sent
+  const canSendEmail = (invoice: Invoice) => {
+    return invoice.status !== "draft" && invoice.status !== "cancelled";
+  };
+
+  // Helper to determine if this is a resend
+  const isResend = (invoice: Invoice) => {
+    return !!(invoice.emailLog || invoice.sent_at);
+  };
+
+  // Helper to check if email failed
+  const emailFailed = (invoice: Invoice) => {
+    return invoice.emailLog?.status === "failed" || invoice.emailLog?.status === "bounced";
   };
 
   return (
@@ -268,6 +313,7 @@ export default function AdminInvoices() {
                     <TableHead>Invoice #</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Paid</TableHead>
                     <TableHead>Due Date</TableHead>
@@ -276,7 +322,7 @@ export default function AdminInvoices() {
                 </TableHeader>
                 <TableBody>
                   {filteredInvoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
+                    <TableRow key={invoice.id} className={emailFailed(invoice) ? "bg-destructive/5" : ""}>
                       <TableCell className="font-medium font-mono">
                         {invoice.invoice_number}
                       </TableCell>
@@ -303,6 +349,13 @@ export default function AdminInvoices() {
                         >
                           {invoice.status.replace("_", " ")}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <EmailStatusBadge 
+                          emailLog={invoice.emailLog} 
+                          fallbackSentAt={invoice.sent_at}
+                          showResendHint={emailFailed(invoice)}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -346,30 +399,32 @@ export default function AdminInvoices() {
                           )}
                           PDF
                         </Button>
-                        {invoice.status !== "paid" && invoice.status !== "draft" && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleSendEmail(invoice)}
-                              disabled={sendingEmailId === invoice.id}
-                            >
-                              {sendingEmailId === invoice.id ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Mail className="w-3 h-3 mr-1" />
-                              )}
-                              Email
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRecordPayment(invoice)}
-                            >
-                              <CreditCard className="w-3 h-3 mr-1" />
-                              Record Payment
-                            </Button>
-                          </>
+                        {canSendEmail(invoice) && (
+                          <Button
+                            variant={emailFailed(invoice) ? "destructive" : "outline"}
+                            size="sm"
+                            onClick={() => handleSendEmail(invoice)}
+                            disabled={sendingEmailId === invoice.id}
+                          >
+                            {sendingEmailId === invoice.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : isResend(invoice) ? (
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                            ) : (
+                              <Mail className="w-3 h-3 mr-1" />
+                            )}
+                            {isResend(invoice) ? "Resend" : "Email"}
+                          </Button>
+                        )}
+                        {invoice.status !== "paid" && invoice.status !== "draft" && invoice.status !== "cancelled" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRecordPayment(invoice)}
+                          >
+                            <CreditCard className="w-3 h-3 mr-1" />
+                            Record Payment
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
