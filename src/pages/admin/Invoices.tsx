@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { RecordPaymentModal } from "@/components/admin/RecordPaymentModal";
-import { Search, Receipt, Plus, Calendar, DollarSign, CreditCard, Mail, Loader2 } from "lucide-react";
+import { Search, Receipt, Plus, Calendar, DollarSign, CreditCard, Mail, Loader2, FileDown } from "lucide-react";
 import { format } from "date-fns";
 
 interface Invoice {
@@ -35,6 +35,7 @@ interface Invoice {
   amount_paid: number;
   due_date: string | null;
   created_at: string;
+  pdf_url: string | null;
   customers: {
     contact_name: string;
     company_name: string | null;
@@ -59,6 +60,7 @@ export default function AdminInvoices() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchInvoices = async () => {
@@ -144,6 +146,50 @@ export default function AdminInvoices() {
       });
     } finally {
       setSendingEmailId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (invoice: Invoice) => {
+    setGeneratingPdfId(invoice.id);
+    try {
+      // Check if PDF already exists
+      if (invoice.pdf_url) {
+        const { data: urlData, error: urlError } = await supabase.storage
+          .from("invoices")
+          .createSignedUrl(invoice.pdf_url, 3600);
+
+        if (!urlError && urlData) {
+          window.open(urlData.signedUrl, "_blank");
+          setGeneratingPdfId(null);
+          return;
+        }
+      }
+
+      // Generate new PDF
+      const { data, error } = await supabase.functions.invoke("generate-invoice-pdf", {
+        body: { invoiceId: invoice.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.pdfUrl) {
+        window.open(data.pdfUrl, "_blank");
+        fetchInvoices();
+      }
+
+      toast({
+        title: "PDF Generated",
+        description: `Invoice ${invoice.invoice_number} PDF is ready for download.`,
+      });
+    } catch (err: any) {
+      console.error("Error generating PDF:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to generate PDF.",
+      });
+    } finally {
+      setGeneratingPdfId(null);
     }
   };
 
@@ -286,6 +332,19 @@ export default function AdminInvoices() {
                           onClick={() => navigate(`/admin/invoices/${invoice.id}`)}
                         >
                           View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadPdf(invoice)}
+                          disabled={generatingPdfId === invoice.id}
+                        >
+                          {generatingPdfId === invoice.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FileDown className="w-3 h-3 mr-1" />
+                          )}
+                          PDF
                         </Button>
                         {invoice.status !== "paid" && invoice.status !== "draft" && (
                           <>
