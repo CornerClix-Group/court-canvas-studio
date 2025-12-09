@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Receipt, Plus, Calendar, DollarSign } from "lucide-react";
+import { RecordPaymentModal } from "@/components/admin/RecordPaymentModal";
+import { Search, Receipt, Plus, Calendar, DollarSign, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 
 interface Invoice {
@@ -55,6 +56,8 @@ export default function AdminInvoices() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
 
   const fetchInvoices = async () => {
@@ -110,6 +113,11 @@ export default function AdminInvoices() {
       style: "currency",
       currency: "USD",
     }).format(amount);
+  };
+
+  const handleRecordPayment = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setPaymentModalOpen(true);
   };
 
   return (
@@ -252,8 +260,13 @@ export default function AdminInvoices() {
                         >
                           View
                         </Button>
-                        {invoice.status !== "paid" && (
-                          <Button variant="outline" size="sm">
+                        {invoice.status !== "paid" && invoice.status !== "draft" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRecordPayment(invoice)}
+                          >
+                            <CreditCard className="w-3 h-3 mr-1" />
                             Record Payment
                           </Button>
                         )}
@@ -266,6 +279,16 @@ export default function AdminInvoices() {
           )}
         </CardContent>
       </Card>
+
+      {/* Record Payment Modal */}
+      {selectedInvoice && (
+        <RecordPaymentModal
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+          invoice={selectedInvoice}
+          onPaymentRecorded={fetchInvoices}
+        />
+      )}
     </div>
   );
 }
