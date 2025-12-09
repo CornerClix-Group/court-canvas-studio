@@ -34,8 +34,20 @@ import {
   MapPin,
   Layers,
   PlusCircle,
-  FileText
+  FileText,
+  Target,
+  Circle,
+  CircleDot,
+  LayoutGrid,
+  LucideIcon
 } from "lucide-react";
+
+const projectIcons: Record<string, LucideIcon> = {
+  pickleball: Target,
+  tennis: Circle,
+  basketball: CircleDot,
+  multi_sport: LayoutGrid,
+};
 
 const WIZARD_STEPS = [
   { id: 1, name: "Project" },
@@ -225,7 +237,10 @@ export default function EstimateBuilder() {
                     onClick={() => setProjectType(type.id)}
                   >
                     <CardContent className="p-6 text-center">
-                      <span className="text-4xl mb-2 block">{type.icon}</span>
+                      {(() => {
+                        const IconComponent = projectIcons[type.id];
+                        return IconComponent ? <IconComponent className="w-10 h-10 mx-auto mb-2 text-primary" /> : null;
+                      })()}
                       <p className="font-semibold">{type.name}</p>
                     </CardContent>
                   </Card>

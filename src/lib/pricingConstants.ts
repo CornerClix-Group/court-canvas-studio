@@ -233,10 +233,10 @@ export const ADDONS = {
 
 // Project types
 export const PROJECT_TYPES = {
-  PICKLEBALL: { id: 'pickleball', name: 'Pickleball', icon: '🏓' },
-  TENNIS: { id: 'tennis', name: 'Tennis', icon: '🎾' },
-  BASKETBALL: { id: 'basketball', name: 'Basketball', icon: '🏀' },
-  MULTI_SPORT: { id: 'multi_sport', name: 'Multi-Sport', icon: '🏟️' },
+  PICKLEBALL: { id: 'pickleball', name: 'Pickleball', iconName: 'Target' },
+  TENNIS: { id: 'tennis', name: 'Tennis', iconName: 'Circle' },
+  BASKETBALL: { id: 'basketball', name: 'Basketball', iconName: 'CircleDot' },
+  MULTI_SPORT: { id: 'multi_sport', name: 'Multi-Sport', iconName: 'LayoutGrid' },
 };
 
 // Base/substrate options
