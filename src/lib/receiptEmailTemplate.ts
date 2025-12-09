@@ -1,11 +1,12 @@
 // Client-side replica of receipt email template for preview
 
 const COMPANY_INFO = {
-  name: "CourtHaus Construction, LLC dba CourtPro Augusta",
-  address: "3651 Walton Way Extension",
-  cityStateZip: "Augusta, GA 30909",
-  phone: "(762) 123-4567",
-  email: "accounts@courtproaugusta.com",
+  legalName: "CourtHaus Construction, LLC",
+  dbaName: "dba CourtPro Augusta",
+  address: "500 Furys Ferry Rd. Suite 107",
+  cityStateZip: "Augusta, GA 30907",
+  phone: "(706) 309-1993",
+  email: "receipts@courtproaugusta.com",
 };
 
 export interface PaymentForReceipt {
@@ -186,7 +187,8 @@ export function generateReceiptEmailHTML(
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="text-align: center;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.name}</p>
+                        <p style="margin: 0 0 2px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.legalName}</p>
+                        <p style="margin: 0 0 5px 0; font-size: 13px; font-weight: 500; color: #333333;">${COMPANY_INFO.dbaName}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.address}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.cityStateZip}</p>
                         <p style="margin: 0; font-size: 13px; color: #666666;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
@@ -328,7 +330,8 @@ export function generateStandaloneReceiptEmailHTML(
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="text-align: center;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.name}</p>
+                        <p style="margin: 0 0 2px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.legalName}</p>
+                        <p style="margin: 0 0 5px 0; font-size: 13px; font-weight: 500; color: #333333;">${COMPANY_INFO.dbaName}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.address}</p>
                         <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.cityStateZip}</p>
                         <p style="margin: 0; font-size: 13px; color: #666666;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
