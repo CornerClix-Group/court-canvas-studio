@@ -1,6 +1,24 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Company information
+const COMPANY_INFO = {
+  legalName: "CourtHaus Construction, LLC",
+  dbaName: "CourtPro Augusta",
+  displayName: "CourtHaus Construction, LLC dba CourtPro Augusta",
+  address: {
+    street: "500 Furys Ferry Rd.",
+    suite: "Suite 107",
+    city: "Augusta",
+    state: "GA",
+    zip: "30907",
+    full: "500 Furys Ferry Rd. Suite 107, Augusta, GA 30907",
+  },
+  phone: "(762) 218-2974",
+  email: "estimates@courtproaugusta.com",
+  website: "courtproaugusta.com",
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -75,12 +93,13 @@ function generatePdfContent(invoice: InvoiceData): Uint8Array {
     lines.push("");
   }
   
-  // Company header
-  lines.push("COURTPRO AUGUSTA");
-  lines.push("Professional Court Construction");
+  // Company header with full legal name and address
+  lines.push(COMPANY_INFO.displayName);
+  lines.push(COMPANY_INFO.address.street + " " + COMPANY_INFO.address.suite);
+  lines.push(`${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}`);
   lines.push("");
-  lines.push("Phone: (762) 218-2974");
-  lines.push("Email: estimates@courtproaugusta.com");
+  lines.push(`Phone: ${COMPANY_INFO.phone}`);
+  lines.push(`Email: ${COMPANY_INFO.email}`);
   lines.push("");
   lines.push("=".repeat(60));
   lines.push("");
@@ -160,8 +179,14 @@ function generatePdfContent(invoice: InvoiceData): Uint8Array {
     lines.push("PAYMENT RECEIVED - THANK YOU!");
   } else {
     lines.push("PAYMENT INFORMATION:");
-    lines.push("Please make checks payable to: CourtPro Augusta");
-    lines.push("For ACH/Wire transfers, please contact us for bank details.");
+    lines.push("");
+    lines.push(`Please make checks payable to: ${COMPANY_INFO.legalName}`);
+    lines.push("");
+    lines.push("Mail to:");
+    lines.push(`  ${COMPANY_INFO.address.street} ${COMPANY_INFO.address.suite}`);
+    lines.push(`  ${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}`);
+    lines.push("");
+    lines.push(`For questions, contact us at ${COMPANY_INFO.email} or ${COMPANY_INFO.phone}`);
   }
   lines.push("");
   lines.push("Thank you for your business!");
