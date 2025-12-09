@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, DollarSign } from "lucide-react";
 import { format } from "date-fns";
+import { ReceiptEmailPreview } from "./ReceiptEmailPreview";
 
 const paymentSchema = z.object({
   amount: z.number().positive("Amount must be greater than 0"),
@@ -39,8 +41,16 @@ interface RecordPaymentModalProps {
     invoice_number: string;
     total: number;
     amount_paid: number;
+    customer_id?: string | null;
   };
   onPaymentRecorded: () => void;
+}
+
+interface Customer {
+  id: string;
+  contact_name: string;
+  company_name: string | null;
+  email: string | null;
 }
 
 const PAYMENT_METHODS = [
@@ -64,8 +74,40 @@ export function RecordPaymentModal({
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [sendReceipt, setSendReceipt] = useState(true);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  
+  // Receipt preview state
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [sendingReceipt, setSendingReceipt] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{ id: string; amount: number; payment_date: string; payment_method: string | null; reference_number: string | null; notes: string | null } | null>(null);
+  const [newAmountPaid, setNewAmountPaid] = useState<number>(0);
 
   const remainingBalance = invoice.total - (invoice.amount_paid || 0);
+
+  // Fetch customer data
+  useEffect(() => {
+    async function fetchCustomer() {
+      if (!invoice.customer_id) {
+        setCustomer(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, contact_name, company_name, email")
+        .eq("id", invoice.customer_id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setCustomer(data);
+      }
+    }
+
+    if (open) {
+      fetchCustomer();
+    }
+  }, [open, invoice.customer_id]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -80,6 +122,9 @@ export function RecordPaymentModal({
     setReferenceNumber("");
     setNotes("");
     setErrors({});
+    setSendReceipt(true);
+    setPendingPayment(null);
+    setNewAmountPaid(0);
   };
 
   const handleClose = () => {
@@ -119,26 +164,28 @@ export function RecordPaymentModal({
     setSaving(true);
 
     try {
+      const paymentDate = format(new Date(), "yyyy-MM-dd");
+      
       // Insert payment record
-      const { error: paymentError } = await supabase.from("payments").insert({
+      const { data: paymentData, error: paymentError } = await supabase.from("payments").insert({
         invoice_id: invoice.id,
         amount: parsedAmount,
         payment_method: paymentMethod,
         reference_number: referenceNumber || null,
         notes: notes || null,
-        payment_date: format(new Date(), "yyyy-MM-dd"),
-      });
+        payment_date: paymentDate,
+      }).select().single();
 
       if (paymentError) throw paymentError;
 
       // Update invoice amount_paid and status
-      const newAmountPaid = (invoice.amount_paid || 0) + parsedAmount;
-      const newStatus = newAmountPaid >= invoice.total ? "paid" : "partially_paid";
+      const calculatedNewAmountPaid = (invoice.amount_paid || 0) + parsedAmount;
+      const newStatus = calculatedNewAmountPaid >= invoice.total ? "paid" : "partially_paid";
 
       const { error: invoiceError } = await supabase
         .from("invoices")
         .update({
-          amount_paid: newAmountPaid,
+          amount_paid: calculatedNewAmountPaid,
           status: newStatus,
           paid_at: newStatus === "paid" ? new Date().toISOString() : null,
         })
@@ -151,8 +198,23 @@ export function RecordPaymentModal({
         description: `${formatCurrency(parsedAmount)} payment recorded for invoice ${invoice.invoice_number}`,
       });
 
-      handleClose();
-      onPaymentRecorded();
+      // If send receipt is enabled and customer has email, show preview
+      if (sendReceipt && customer?.email && paymentData) {
+        setPendingPayment({
+          id: paymentData.id,
+          amount: parsedAmount,
+          payment_date: paymentDate,
+          payment_method: paymentMethod,
+          reference_number: referenceNumber || null,
+          notes: notes || null,
+        });
+        setNewAmountPaid(calculatedNewAmountPaid);
+        setShowReceiptPreview(true);
+        setSaving(false);
+      } else {
+        handleClose();
+        onPaymentRecorded();
+      }
     } catch (error) {
       console.error("Error recording payment:", error);
       toast({
@@ -160,14 +222,71 @@ export function RecordPaymentModal({
         title: "Error",
         description: "Failed to record payment. Please try again.",
       });
-    } finally {
       setSaving(false);
     }
+  };
+
+  const handleSendReceipt = async () => {
+    if (!pendingPayment) return;
+
+    setSendingReceipt(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-receipt-email", {
+        body: { paymentId: pendingPayment.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Receipt Sent",
+        description: `Receipt email sent to ${customer?.email}`,
+      });
+    } catch (error) {
+      console.error("Error sending receipt:", error);
+      toast({
+        variant: "destructive",
+        title: "Receipt Not Sent",
+        description: "Payment recorded but failed to send receipt email.",
+      });
+    } finally {
+      setSendingReceipt(false);
+      setShowReceiptPreview(false);
+      handleClose();
+      onPaymentRecorded();
+    }
+  };
+
+  const handleSkipReceipt = () => {
+    setShowReceiptPreview(false);
+    handleClose();
+    onPaymentRecorded();
   };
 
   const handlePayFullBalance = () => {
     setAmount(remainingBalance.toFixed(2));
   };
+
+  // If showing receipt preview
+  if (showReceiptPreview && pendingPayment && customer) {
+    return (
+      <ReceiptEmailPreview
+        open={showReceiptPreview}
+        onOpenChange={(open) => {
+          if (!open) handleSkipReceipt();
+        }}
+        payment={pendingPayment}
+        invoice={{
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          total: invoice.total,
+          amount_paid: newAmountPaid,
+        }}
+        customer={customer}
+        onSendEmail={handleSendReceipt}
+        sending={sendingReceipt}
+      />
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -282,6 +401,25 @@ export function RecordPaymentModal({
               <p className="text-sm text-destructive">{errors.notes}</p>
             )}
           </div>
+
+          {/* Send Receipt Checkbox */}
+          {customer?.email && (
+            <div className="flex items-center space-x-2 pt-2 border-t">
+              <Checkbox
+                id="sendReceipt"
+                checked={sendReceipt}
+                onCheckedChange={(checked) => setSendReceipt(checked === true)}
+              />
+              <Label htmlFor="sendReceipt" className="text-sm font-normal cursor-pointer">
+                Send receipt email to {customer.email}
+              </Label>
+            </div>
+          )}
+          {!customer?.email && customer && (
+            <p className="text-sm text-muted-foreground pt-2 border-t">
+              No email address on file - receipt cannot be sent
+            </p>
+          )}
         </div>
 
         <DialogFooter>
