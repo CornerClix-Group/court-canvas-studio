@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, svix-id, svix-timestamp, svix-signature",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, webhook-id, webhook-timestamp, webhook-signature",
 };
 
 interface ResendWebhookEvent {
@@ -27,7 +28,36 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const event: ResendWebhookEvent = await req.json();
+    const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+    const payload = await req.text();
+    
+    let event: ResendWebhookEvent;
+
+    // Verify webhook signature if secret is configured
+    if (webhookSecret) {
+      const headers = {
+        "webhook-id": req.headers.get("webhook-id") || "",
+        "webhook-timestamp": req.headers.get("webhook-timestamp") || "",
+        "webhook-signature": req.headers.get("webhook-signature") || "",
+      };
+
+      try {
+        const wh = new Webhook(webhookSecret);
+        event = wh.verify(payload, headers) as ResendWebhookEvent;
+        console.log("Webhook signature verified successfully");
+      } catch (err) {
+        console.error("Webhook signature verification failed:", err);
+        return new Response(
+          JSON.stringify({ error: "Invalid webhook signature" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    } else {
+      // No secret configured, parse payload directly (not recommended for production)
+      console.warn("RESEND_WEBHOOK_SECRET not configured, skipping signature verification");
+      event = JSON.parse(payload);
+    }
+
     console.log("Received Resend webhook event:", event.type, event.data.email_id);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
