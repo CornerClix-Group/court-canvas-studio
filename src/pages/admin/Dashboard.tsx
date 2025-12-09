@@ -13,6 +13,7 @@ import {
   ArrowRight,
   TrendingUp,
 } from "lucide-react";
+import { MercuryBalanceCard } from "@/components/admin/MercuryBalanceCard";
 
 interface DashboardStats {
   leads: number;
@@ -156,6 +157,11 @@ export default function AdminDashboard() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Mercury Bank Balance */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <MercuryBalanceCard />
       </div>
 
       {/* Pending Payments Alert */}
