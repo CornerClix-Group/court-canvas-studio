@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck, Info } from "lucide-react";
 import { z } from "zod";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -15,10 +16,8 @@ const authSchema = z.object({
 });
 
 export default function AdminAuth() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -68,68 +67,32 @@ export default function AdminAuth() {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            toast({
-              variant: "destructive",
-              title: "Login failed",
-              description: "Invalid email or password. Please try again.",
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Login failed",
-              description: error.message,
-            });
-          }
-          return;
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast({
+            variant: "destructive",
+            title: "Login failed",
+            description: "Invalid email or password. Please try again.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Login failed",
+            description: error.message,
+          });
         }
-
-        toast({
-          title: "Welcome back!",
-          description: "You have successfully logged in.",
-        });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/admin`,
-            data: {
-              full_name: fullName,
-            },
-          },
-        });
-
-        if (error) {
-          if (error.message.includes("already registered")) {
-            toast({
-              variant: "destructive",
-              title: "Account exists",
-              description: "This email is already registered. Please log in instead.",
-            });
-            setIsLogin(true);
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Sign up failed",
-              description: error.message,
-            });
-          }
-          return;
-        }
-
-        toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account, or contact the admin to be granted access.",
-        });
+        return;
       }
+
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully logged in.",
+      });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -149,32 +112,14 @@ export default function AdminAuth() {
             <ShieldCheck className="w-8 h-8 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">
-              {isLogin ? "Admin Login" : "Create Account"}
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
             <CardDescription className="mt-2">
-              {isLogin
-                ? "Sign in to access the CourtPro admin dashboard"
-                : "Create a new admin account"}
+              Sign in to access the CourtPro admin dashboard
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-            )}
-            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -227,27 +172,20 @@ export default function AdminAuth() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isLogin ? "Signing in..." : "Creating account..."}
+                  Signing in...
                 </>
               ) : (
-                <>{isLogin ? "Sign In" : "Create Account"}</>
+                "Sign In"
               )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-              }}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              disabled={loading}
-            >
-              {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </div>
+          <Alert className="mt-6">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              Need an account? Contact your administrator to be invited to the team.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     </div>

@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
+import { AlertTriangle } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
@@ -39,6 +41,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { roles, loading: rolesLoading, isAdminOrAbove } = useUserRole();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -81,7 +84,7 @@ export default function AdminLayout() {
     }
   };
 
-  if (loading) {
+  if (loading || rolesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -91,6 +94,33 @@ export default function AdminLayout() {
 
   if (!user) {
     return null;
+  }
+
+  // Check if user has any admin/staff role - if not, show access denied
+  if (!isAdminOrAbove && roles.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="max-w-md text-center p-8">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+          <p className="text-muted-foreground mb-6">
+            Your account does not have permission to access the admin dashboard. 
+            Please contact an administrator to request access.
+          </p>
+          <div className="space-y-2">
+            <Button onClick={handleLogout} variant="outline" className="w-full">
+              <LogOut className="w-4 h-4 mr-2" />
+              Log out
+            </Button>
+            <Button onClick={() => navigate("/")} variant="ghost" className="w-full">
+              Return to Website
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const isActiveRoute = (href: string, exact?: boolean) => {
