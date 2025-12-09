@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Search, FileText, Plus, Calendar, DollarSign } from "lucide-react";
+import { Search, FileText, Plus, Calendar, DollarSign, ArrowRightCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface Estimate {
@@ -48,6 +48,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AdminEstimates() {
+  const navigate = useNavigate();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -238,7 +239,19 @@ export default function AdminEstimates() {
                       <TableCell className="text-sm text-muted-foreground">
                         {format(new Date(estimate.created_at), "MMM d, yyyy")}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-2">
+                        {estimate.status === "approved" && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/admin/invoices/from-estimate/${estimate.id}`)
+                            }
+                          >
+                            <ArrowRightCircle className="w-4 h-4 mr-1" />
+                            Convert to Invoice
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm">
                           View
                         </Button>
