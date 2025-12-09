@@ -11,6 +11,8 @@ import { Mail, Loader2 } from "lucide-react";
 import {
   generateReceiptEmailHTML,
   getReceiptEmailSubject,
+  generateStandaloneReceiptEmailHTML,
+  getStandaloneReceiptEmailSubject,
   PaymentForReceipt,
   InvoiceForReceipt,
   CustomerForReceipt,
@@ -20,7 +22,7 @@ interface ReceiptEmailPreviewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payment: PaymentForReceipt;
-  invoice: InvoiceForReceipt;
+  invoice: InvoiceForReceipt | null;
   customer: CustomerForReceipt;
   onSendEmail: () => void;
   sending: boolean;
@@ -35,9 +37,16 @@ export function ReceiptEmailPreview({
   onSendEmail,
   sending,
 }: ReceiptEmailPreviewProps) {
+  const isStandalone = !invoice;
   const receiptNumber = `RCP-${payment.id.substring(0, 8).toUpperCase()}`;
-  const htmlContent = generateReceiptEmailHTML(payment, invoice, customer);
-  const subject = getReceiptEmailSubject(receiptNumber);
+  
+  const htmlContent = isStandalone
+    ? generateStandaloneReceiptEmailHTML(payment, customer)
+    : generateReceiptEmailHTML(payment, invoice, customer);
+    
+  const subject = isStandalone
+    ? getStandaloneReceiptEmailSubject(receiptNumber, payment.payment_type || 'payment')
+    : getReceiptEmailSubject(receiptNumber);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -45,7 +54,7 @@ export function ReceiptEmailPreview({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Receipt Email Preview
+            {isStandalone ? 'Standalone Payment Receipt Preview' : 'Receipt Email Preview'}
           </DialogTitle>
           <DialogDescription>
             Review the receipt email before sending to the customer

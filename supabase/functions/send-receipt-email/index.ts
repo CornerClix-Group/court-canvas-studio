@@ -24,7 +24,10 @@ interface Payment {
   payment_method: string | null;
   reference_number: string | null;
   notes: string | null;
-  invoice_id: string;
+  invoice_id: string | null;
+  customer_id: string | null;
+  payment_type: string;
+  description: string | null;
 }
 
 interface Invoice {
@@ -40,10 +43,6 @@ interface Customer {
   contact_name: string;
   company_name: string | null;
   email: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
 }
 
 function formatCurrency(amount: number): string {
@@ -70,9 +69,22 @@ function formatPaymentMethod(method: string | null): string {
     bank_transfer: "Bank Transfer",
     credit_card: "Credit Card",
     cash: "Cash",
+    ach: "ACH",
+    wire: "Wire Transfer",
     other: "Other",
   };
   return methods[method] || method;
+}
+
+function formatPaymentType(type: string | null): string {
+  if (!type) return "Payment";
+  const types: Record<string, string> = {
+    invoice_payment: "Invoice Payment",
+    deposit: "Deposit",
+    prepayment: "Prepayment",
+    miscellaneous: "Miscellaneous Payment",
+  };
+  return types[type] || type;
 }
 
 function generateReceiptHTML(
@@ -96,15 +108,12 @@ function generateReceiptHTML(
         <tr>
           <td align="center">
             <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-              <!-- Header -->
               <tr>
                 <td style="background-color: #10b981; padding: 30px; text-align: center;">
                   <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">Payment Receipt</h1>
                   <p style="margin: 10px 0 0 0; color: #d1fae5; font-size: 14px;">${receiptNumber}</p>
                 </td>
               </tr>
-
-              <!-- Thank You Message -->
               <tr>
                 <td style="padding: 30px 40px 20px 40px; text-align: center;">
                   <p style="margin: 0; font-size: 18px; color: #333333;">
@@ -115,8 +124,6 @@ function generateReceiptHTML(
                   </p>
                 </td>
               </tr>
-
-              <!-- Payment Details -->
               <tr>
                 <td style="padding: 20px 40px;">
                   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; padding: 20px;">
@@ -148,8 +155,6 @@ function generateReceiptHTML(
                   </table>
                 </td>
               </tr>
-
-              <!-- Invoice Details -->
               <tr>
                 <td style="padding: 0 40px 20px 40px;">
                   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; padding: 20px;">
@@ -181,8 +186,6 @@ function generateReceiptHTML(
                   </table>
                 </td>
               </tr>
-
-              <!-- Company Info Footer -->
               <tr>
                 <td style="background-color: #f9fafb; padding: 30px 40px; border-top: 1px solid #e5e7eb;">
                   <table width="100%" cellpadding="0" cellspacing="0">
@@ -197,8 +200,130 @@ function generateReceiptHTML(
                   </table>
                 </td>
               </tr>
+              <tr>
+                <td style="padding: 20px 40px; text-align: center; background-color: #ffffff;">
+                  <p style="margin: 0; font-size: 12px; color: #999999;">
+                    This is an automated receipt for your records. If you have any questions about this payment, please contact us.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
 
-              <!-- Footer Message -->
+function generateStandaloneReceiptHTML(
+  payment: Payment,
+  customer: Customer
+): string {
+  const receiptNumber = `RCP-${payment.id.substring(0, 8).toUpperCase()}`;
+  const paymentTypeLabel = formatPaymentType(payment.payment_type);
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${paymentTypeLabel} Receipt ${receiptNumber}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f5f5f5;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <tr>
+                <td style="background-color: #3b82f6; padding: 30px; text-align: center;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">${paymentTypeLabel} Receipt</h1>
+                  <p style="margin: 10px 0 0 0; color: #bfdbfe; font-size: 14px;">${receiptNumber}</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 30px 40px 20px 40px; text-align: center;">
+                  <p style="margin: 0; font-size: 18px; color: #333333;">
+                    Thank you for your ${paymentTypeLabel.toLowerCase()}, <strong>${customer.contact_name}</strong>!
+                  </p>
+                  <p style="margin: 10px 0 0 0; font-size: 14px; color: #666666;">
+                    We have received your ${paymentTypeLabel.toLowerCase()} of <strong style="color: #3b82f6; font-size: 16px;">${formatCurrency(payment.amount)}</strong>
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 20px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; padding: 20px;">
+                    <tr>
+                      <td>
+                        <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px;">Payment Details</h3>
+                        <table width="100%" cellpadding="8" cellspacing="0">
+                          <tr>
+                            <td style="color: #666666; font-size: 14px;">Payment Type</td>
+                            <td style="color: #333333; font-size: 14px; font-weight: 500; text-align: right;">${paymentTypeLabel}</td>
+                          </tr>
+                          <tr>
+                            <td style="color: #666666; font-size: 14px;">Payment Date</td>
+                            <td style="color: #333333; font-size: 14px; font-weight: 500; text-align: right;">${formatDate(payment.payment_date)}</td>
+                          </tr>
+                          <tr>
+                            <td style="color: #666666; font-size: 14px;">Payment Method</td>
+                            <td style="color: #333333; font-size: 14px; font-weight: 500; text-align: right;">${formatPaymentMethod(payment.payment_method)}</td>
+                          </tr>
+                          ${payment.reference_number ? `
+                          <tr>
+                            <td style="color: #666666; font-size: 14px;">Reference Number</td>
+                            <td style="color: #333333; font-size: 14px; font-weight: 500; text-align: right;">${payment.reference_number}</td>
+                          </tr>
+                          ` : ""}
+                          <tr>
+                            <td style="color: #666666; font-size: 14px;">Amount Received</td>
+                            <td style="color: #3b82f6; font-size: 16px; font-weight: 600; text-align: right;">${formatCurrency(payment.amount)}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              ${payment.description ? `
+              <tr>
+                <td style="padding: 0 40px 20px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; padding: 20px;">
+                    <tr>
+                      <td>
+                        <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px;">Description</h3>
+                        <p style="margin: 0; font-size: 14px; color: #333333;">${payment.description}</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              ` : ""}
+              <tr>
+                <td style="padding: 0 40px 20px 40px;">
+                  <div style="background-color: #eff6ff; border-radius: 8px; padding: 15px 20px; border-left: 4px solid #3b82f6;">
+                    <p style="margin: 0; font-size: 14px; color: #1e40af;">
+                      This ${paymentTypeLabel.toLowerCase()} will be applied to your account. If you have any questions, please don't hesitate to contact us.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="background-color: #f9fafb; padding: 30px 40px; border-top: 1px solid #e5e7eb;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="text-align: center;">
+                        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600; color: #333333;">${COMPANY_INFO.name}</p>
+                        <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.address}</p>
+                        <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">${COMPANY_INFO.cityStateZip}</p>
+                        <p style="margin: 0; font-size: 13px; color: #666666;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
               <tr>
                 <td style="padding: 20px 40px; text-align: center; background-color: #ffffff;">
                   <p style="margin: 0; font-size: 12px; color: #999999;">
@@ -216,7 +341,6 @@ function generateReceiptHTML(
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -237,7 +361,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Fetching payment data for ID:", paymentId);
 
-    // Fetch payment with invoice
+    // Fetch payment
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
       .select("*")
@@ -252,33 +376,80 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Fetch invoice
-    const { data: invoice, error: invoiceError } = await supabase
-      .from("invoices")
-      .select("*")
-      .eq("id", payment.invoice_id)
-      .single();
+    console.log("Payment found:", { id: payment.id, invoice_id: payment.invoice_id, customer_id: payment.customer_id, payment_type: payment.payment_type });
 
-    if (invoiceError || !invoice) {
-      console.error("Error fetching invoice:", invoiceError);
+    let customer: Customer;
+    let invoice: Invoice | null = null;
+    let html: string;
+    let subject: string;
+    const receiptNumber = `RCP-${payment.id.substring(0, 8).toUpperCase()}`;
+
+    // Determine if this is an invoice-linked or standalone payment
+    if (payment.invoice_id) {
+      // Invoice-linked payment
+      console.log("Processing invoice-linked payment");
+      
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("id", payment.invoice_id)
+        .single();
+
+      if (invoiceError || !invoiceData) {
+        console.error("Error fetching invoice:", invoiceError);
+        return new Response(
+          JSON.stringify({ error: "Invoice not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      invoice = invoiceData;
+
+      const { data: customerData, error: customerError } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", invoiceData.customer_id)
+        .single();
+
+      if (customerError || !customerData) {
+        console.error("Error fetching customer:", customerError);
+        return new Response(
+          JSON.stringify({ error: "Customer not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      customer = customerData;
+      html = generateReceiptHTML(payment as Payment, invoice!, customer);
+      subject = `Payment Receipt ${receiptNumber} - ${COMPANY_INFO.name}`;
+      
+    } else if (payment.customer_id) {
+      // Standalone payment (deposit, prepayment, miscellaneous)
+      console.log("Processing standalone payment");
+      
+      const { data: customerData, error: customerError } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", payment.customer_id)
+        .single();
+
+      if (customerError || !customerData) {
+        console.error("Error fetching customer:", customerError);
+        return new Response(
+          JSON.stringify({ error: "Customer not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      customer = customerData;
+      const paymentTypeLabel = formatPaymentType(payment.payment_type);
+      html = generateStandaloneReceiptHTML(payment as Payment, customer);
+      subject = `${paymentTypeLabel} Receipt ${receiptNumber} - ${COMPANY_INFO.name}`;
+      
+    } else {
       return new Response(
-        JSON.stringify({ error: "Invoice not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Fetch customer
-    const { data: customer, error: customerError } = await supabase
-      .from("customers")
-      .select("*")
-      .eq("id", invoice.customer_id)
-      .single();
-
-    if (customerError || !customer) {
-      console.error("Error fetching customer:", customerError);
-      return new Response(
-        JSON.stringify({ error: "Customer not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Payment has no associated invoice or customer" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -291,13 +462,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Generating receipt email for customer:", customer.email);
 
-    const receiptNumber = `RCP-${payment.id.substring(0, 8).toUpperCase()}`;
-    const html = generateReceiptHTML(payment, invoice, customer);
-
     const emailResponse = await resend.emails.send({
       from: `${COMPANY_INFO.name} <onboarding@resend.dev>`,
       to: [customer.email],
-      subject: `Payment Receipt ${receiptNumber} - ${COMPANY_INFO.name}`,
+      subject,
       html,
     });
 
@@ -311,7 +479,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating receipt_sent_at:", updateError);
-      // Don't fail the request, receipt was still sent
     }
 
     return new Response(
