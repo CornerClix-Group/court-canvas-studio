@@ -564,53 +564,58 @@ export default function InvoiceBuilder() {
             />
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => handleSave(false)}
             disabled={saving || sendingEmail}
           >
             {saving && !sendingEmail ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 mr-1" />
             )}
-            Save Draft
+            Draft
           </Button>
           {invoiceId && (
             <Button
               variant="outline"
+              size="sm"
               onClick={handleDownloadPdf}
               disabled={saving || sendingEmail || generatingPdf}
             >
               {generatingPdf ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
               ) : (
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 mr-1" />
               )}
-              Download PDF
+              PDF
             </Button>
           )}
           <Button
             variant="secondary"
+            size="sm"
             onClick={() => handleSave(true)}
             disabled={saving || sendingEmail}
           >
             {saving && !sendingEmail ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
             ) : (
-              <FileText className="w-4 h-4 mr-2" />
+              <FileText className="w-4 h-4 mr-1" />
             )}
-            Save Invoice
+            Save
           </Button>
           <Button
+            size="sm"
             onClick={handleSaveAndEmail}
             disabled={saving || sendingEmail}
+            className="bg-primary hover:bg-primary/90"
           >
             {sendingEmail ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
             ) : (
-              <Mail className="w-4 h-4 mr-2" />
+              <Mail className="w-4 h-4 mr-1" />
             )}
             Save & Email
           </Button>
