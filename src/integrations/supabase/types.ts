@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_transactions: {
+        Row: {
+          account_id: string
+          amount: number
+          bank_description: string | null
+          counterparty_id: string | null
+          counterparty_name: string | null
+          created_at: string
+          description: string | null
+          id: string
+          matched_invoice_id: string | null
+          matched_payment_id: string | null
+          mercury_id: string
+          posted_at: string | null
+          status: string
+          transaction_type: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          bank_description?: string | null
+          counterparty_id?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          matched_invoice_id?: string | null
+          matched_payment_id?: string | null
+          mercury_id: string
+          posted_at?: string | null
+          status: string
+          transaction_type?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          bank_description?: string | null
+          counterparty_id?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          matched_invoice_id?: string | null
+          matched_payment_id?: string | null
+          mercury_id?: string
+          posted_at?: string | null
+          status?: string
+          transaction_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_matched_invoice_id_fkey"
+            columns: ["matched_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_matched_payment_id_fkey"
+            columns: ["matched_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -235,6 +301,7 @@ export type Database = {
           mercury_invoice_id: string | null
           notes: string | null
           paid_at: string | null
+          pdf_url: string | null
           sent_at: string | null
           status: string
           subtotal: number
@@ -255,6 +322,7 @@ export type Database = {
           mercury_invoice_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          pdf_url?: string | null
           sent_at?: string | null
           status?: string
           subtotal?: number
@@ -275,6 +343,7 @@ export type Database = {
           mercury_invoice_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          pdf_url?: string | null
           sent_at?: string | null
           status?: string
           subtotal?: number
