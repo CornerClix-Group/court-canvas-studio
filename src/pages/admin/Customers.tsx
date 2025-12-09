@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Search, Users, Mail, Phone, MapPin, Plus } from "lucide-react";
 import { format } from "date-fns";
+import { CustomerFormModal } from "@/components/admin/CustomerFormModal";
 
 interface Customer {
   id: string;
@@ -26,12 +27,15 @@ interface Customer {
   state: string | null;
   zip: string | null;
   created_at: string;
+  notes?: string | null;
 }
 
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const { toast } = useToast();
 
   const fetchCustomers = async () => {
@@ -66,6 +70,26 @@ export default function AdminCustomers() {
       customer.email?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleAddCustomer = () => {
+    setEditingCustomer(null);
+    setModalOpen(true);
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setModalOpen(true);
+  };
+
+  const handleSuccess = (customer: Customer) => {
+    if (editingCustomer) {
+      setCustomers((prev) =>
+        prev.map((c) => (c.id === customer.id ? customer : c))
+      );
+    } else {
+      setCustomers((prev) => [customer, ...prev]);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -75,7 +99,7 @@ export default function AdminCustomers() {
             Manage your customer database
           </p>
         </div>
-        <Button>
+        <Button onClick={handleAddCustomer}>
           <Plus className="w-4 h-4 mr-2" />
           Add Customer
         </Button>
@@ -175,7 +199,11 @@ export default function AdminCustomers() {
                         {format(new Date(customer.created_at), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditCustomer(customer)}
+                        >
                           View Details
                         </Button>
                       </TableCell>
@@ -187,6 +215,13 @@ export default function AdminCustomers() {
           )}
         </CardContent>
       </Card>
+
+      <CustomerFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        customer={editingCustomer}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }

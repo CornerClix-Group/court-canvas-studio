@@ -8,7 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, Mail, MapPin, Phone } from "lucide-react";
+import { Building2, Mail, MapPin, Phone, Plus } from "lucide-react";
+import { CustomerFormModal } from "./CustomerFormModal";
 
 interface Customer {
   id: string;
@@ -32,6 +33,7 @@ export function CustomerSelect({ value, onChange, disabled = false }: CustomerSe
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -65,9 +67,21 @@ export function CustomerSelect({ value, onChange, disabled = false }: CustomerSe
   }, [value, customers]);
 
   const handleChange = (customerId: string) => {
+    if (customerId === "__add_new__") {
+      setModalOpen(true);
+      return;
+    }
     const customer = customers.find((c) => c.id === customerId);
     setSelectedCustomer(customer || null);
     onChange(customerId, customer || null);
+  };
+
+  const handleNewCustomer = (customer: Customer) => {
+    setCustomers((prev) => [...prev, customer].sort((a, b) => 
+      a.contact_name.localeCompare(b.contact_name)
+    ));
+    setSelectedCustomer(customer);
+    onChange(customer.id, customer);
   };
 
   const formatAddress = (customer: Customer) => {
@@ -91,6 +105,12 @@ export function CustomerSelect({ value, onChange, disabled = false }: CustomerSe
           <SelectValue placeholder={loading ? "Loading customers..." : "Select a customer"} />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="__add_new__" className="text-primary font-medium">
+            <div className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add New Customer
+            </div>
+          </SelectItem>
           {customers.map((customer) => (
             <SelectItem key={customer.id} value={customer.id}>
               <div className="flex items-center gap-2">
@@ -141,6 +161,12 @@ export function CustomerSelect({ value, onChange, disabled = false }: CustomerSe
           </CardContent>
         </Card>
       )}
+
+      <CustomerFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onSuccess={handleNewCustomer}
+      />
     </div>
   );
 }
