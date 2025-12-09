@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LineItemsEditor, LineItem } from "@/components/admin/LineItemsEditor";
 import { CustomerSelect } from "@/components/admin/CustomerSelect";
 import { PaymentTermsSelect } from "@/components/admin/PaymentTermsSelect";
+import { InvoiceEmailPreview } from "@/components/admin/InvoiceEmailPreview";
 import { COMPANY_INFO } from "@/lib/companyInfo";
 import {
   ArrowLeft,
@@ -64,6 +65,16 @@ export default function InvoiceBuilder() {
   const [invoiceId, setInvoiceId] = useState<string | null>(id || null);
   const [paidAt, setPaidAt] = useState<string | null>(null);
   const [amountPaid, setAmountPaid] = useState<number>(0);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [customerData, setCustomerData] = useState<{
+    contact_name: string;
+    company_name?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
+  } | null>(null);
 
   // Calculate totals
   const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
@@ -97,6 +108,23 @@ export default function InvoiceBuilder() {
 
     initializeInvoice();
   }, [id, estimateId]);
+
+  // Fetch customer data when customerId changes
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      if (!customerId) {
+        setCustomerData(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("customers")
+        .select("contact_name, company_name, email, address, city, state, zip")
+        .eq("id", customerId)
+        .single();
+      setCustomerData(data);
+    };
+    fetchCustomerData();
+  }, [customerId]);
 
   const generateInvoiceNumber = async () => {
     const year = new Date().getFullYear();
@@ -319,7 +347,7 @@ export default function InvoiceBuilder() {
     setStatus("sent");
   };
 
-  const handleSaveAndEmail = async () => {
+  const handleOpenEmailPreview = () => {
     if (!customerId) {
       toast({
         variant: "destructive",
@@ -338,6 +366,10 @@ export default function InvoiceBuilder() {
       return;
     }
 
+    setShowEmailPreview(true);
+  };
+
+  const confirmSendEmail = async () => {
     setSaving(true);
     setSendingEmail(true);
 
@@ -402,17 +434,12 @@ export default function InvoiceBuilder() {
       // Now send the email
       await sendEmailToCustomer(currentInvoiceId!);
 
-      // Get customer email for confirmation message
-      const { data: customer } = await supabase
-        .from("customers")
-        .select("email, contact_name")
-        .eq("id", customerId)
-        .single();
+      setShowEmailPreview(false);
 
       toast({
         title: "Invoice Saved & Emailed",
-        description: customer?.email 
-          ? `Invoice ${invoiceNumber} has been sent to ${customer.email}`
+        description: customerData?.email 
+          ? `Invoice ${invoiceNumber} has been sent to ${customerData.email}`
           : `Invoice ${invoiceNumber} has been saved and emailed to the customer.`,
       });
 
@@ -608,7 +635,7 @@ export default function InvoiceBuilder() {
           </Button>
           <Button
             size="sm"
-            onClick={handleSaveAndEmail}
+            onClick={handleOpenEmailPreview}
             disabled={saving || sendingEmail}
             className="bg-primary hover:bg-primary/90"
           >
@@ -762,6 +789,26 @@ export default function InvoiceBuilder() {
           </Card>
         </div>
       </div>
+
+      {/* Email Preview Modal */}
+      <InvoiceEmailPreview
+        open={showEmailPreview}
+        onOpenChange={setShowEmailPreview}
+        invoice={{
+          invoice_number: invoiceNumber,
+          due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
+          notes,
+          subtotal,
+          tax_rate: taxRate,
+          tax_amount: taxAmount,
+          total,
+          customer: customerData,
+        }}
+        lineItems={lineItems}
+        recipientEmail={customerData?.email || null}
+        onSendEmail={confirmSendEmail}
+        sending={sendingEmail}
+      />
     </div>
   );
 }
