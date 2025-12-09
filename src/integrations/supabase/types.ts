@@ -659,6 +659,7 @@ export type Database = {
           customer_id: string | null
           estimate_id: string | null
           id: string
+          is_usta_funded: boolean | null
           location_id: string | null
           notes: string | null
           project_name: string
@@ -684,6 +685,7 @@ export type Database = {
           customer_id?: string | null
           estimate_id?: string | null
           id?: string
+          is_usta_funded?: boolean | null
           location_id?: string | null
           notes?: string | null
           project_name: string
@@ -709,6 +711,7 @@ export type Database = {
           customer_id?: string | null
           estimate_id?: string | null
           id?: string
+          is_usta_funded?: boolean | null
           location_id?: string | null
           notes?: string | null
           project_name?: string
@@ -769,6 +772,119 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      usta_applications: {
+        Row: {
+          completion_percentage: number | null
+          consultant_email: string | null
+          consultant_name: string | null
+          courts_36_lined: number | null
+          courts_36_permanent: number | null
+          courts_60_lined: number | null
+          courts_60_permanent: number | null
+          courts_78: number | null
+          created_at: string
+          description_of_improvements: string | null
+          facility_director: string | null
+          facility_email: string | null
+          facility_name: string | null
+          facility_phone: string | null
+          foundation_funding: number | null
+          fundraising_amount: number | null
+          government_funding: number | null
+          id: string
+          local_sponsors_amount: number | null
+          other_funding: number | null
+          other_funding_description: string | null
+          pdf_url: string | null
+          professional_fees: number | null
+          project_id: string
+          projected_completion_date: string | null
+          status: string
+          submitted_at: string | null
+          total_renovation_costs: number | null
+          tpa_number: string | null
+          updated_at: string
+          usta_national_amount: number | null
+          usta_section_amount: number | null
+        }
+        Insert: {
+          completion_percentage?: number | null
+          consultant_email?: string | null
+          consultant_name?: string | null
+          courts_36_lined?: number | null
+          courts_36_permanent?: number | null
+          courts_60_lined?: number | null
+          courts_60_permanent?: number | null
+          courts_78?: number | null
+          created_at?: string
+          description_of_improvements?: string | null
+          facility_director?: string | null
+          facility_email?: string | null
+          facility_name?: string | null
+          facility_phone?: string | null
+          foundation_funding?: number | null
+          fundraising_amount?: number | null
+          government_funding?: number | null
+          id?: string
+          local_sponsors_amount?: number | null
+          other_funding?: number | null
+          other_funding_description?: string | null
+          pdf_url?: string | null
+          professional_fees?: number | null
+          project_id: string
+          projected_completion_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          total_renovation_costs?: number | null
+          tpa_number?: string | null
+          updated_at?: string
+          usta_national_amount?: number | null
+          usta_section_amount?: number | null
+        }
+        Update: {
+          completion_percentage?: number | null
+          consultant_email?: string | null
+          consultant_name?: string | null
+          courts_36_lined?: number | null
+          courts_36_permanent?: number | null
+          courts_60_lined?: number | null
+          courts_60_permanent?: number | null
+          courts_78?: number | null
+          created_at?: string
+          description_of_improvements?: string | null
+          facility_director?: string | null
+          facility_email?: string | null
+          facility_name?: string | null
+          facility_phone?: string | null
+          foundation_funding?: number | null
+          fundraising_amount?: number | null
+          government_funding?: number | null
+          id?: string
+          local_sponsors_amount?: number | null
+          other_funding?: number | null
+          other_funding_description?: string | null
+          pdf_url?: string | null
+          professional_fees?: number | null
+          project_id?: string
+          projected_completion_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          total_renovation_costs?: number | null
+          tpa_number?: string | null
+          updated_at?: string
+          usta_national_amount?: number | null
+          usta_section_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usta_applications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -27,8 +28,10 @@ import {
   Circle,
   Clock,
   Save,
+  Award,
 } from "lucide-react";
 import { format } from "date-fns";
+import USTAApplicationForm from "@/components/admin/USTAApplicationForm";
 
 interface Project {
   id: string;
@@ -48,6 +51,7 @@ interface Project {
   notes: string | null;
   estimate_id: string | null;
   customer_id: string | null;
+  is_usta_funded: boolean | null;
   customer: { contact_name: string; email: string | null; phone: string | null } | null;
 }
 
@@ -357,6 +361,16 @@ export default function ProjectDetail() {
                     }
                   />
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="is_usta_funded"
+                    checked={editedProject.is_usta_funded || false}
+                    onCheckedChange={(checked) =>
+                      setEditedProject({ ...editedProject, is_usta_funded: checked as boolean })
+                    }
+                  />
+                  <Label htmlFor="is_usta_funded">USTA Grant Funded</Label>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -492,6 +506,35 @@ export default function ProjectDetail() {
               />
             </CardContent>
           </Card>
+
+          {/* USTA Grant Section */}
+          {!isNew && editedProject.is_usta_funded && project && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-primary" />
+                  USTA Grant Application
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <USTAApplicationForm
+                  projectId={project.id}
+                  project={{
+                    id: project.id,
+                    project_name: project.project_name,
+                    site_address: project.site_address,
+                    site_city: project.site_city,
+                    site_state: project.site_state,
+                    site_zip: project.site_zip,
+                    contract_value: project.contract_value,
+                    target_completion_date: project.target_completion_date,
+                    customer: project.customer,
+                  }}
+                  completionPercentage={Math.round(progressPercent)}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}
