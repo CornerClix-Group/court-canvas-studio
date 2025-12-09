@@ -14,16 +14,453 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_name: string | null
+          contact_name: string
+          created_at: string
+          email: string | null
+          id: string
+          mercury_customer_id: string | null
+          notes: string | null
+          phone: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_name: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          mercury_customer_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_name?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          mercury_customer_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
+      estimate_items: {
+        Row: {
+          created_at: string
+          description: string
+          estimate_id: string
+          id: string
+          quantity: number
+          sort_order: number
+          total: number
+          unit: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          estimate_id: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          total?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          estimate_id?: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          total?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          estimate_number: string
+          id: string
+          lead_id: string | null
+          notes: string | null
+          sent_at: string | null
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          total: number
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          estimate_number: string
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          estimate_number?: string
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          sort_order: number
+          total: number
+          unit: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          sort_order?: number
+          total?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          sort_order?: number
+          total?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_paid: number | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          due_date: string | null
+          estimate_id: string | null
+          id: string
+          invoice_number: string
+          mercury_invoice_id: string | null
+          notes: string | null
+          paid_at: string | null
+          sent_at: string | null
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          estimate_id?: string | null
+          id?: string
+          invoice_number: string
+          mercury_invoice_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          estimate_id?: string | null
+          id?: string
+          invoice_number?: string
+          mercury_invoice_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          city: string | null
+          converted_customer_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          project_type: string | null
+          source: string | null
+          state: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          project_type?: string | null
+          source?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          project_type?: string | null
+          source?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_converted_customer_id_fkey"
+            columns: ["converted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          mercury_transaction_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          mercury_transaction_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          mercury_transaction_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin_or_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +587,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "staff"],
+    },
   },
 } as const
