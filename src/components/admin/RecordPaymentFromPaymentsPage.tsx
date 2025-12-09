@@ -48,6 +48,13 @@ interface Invoice {
   } | null;
 }
 
+interface Customer {
+  id: string;
+  contact_name: string;
+  company_name: string | null;
+  email: string | null;
+}
+
 interface RecordPaymentFromPaymentsPageProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,6 +69,12 @@ const PAYMENT_METHODS = [
   { value: "other", label: "Other" },
 ];
 
+const STANDALONE_PAYMENT_TYPES = [
+  { value: "deposit", label: "Deposit" },
+  { value: "prepayment", label: "Prepayment" },
+  { value: "miscellaneous", label: "Miscellaneous" },
+];
+
 export function RecordPaymentFromPaymentsPage({
   open,
   onOpenChange,
@@ -74,6 +87,13 @@ export function RecordPaymentFromPaymentsPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isStandalonePayment, setIsStandalonePayment] = useState(false);
+
+  // Standalone payment state
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [standalonePaymentType, setStandalonePaymentType] = useState<string>("");
+  const [description, setDescription] = useState("");
 
   // Payment form state
   const [saving, setSaving] = useState(false);
@@ -131,6 +151,26 @@ export function RecordPaymentFromPaymentsPage({
     }
   }, [open]);
 
+  // Fetch customers for standalone payments
+  useEffect(() => {
+    async function fetchCustomers() {
+      setLoadingCustomers(true);
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, contact_name, company_name, email")
+        .order("contact_name");
+
+      if (!error && data) {
+        setCustomers(data);
+      }
+      setLoadingCustomers(false);
+    }
+
+    if (open && isStandalonePayment) {
+      fetchCustomers();
+    }
+  }, [open, isStandalonePayment]);
+
   const filteredInvoices = invoices.filter((inv) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -164,6 +204,9 @@ export function RecordPaymentFromPaymentsPage({
     setSendReceipt(true);
     setPendingPayment(null);
     setNewAmountPaid(0);
+    setSelectedCustomer(null);
+    setStandalonePaymentType("");
+    setDescription("");
   };
 
   const handleClose = () => {
@@ -187,6 +230,9 @@ export function RecordPaymentFromPaymentsPage({
     setStep("select");
     setSelectedInvoice(null);
     setIsStandalonePayment(false);
+    setSelectedCustomer(null);
+    setStandalonePaymentType("");
+    setDescription("");
     setAmount("");
     setPaymentMethod("");
     setReferenceNumber("");
@@ -225,6 +271,18 @@ export function RecordPaymentFromPaymentsPage({
       return;
     }
 
+    // Validate standalone payment fields
+    if (isStandalonePayment) {
+      if (!standalonePaymentType) {
+        setErrors({ payment_type: "Please select a payment type" });
+        return;
+      }
+      if (!description.trim()) {
+        setErrors({ description: "Please provide a description" });
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -241,6 +299,7 @@ export function RecordPaymentFromPaymentsPage({
             reference_number: referenceNumber || null,
             notes: notes || null,
             payment_date: paymentDate,
+            payment_type: "invoice_payment",
           })
           .select()
           .single();
@@ -289,15 +348,34 @@ export function RecordPaymentFromPaymentsPage({
           onPaymentRecorded();
         }
       } else {
-        // Standalone payment (not linked to invoice) - we need a dummy invoice or handle differently
-        // For now, show a message that standalone payments need more context
+        // Standalone payment (deposit, prepayment, miscellaneous)
+        const { error: paymentError } = await supabase
+          .from("payments")
+          .insert({
+            invoice_id: null,
+            amount: parsedAmount,
+            payment_method: paymentMethod,
+            reference_number: referenceNumber || null,
+            notes: notes || null,
+            payment_date: paymentDate,
+            payment_type: standalonePaymentType,
+            description: description,
+            customer_id: selectedCustomer?.id || null,
+          });
+
+        if (paymentError) throw paymentError;
+
+        const typeLabel = STANDALONE_PAYMENT_TYPES.find(
+          (t) => t.value === standalonePaymentType
+        )?.label;
+
         toast({
-          variant: "destructive",
-          title: "Feature Coming Soon",
-          description:
-            "Standalone payments without an invoice are not yet supported. Please create an invoice first.",
+          title: "Payment Recorded",
+          description: `${formatCurrency(parsedAmount)} ${typeLabel?.toLowerCase()} recorded successfully`,
         });
-        setSaving(false);
+
+        handleClose();
+        onPaymentRecorded();
       }
     } catch (error) {
       console.error("Error recording payment:", error);
@@ -515,6 +593,82 @@ export function RecordPaymentFromPaymentsPage({
                     </span>
                   </div>
                 </div>
+              )}
+
+              {/* Standalone Payment Fields */}
+              {isStandalonePayment && (
+                <>
+                  {/* Payment Type */}
+                  <div className="space-y-2">
+                    <Label htmlFor="standalonePaymentType">Payment Type *</Label>
+                    <Select
+                      value={standalonePaymentType}
+                      onValueChange={setStandalonePaymentType}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STANDALONE_PAYMENT_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.payment_type && (
+                      <p className="text-sm text-destructive">
+                        {errors.payment_type}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Input
+                      id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g., Deposit for Smith project"
+                      maxLength={200}
+                    />
+                    {errors.description && (
+                      <p className="text-sm text-destructive">
+                        {errors.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Customer (Optional) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="customer">Customer (Optional)</Label>
+                    <Select
+                      value={selectedCustomer?.id || ""}
+                      onValueChange={(value) => {
+                        const customer = customers.find((c) => c.id === value);
+                        setSelectedCustomer(customer || null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a customer (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {loadingCustomers ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </div>
+                        ) : (
+                          customers.map((customer) => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                              {customer.company_name || customer.contact_name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
               {/* Amount */}
