@@ -272,16 +272,40 @@ const handler = async (req: Request): Promise<Response> => {
 
     const invoiceHTML = generateInvoiceHTML(invoice as Invoice, lineItems || []);
 
+    const emailSubject = `Invoice ${invoice.invoice_number} from ${COMPANY_INFO.displayName}`;
+
     // Send email
     const emailResponse = await resend.emails.send({
       from: `${COMPANY_INFO.dbaName} <onboarding@resend.dev>`,
       to: [customerEmail],
       cc: [COMPANY_INFO.email],
-      subject: `Invoice ${invoice.invoice_number} from ${COMPANY_INFO.displayName}`,
+      subject: emailSubject,
       html: invoiceHTML,
     });
 
     console.log("Email sent successfully:", emailResponse);
+
+    const resendEmailId = emailResponse.data?.id;
+
+    // Log email to email_logs table
+    if (resendEmailId) {
+      const { error: logError } = await supabase
+        .from("email_logs")
+        .insert({
+          resend_email_id: resendEmailId,
+          email_type: "invoice",
+          related_id: invoiceId,
+          recipient_email: customerEmail,
+          subject: emailSubject,
+          status: "sent",
+        });
+
+      if (logError) {
+        console.error("Error logging email:", logError);
+      } else {
+        console.log("Email logged with ID:", resendEmailId);
+      }
+    }
 
     // Update invoice status to sent
     const { error: updateError } = await supabase
@@ -297,7 +321,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Invoice sent successfully" }),
+      JSON.stringify({ success: true, message: "Invoice sent successfully", emailId: resendEmailId }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },

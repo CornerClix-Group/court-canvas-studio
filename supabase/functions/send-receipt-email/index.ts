@@ -471,6 +471,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Receipt email sent successfully:", emailResponse);
 
+    const resendEmailId = emailResponse.data?.id;
+
+    // Log email to email_logs table
+    if (resendEmailId) {
+      const { error: logError } = await supabase
+        .from("email_logs")
+        .insert({
+          resend_email_id: resendEmailId,
+          email_type: "receipt",
+          related_id: paymentId,
+          recipient_email: customer.email,
+          subject,
+          status: "sent",
+        });
+
+      if (logError) {
+        console.error("Error logging email:", logError);
+      } else {
+        console.log("Email logged with ID:", resendEmailId);
+      }
+    }
+
     // Update payment with receipt_sent_at timestamp
     const { error: updateError } = await supabase
       .from("payments")
@@ -486,7 +508,7 @@ const handler = async (req: Request): Promise<Response> => {
         success: true, 
         message: "Receipt email sent successfully",
         receiptNumber,
-        emailId: emailResponse.data?.id 
+        emailId: resendEmailId 
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
