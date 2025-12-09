@@ -29,7 +29,7 @@ import { RecordPaymentFromPaymentsPage } from "@/components/admin/RecordPaymentF
 
 interface Payment {
   id: string;
-  invoice_id: string;
+  invoice_id: string | null;
   amount: number;
   payment_method: string | null;
   reference_number: string | null;
@@ -37,6 +37,9 @@ interface Payment {
   notes: string | null;
   created_at: string;
   receipt_sent_at: string | null;
+  payment_type: string;
+  description: string | null;
+  customer_id: string | null;
   invoices: {
     id: string;
     invoice_number: string;
@@ -49,6 +52,12 @@ interface Payment {
       company_name: string | null;
       email: string | null;
     } | null;
+  } | null;
+  customers: {
+    id: string;
+    contact_name: string;
+    company_name: string | null;
+    email: string | null;
   } | null;
 }
 
@@ -94,12 +103,18 @@ export default function AdminPayments() {
               company_name,
               email
             )
+          ),
+          customers (
+            id,
+            contact_name,
+            company_name,
+            email
           )
         `)
         .order("payment_date", { ascending: false });
 
       if (error) throw error;
-      setPayments(data || []);
+      setPayments((data as Payment[]) || []);
     } catch (error) {
       console.error("Error fetching payments:", error);
       toast({
@@ -116,16 +131,17 @@ export default function AdminPayments() {
     fetchPayments();
   }, []);
 
-  const filteredPayments = payments.filter(
-    (payment) =>
-      payment.invoices?.invoice_number
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      payment.invoices?.customers?.contact_name
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      payment.reference_number?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPayments = payments.filter((payment) => {
+    const searchLower = search.toLowerCase();
+    return (
+      payment.invoices?.invoice_number?.toLowerCase().includes(searchLower) ||
+      payment.invoices?.customers?.contact_name?.toLowerCase().includes(searchLower) ||
+      payment.customers?.contact_name?.toLowerCase().includes(searchLower) ||
+      payment.customers?.company_name?.toLowerCase().includes(searchLower) ||
+      payment.description?.toLowerCase().includes(searchLower) ||
+      payment.reference_number?.toLowerCase().includes(searchLower)
+    );
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -291,10 +307,23 @@ export default function AdminPayments() {
                               {format(new Date(payment.payment_date), "MMM d, yyyy")}
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono">
-                            {payment.invoices?.invoice_number || "—"}
+                          <TableCell>
+                            {payment.invoices ? (
+                              <span className="font-mono">
+                                {payment.invoices.invoice_number}
+                              </span>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                {payment.payment_type === "deposit"
+                                  ? "Deposit"
+                                  : payment.payment_type === "prepayment"
+                                  ? "Prepayment"
+                                  : "Misc"}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell>
+                            {/* Show customer from invoice or direct customer */}
                             {payment.invoices?.customers ? (
                               <div>
                                 <div className="font-medium">
@@ -305,6 +334,21 @@ export default function AdminPayments() {
                                     {payment.invoices.customers.company_name}
                                   </div>
                                 )}
+                              </div>
+                            ) : payment.customers ? (
+                              <div>
+                                <div className="font-medium">
+                                  {payment.customers.contact_name}
+                                </div>
+                                {payment.customers.company_name && (
+                                  <div className="text-sm text-muted-foreground">
+                                    {payment.customers.company_name}
+                                  </div>
+                                )}
+                              </div>
+                            ) : payment.description ? (
+                              <div className="text-sm text-muted-foreground italic">
+                                {payment.description}
                               </div>
                             ) : (
                               <span className="text-muted-foreground">—</span>

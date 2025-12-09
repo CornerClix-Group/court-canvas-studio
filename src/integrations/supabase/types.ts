@@ -484,40 +484,56 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          customer_id: string | null
+          description: string | null
           id: string
-          invoice_id: string
+          invoice_id: string | null
           mercury_transaction_id: string | null
           notes: string | null
           payment_date: string
           payment_method: string | null
+          payment_type: string
           receipt_sent_at: string | null
           reference_number: string | null
         }
         Insert: {
           amount: number
           created_at?: string
+          customer_id?: string | null
+          description?: string | null
           id?: string
-          invoice_id: string
+          invoice_id?: string | null
           mercury_transaction_id?: string | null
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          payment_type?: string
           receipt_sent_at?: string | null
           reference_number?: string | null
         }
         Update: {
           amount?: number
           created_at?: string
+          customer_id?: string | null
+          description?: string | null
           id?: string
-          invoice_id?: string
+          invoice_id?: string | null
           mercury_transaction_id?: string | null
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          payment_type?: string
           receipt_sent_at?: string | null
           reference_number?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_invoice_id_fkey"
             columns: ["invoice_id"]
