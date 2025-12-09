@@ -20,8 +20,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail } from "lucide-react";
+import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import BankTransactionsSection from "@/components/admin/BankTransactionsSection";
 import { ReceiptEmailPreview } from "@/components/admin/ReceiptEmailPreview";
 
@@ -34,6 +35,7 @@ interface Payment {
   payment_date: string;
   notes: string | null;
   created_at: string;
+  receipt_sent_at: string | null;
   invoices: {
     id: string;
     invoice_number: string;
@@ -161,6 +163,9 @@ export default function AdminPayments() {
         title: "Receipt Sent",
         description: `Receipt email sent to ${selectedPayment.invoices?.customers?.email}`,
       });
+      
+      // Refresh payments to show updated receipt_sent_at
+      fetchPayments();
     } catch (error) {
       console.error("Error sending receipt:", error);
       toast({
@@ -263,6 +268,7 @@ export default function AdminPayments() {
                         <TableHead>Amount</TableHead>
                         <TableHead>Method</TableHead>
                         <TableHead>Reference</TableHead>
+                        <TableHead>Receipt</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -314,6 +320,25 @@ export default function AdminPayments() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {payment.reference_number || "—"}
+                          </TableCell>
+                          <TableCell>
+                            {payment.receipt_sent_at ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1 text-green-600">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      <span className="text-xs">Sent</span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Sent {format(new Date(payment.receipt_sent_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>

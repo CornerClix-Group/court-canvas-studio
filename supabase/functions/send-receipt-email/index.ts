@@ -303,6 +303,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Receipt email sent successfully:", emailResponse);
 
+    // Update payment with receipt_sent_at timestamp
+    const { error: updateError } = await supabase
+      .from("payments")
+      .update({ receipt_sent_at: new Date().toISOString() })
+      .eq("id", paymentId);
+
+    if (updateError) {
+      console.error("Error updating receipt_sent_at:", updateError);
+      // Don't fail the request, receipt was still sent
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
