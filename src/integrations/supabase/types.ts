@@ -490,6 +490,7 @@ export type Database = {
           notes: string | null
           payment_date: string
           payment_method: string | null
+          receipt_sent_at: string | null
           reference_number: string | null
         }
         Insert: {
@@ -501,6 +502,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          receipt_sent_at?: string | null
           reference_number?: string | null
         }
         Update: {
@@ -512,6 +514,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          receipt_sent_at?: string | null
           reference_number?: string | null
         }
         Relationships: [
