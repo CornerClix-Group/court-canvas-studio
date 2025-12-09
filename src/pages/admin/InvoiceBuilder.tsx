@@ -19,6 +19,7 @@ import {
   FileText,
   Receipt,
   Loader2,
+  Mail,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 
@@ -45,6 +46,7 @@ export default function InvoiceBuilder() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [sourceEstimateId, setSourceEstimateId] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export default function InvoiceBuilder() {
   const [taxRate, setTaxRate] = useState(0);
   const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState<Date | null>(addDays(new Date(), 30));
+  const [invoiceId, setInvoiceId] = useState<string | null>(id || null);
 
   // Calculate totals
   const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
@@ -235,7 +238,7 @@ export default function InvoiceBuilder() {
         sent_at: shouldSend ? new Date().toISOString() : null,
       };
 
-      let invoiceId = id;
+      let currentInvoiceId = id;
 
       if (isEditing) {
         const { error } = await supabase
@@ -247,6 +250,7 @@ export default function InvoiceBuilder() {
 
         // Delete existing line items and re-insert
         await supabase.from("invoice_items").delete().eq("invoice_id", id);
+        currentInvoiceId = id;
       } else {
         const { data: newInvoice, error } = await supabase
           .from("invoices")
@@ -255,12 +259,13 @@ export default function InvoiceBuilder() {
           .single();
 
         if (error) throw error;
-        invoiceId = newInvoice.id;
+        currentInvoiceId = newInvoice.id;
+        setInvoiceId(newInvoice.id);
       }
 
       // Insert line items
       const itemsToInsert = lineItems.map((item, index) => ({
-        invoice_id: invoiceId,
+        invoice_id: currentInvoiceId,
         description: item.description,
         quantity: item.quantity,
         unit: item.unit,
@@ -292,6 +297,41 @@ export default function InvoiceBuilder() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!invoiceId) {
+      toast({
+        variant: "destructive",
+        title: "Save First",
+        description: "Please save the invoice before sending.",
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-invoice-email", {
+        body: { invoiceId },
+      });
+
+      if (error) throw error;
+
+      setStatus("sent");
+      toast({
+        title: "Invoice Sent",
+        description: `Invoice ${invoiceNumber} has been emailed to the customer.`,
+      });
+    } catch (error: any) {
+      console.error("Error sending invoice email:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send invoice email.",
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -347,11 +387,11 @@ export default function InvoiceBuilder() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => handleSave(false)}
-            disabled={saving}
+            disabled={saving || sendingEmail}
           >
             {saving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -360,13 +400,27 @@ export default function InvoiceBuilder() {
             )}
             Save Draft
           </Button>
-          <Button onClick={() => handleSave(true)} disabled={saving}>
+          {invoiceId && status !== "draft" && (
+            <Button
+              variant="outline"
+              onClick={handleSendEmail}
+              disabled={saving || sendingEmail}
+            >
+              {sendingEmail ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Mail className="w-4 h-4 mr-2" />
+              )}
+              Email Invoice
+            </Button>
+          )}
+          <Button onClick={() => handleSave(true)} disabled={saving || sendingEmail}>
             {saving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Send className="w-4 h-4 mr-2" />
             )}
-            Save & Send
+            Save & Mark Sent
           </Button>
         </div>
       </div>

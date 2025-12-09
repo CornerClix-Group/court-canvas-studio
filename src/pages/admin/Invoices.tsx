@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { RecordPaymentModal } from "@/components/admin/RecordPaymentModal";
-import { Search, Receipt, Plus, Calendar, DollarSign, CreditCard } from "lucide-react";
+import { Search, Receipt, Plus, Calendar, DollarSign, CreditCard, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface Invoice {
@@ -58,6 +58,7 @@ export default function AdminInvoices() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchInvoices = async () => {
@@ -118,6 +119,32 @@ export default function AdminInvoices() {
   const handleRecordPayment = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setPaymentModalOpen(true);
+  };
+
+  const handleSendEmail = async (invoice: Invoice) => {
+    setSendingEmailId(invoice.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-invoice-email", {
+        body: { invoiceId: invoice.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Invoice Sent",
+        description: `Invoice ${invoice.invoice_number} has been emailed to the customer.`,
+      });
+      fetchInvoices();
+    } catch (err: any) {
+      console.error("Error sending invoice email:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to send invoice email.",
+      });
+    } finally {
+      setSendingEmailId(null);
+    }
   };
 
   return (
@@ -261,14 +288,29 @@ export default function AdminInvoices() {
                           View
                         </Button>
                         {invoice.status !== "paid" && invoice.status !== "draft" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRecordPayment(invoice)}
-                          >
-                            <CreditCard className="w-3 h-3 mr-1" />
-                            Record Payment
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSendEmail(invoice)}
+                              disabled={sendingEmailId === invoice.id}
+                            >
+                              {sendingEmailId === invoice.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Mail className="w-3 h-3 mr-1" />
+                              )}
+                              Email
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRecordPayment(invoice)}
+                            >
+                              <CreditCard className="w-3 h-3 mr-1" />
+                              Record Payment
+                            </Button>
+                          </>
                         )}
                       </TableCell>
                     </TableRow>
