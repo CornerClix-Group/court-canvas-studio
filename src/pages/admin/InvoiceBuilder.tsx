@@ -310,37 +310,122 @@ export default function InvoiceBuilder() {
     }
   };
 
-  const handleSendEmail = async () => {
-    if (!invoiceId) {
+  const sendEmailToCustomer = async (currentInvoiceId: string) => {
+    const { error } = await supabase.functions.invoke("send-invoice-email", {
+      body: { invoiceId: currentInvoiceId },
+    });
+
+    if (error) throw error;
+    setStatus("sent");
+  };
+
+  const handleSaveAndEmail = async () => {
+    if (!customerId) {
       toast({
         variant: "destructive",
-        title: "Save First",
-        description: "Please save the invoice before sending.",
+        title: "Missing Customer",
+        description: "Please select a customer for this invoice.",
       });
       return;
     }
 
-    setSendingEmail(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-invoice-email", {
-        body: { invoiceId },
-      });
-
-      if (error) throw error;
-
-      setStatus("sent");
+    if (lineItems.length === 0) {
       toast({
-        title: "Invoice Sent",
-        description: `Invoice ${invoiceNumber} has been emailed to the customer.`,
+        variant: "destructive",
+        title: "No Line Items",
+        description: "Please add at least one line item.",
       });
+      return;
+    }
+
+    setSaving(true);
+    setSendingEmail(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const invoiceData = {
+        invoice_number: invoiceNumber,
+        customer_id: customerId,
+        estimate_id: sourceEstimateId,
+        created_by: user?.id,
+        status: "sent",
+        subtotal,
+        tax_rate: taxRate,
+        tax_amount: taxAmount,
+        total,
+        notes: notes || null,
+        due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
+        sent_at: new Date().toISOString(),
+      };
+
+      let currentInvoiceId = id;
+
+      if (isEditing) {
+        const { error } = await supabase
+          .from("invoices")
+          .update(invoiceData)
+          .eq("id", id);
+
+        if (error) throw error;
+        await supabase.from("invoice_items").delete().eq("invoice_id", id);
+        currentInvoiceId = id;
+      } else {
+        const { data: newInvoice, error } = await supabase
+          .from("invoices")
+          .insert(invoiceData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        currentInvoiceId = newInvoice.id;
+        setInvoiceId(newInvoice.id);
+      }
+
+      // Insert line items
+      const itemsToInsert = lineItems.map((item, index) => ({
+        invoice_id: currentInvoiceId,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price: item.unit_price,
+        total: item.total,
+        sort_order: index,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("invoice_items")
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+
+      // Now send the email
+      await sendEmailToCustomer(currentInvoiceId!);
+
+      // Get customer email for confirmation message
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("email, contact_name")
+        .eq("id", customerId)
+        .single();
+
+      toast({
+        title: "Invoice Saved & Emailed",
+        description: customer?.email 
+          ? `Invoice ${invoiceNumber} has been sent to ${customer.email}`
+          : `Invoice ${invoiceNumber} has been saved and emailed to the customer.`,
+      });
+
+      navigate("/admin/invoices");
     } catch (error: any) {
-      console.error("Error sending invoice email:", error);
+      console.error("Error saving and emailing invoice:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send invoice email.",
+        description: error.message || "Failed to save and email invoice.",
       });
     } finally {
+      setSaving(false);
       setSendingEmail(false);
     }
   };
@@ -485,7 +570,7 @@ export default function InvoiceBuilder() {
             onClick={() => handleSave(false)}
             disabled={saving || sendingEmail}
           >
-            {saving ? (
+            {saving && !sendingEmail ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
@@ -493,40 +578,41 @@ export default function InvoiceBuilder() {
             Save Draft
           </Button>
           {invoiceId && (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleDownloadPdf}
-                disabled={saving || sendingEmail || generatingPdf}
-              >
-                {generatingPdf ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 mr-2" />
-                )}
-                Download PDF
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSendEmail}
-                disabled={saving || sendingEmail || generatingPdf}
-              >
-                {sendingEmail ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Mail className="w-4 h-4 mr-2" />
-                )}
-                Email Invoice
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              onClick={handleDownloadPdf}
+              disabled={saving || sendingEmail || generatingPdf}
+            >
+              {generatingPdf ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              Download PDF
+            </Button>
           )}
-          <Button onClick={() => handleSave(true)} disabled={saving || sendingEmail}>
-            {saving ? (
+          <Button
+            variant="secondary"
+            onClick={() => handleSave(true)}
+            disabled={saving || sendingEmail}
+          >
+            {saving && !sendingEmail ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Send className="w-4 h-4 mr-2" />
+              <FileText className="w-4 h-4 mr-2" />
             )}
-            Save & Mark Sent
+            Save Invoice
+          </Button>
+          <Button
+            onClick={handleSaveAndEmail}
+            disabled={saving || sendingEmail}
+          >
+            {sendingEmail ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Mail className="w-4 h-4 mr-2" />
+            )}
+            Save & Email
           </Button>
         </div>
       </div>
