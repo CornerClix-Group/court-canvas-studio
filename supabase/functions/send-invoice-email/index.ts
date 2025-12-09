@@ -4,6 +4,24 @@ import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// Company information
+const COMPANY_INFO = {
+  legalName: "CourtHaus Construction, LLC",
+  dbaName: "CourtPro Augusta",
+  displayName: "CourtHaus Construction, LLC dba CourtPro Augusta",
+  address: {
+    street: "500 Furys Ferry Rd.",
+    suite: "Suite 107",
+    city: "Augusta",
+    state: "GA",
+    zip: "30907",
+    full: "500 Furys Ferry Rd. Suite 107, Augusta, GA 30907",
+  },
+  phone: "(762) 218-2974",
+  email: "estimates@courtproaugusta.com",
+  website: "courtproaugusta.com",
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -66,11 +84,11 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
   const lineItemsHTML = lineItems.map(item => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left;">${item.description}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity} ${item.unit || ''}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity} ${item.unit || ""}</td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price)}</td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.total)}</td>
     </tr>
-  `).join('');
+  `).join("");
 
   return `
     <!DOCTYPE html>
@@ -86,7 +104,9 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <h1 style="margin: 0; font-size: 32px; font-weight: bold;">CourtPro Augusta</h1>
-              <p style="margin: 8px 0 0 0; opacity: 0.9;">Premium Sports Court Construction</p>
+              <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">${COMPANY_INFO.displayName}</p>
+              <p style="margin: 4px 0 0 0; opacity: 0.8; font-size: 12px;">${COMPANY_INFO.address.full}</p>
+              <p style="margin: 4px 0 0 0; opacity: 0.8; font-size: 12px;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
             </div>
             <div style="text-align: right;">
               <p style="margin: 0; font-size: 24px; font-weight: bold;">INVOICE</p>
@@ -101,11 +121,11 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
           <div style="display: flex; justify-content: space-between; margin-bottom: 40px;">
             <div>
               <h3 style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Bill To</h3>
-              <p style="margin: 0; font-size: 18px; font-weight: bold; color: #111827;">${customer?.contact_name || 'Customer'}</p>
-              ${customer?.company_name ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${customer.company_name}</p>` : ''}
-              ${customer?.address ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${customer.address}</p>` : ''}
-              ${customer?.city || customer?.state || customer?.zip ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${[customer.city, customer.state, customer.zip].filter(Boolean).join(', ')}</p>` : ''}
-              ${customer?.email ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${customer.email}</p>` : ''}
+              <p style="margin: 0; font-size: 18px; font-weight: bold; color: #111827;">${customer?.contact_name || "Customer"}</p>
+              ${customer?.company_name ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${customer.company_name}</p>` : ""}
+              ${customer?.address ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${customer.address}</p>` : ""}
+              ${customer?.city || customer?.state || customer?.zip ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${[customer.city, customer.state, customer.zip].filter(Boolean).join(", ")}</p>` : ""}
+              ${customer?.email ? `<p style="margin: 4px 0 0 0; color: #6b7280;">${customer.email}</p>` : ""}
             </div>
             <div style="text-align: right;">
               <div style="margin-bottom: 16px;">
@@ -146,7 +166,7 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
                 <span style="color: #6b7280;">Tax (${invoice.tax_rate}%)</span>
                 <span style="font-weight: 500;">${formatCurrency(invoice.tax_amount || 0)}</span>
               </div>
-              ` : ''}
+              ` : ""}
               <div style="display: flex; justify-content: space-between; padding: 16px 0; background: #f9fafb; margin-top: 8px; border-radius: 8px; padding-left: 12px; padding-right: 12px;">
                 <span style="font-weight: bold; font-size: 18px;">Total Due</span>
                 <span style="font-weight: bold; font-size: 18px; color: #0369a1;">${formatCurrency(invoice.total)}</span>
@@ -160,15 +180,18 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
             <h3 style="margin: 0 0 12px 0; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Notes</h3>
             <p style="margin: 0; color: #4b5563; white-space: pre-line;">${invoice.notes}</p>
           </div>
-          ` : ''}
+          ` : ""}
 
           <!-- Payment Instructions -->
           <div style="margin-top: 40px; padding: 24px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
             <h3 style="margin: 0 0 12px 0; color: #0369a1; font-size: 14px; font-weight: bold;">Payment Instructions</h3>
             <p style="margin: 0; color: #4b5563; font-size: 14px;">
-              Please make payment via check or bank transfer to:<br><br>
-              <strong>CourtPro Augusta</strong><br>
-              Bank: Mercury Bank<br>
+              Please make checks payable to:<br>
+              <strong>${COMPANY_INFO.legalName}</strong><br><br>
+              Mail to:<br>
+              <strong>${COMPANY_INFO.address.street} ${COMPANY_INFO.address.suite}</strong><br>
+              <strong>${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}</strong><br><br>
+              For questions, contact us at <strong>${COMPANY_INFO.email}</strong> or <strong>${COMPANY_INFO.phone}</strong><br><br>
               Please reference invoice number <strong>${invoice.invoice_number}</strong> with your payment.
             </p>
           </div>
@@ -176,8 +199,10 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
 
         <!-- Footer -->
         <div style="text-align: center; padding: 24px; color: #6b7280; font-size: 12px;">
-          <p style="margin: 0;">CourtPro Augusta | Augusta, GA</p>
-          <p style="margin: 8px 0 0 0;">Thank you for your business!</p>
+          <p style="margin: 0;">${COMPANY_INFO.displayName}</p>
+          <p style="margin: 4px 0 0 0;">${COMPANY_INFO.address.full}</p>
+          <p style="margin: 4px 0 0 0;">${COMPANY_INFO.phone} | ${COMPANY_INFO.website}</p>
+          <p style="margin: 12px 0 0 0;">Thank you for your business!</p>
         </div>
       </div>
     </body>
@@ -249,10 +274,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "CourtPro Augusta <onboarding@resend.dev>",
+      from: `${COMPANY_INFO.dbaName} <onboarding@resend.dev>`,
       to: [customerEmail],
-      cc: ["estimates@courtproaugusta.com"],
-      subject: `Invoice ${invoice.invoice_number} from CourtPro Augusta`,
+      cc: [COMPANY_INFO.email],
+      subject: `Invoice ${invoice.invoice_number} from ${COMPANY_INFO.displayName}`,
       html: invoiceHTML,
     });
 
@@ -262,7 +287,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { error: updateError } = await supabase
       .from("invoices")
       .update({
-        status: "sent",
+        status: invoice.status === "draft" ? "sent" : invoice.status,
         sent_at: new Date().toISOString(),
       })
       .eq("id", invoiceId);
