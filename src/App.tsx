@@ -21,6 +21,7 @@ import AdminEstimates from "./pages/admin/Estimates";
 import AdminInvoices from "./pages/admin/Invoices";
 import AdminPayments from "./pages/admin/Payments";
 import InvoiceBuilder from "./pages/admin/InvoiceBuilder";
+import EstimateBuilder from "./pages/admin/EstimateBuilder";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,8 @@ const App = () => (
             <Route path="leads" element={<AdminLeads />} />
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="estimates" element={<AdminEstimates />} />
+            <Route path="estimates/new" element={<EstimateBuilder />} />
+            <Route path="estimates/:id" element={<EstimateBuilder />} />
             <Route path="invoices" element={<AdminInvoices />} />
             <Route path="invoices/new" element={<InvoiceBuilder />} />
             <Route path="invoices/:id" element={<InvoiceBuilder />} />
