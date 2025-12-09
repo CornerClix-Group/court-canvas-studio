@@ -17,7 +17,6 @@ import { COMPANY_INFO } from "@/lib/companyInfo";
 import {
   ArrowLeft,
   Save,
-  Send,
   FileText,
   Receipt,
   Loader2,
@@ -237,7 +236,7 @@ export default function InvoiceBuilder() {
     }
   };
 
-  const handleSave = async (shouldSend = false) => {
+  const handleSaveDraft = async () => {
     if (!customerId) {
       toast({
         variant: "destructive",
@@ -266,14 +265,13 @@ export default function InvoiceBuilder() {
         customer_id: customerId,
         estimate_id: sourceEstimateId,
         created_by: user?.id,
-        status: shouldSend ? "sent" : "draft",
+        status: "draft",
         subtotal,
         tax_rate: taxRate,
         tax_amount: taxAmount,
         total,
         notes: notes || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
-        sent_at: shouldSend ? new Date().toISOString() : null,
       };
 
       let currentInvoiceId = id;
@@ -319,10 +317,8 @@ export default function InvoiceBuilder() {
       if (itemsError) throw itemsError;
 
       toast({
-        title: shouldSend ? "Invoice Sent" : "Invoice Saved",
-        description: shouldSend
-          ? `Invoice ${invoiceNumber} has been saved and marked as sent.`
-          : `Invoice ${invoiceNumber} has been saved as a draft.`,
+        title: "Invoice Saved",
+        description: `Invoice ${invoiceNumber} has been saved as a draft.`,
       });
 
       navigate("/admin/invoices");
@@ -595,7 +591,7 @@ export default function InvoiceBuilder() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleSave(false)}
+            onClick={handleSaveDraft}
             disabled={saving || sendingEmail}
           >
             {saving && !sendingEmail ? (
@@ -603,7 +599,7 @@ export default function InvoiceBuilder() {
             ) : (
               <Save className="w-4 h-4 mr-1" />
             )}
-            Draft
+            Save Draft
           </Button>
           {invoiceId && (
             <Button
@@ -621,19 +617,6 @@ export default function InvoiceBuilder() {
             </Button>
           )}
           <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleSave(true)}
-            disabled={saving || sendingEmail}
-          >
-            {saving && !sendingEmail ? (
-              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-            ) : (
-              <FileText className="w-4 h-4 mr-1" />
-            )}
-            Save
-          </Button>
-          <Button
             size="sm"
             onClick={handleOpenEmailPreview}
             disabled={saving || sendingEmail}
@@ -644,7 +627,7 @@ export default function InvoiceBuilder() {
             ) : (
               <Mail className="w-4 h-4 mr-1" />
             )}
-            Save & Email
+            Send Invoice
           </Button>
         </div>
       </div>
