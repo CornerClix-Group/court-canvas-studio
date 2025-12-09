@@ -20,11 +20,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, CheckCircle2 } from "lucide-react";
+import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, CheckCircle2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import BankTransactionsSection from "@/components/admin/BankTransactionsSection";
 import { ReceiptEmailPreview } from "@/components/admin/ReceiptEmailPreview";
+import { RecordPaymentFromPaymentsPage } from "@/components/admin/RecordPaymentFromPaymentsPage";
 
 interface Payment {
   id: string;
@@ -71,6 +72,9 @@ export default function AdminPayments() {
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [sendingReceipt, setSendingReceipt] = useState(false);
+  
+  // Record payment modal state
+  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
 
   const fetchPayments = async () => {
     try {
@@ -223,17 +227,23 @@ export default function AdminPayments() {
             </Card>
           </div>
 
-          {/* Search */}
+          {/* Search and Actions */}
           <Card>
             <CardContent className="pt-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by invoice, customer, or reference..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="flex gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by invoice, customer, or reference..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Button onClick={() => setShowRecordPaymentModal(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Record Payment
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -407,6 +417,13 @@ export default function AdminPayments() {
           sending={sendingReceipt}
         />
       )}
+
+      {/* Record Payment Modal */}
+      <RecordPaymentFromPaymentsPage
+        open={showRecordPaymentModal}
+        onOpenChange={setShowRecordPaymentModal}
+        onPaymentRecorded={fetchPayments}
+      />
     </div>
   );
 }
