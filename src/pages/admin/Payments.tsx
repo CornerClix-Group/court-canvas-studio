@@ -20,7 +20,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, Plus, RefreshCw } from "lucide-react";
+import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, Plus, RefreshCw, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import BankTransactionsSection from "@/components/admin/BankTransactionsSection";
 import { ReceiptEmailPreview } from "@/components/admin/ReceiptEmailPreview";
@@ -97,6 +107,10 @@ export default function AdminPayments() {
   
   // Record payment modal state
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+  
+  // Delete payment state
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchPayments = async () => {
     try {
@@ -228,6 +242,45 @@ export default function AdminPayments() {
       setSendingReceipt(false);
       setShowReceiptPreview(false);
       setSelectedPayment(null);
+    }
+  };
+
+  const handleDeletePayment = async () => {
+    if (!paymentToDelete) return;
+    
+    setDeleting(true);
+    try {
+      // Delete related email logs first
+      await supabase
+        .from("email_logs")
+        .delete()
+        .eq("related_id", paymentToDelete.id)
+        .eq("email_type", "receipt");
+      
+      // Delete the payment
+      const { error } = await supabase
+        .from("payments")
+        .delete()
+        .eq("id", paymentToDelete.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Payment Deleted",
+        description: "The payment has been removed.",
+      });
+      
+      setPayments((prev) => prev.filter((p) => p.id !== paymentToDelete.id));
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete payment. Please try again.",
+      });
+    } finally {
+      setDeleting(false);
+      setPaymentToDelete(null);
     }
   };
 
@@ -436,6 +489,13 @@ export default function AdminPayments() {
                                     <span className="ml-2 text-xs text-muted-foreground">(No email)</span>
                                   )}
                                 </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setPaymentToDelete(payment)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Payment
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -493,6 +553,30 @@ export default function AdminPayments() {
         onOpenChange={setShowRecordPaymentModal}
         onPaymentRecorded={fetchPayments}
       />
+
+      {/* Delete Payment Confirmation */}
+      <AlertDialog open={!!paymentToDelete} onOpenChange={() => setPaymentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {formatCurrency(paymentToDelete?.amount || 0)} payment
+              {paymentToDelete?.invoices?.invoice_number && ` for ${paymentToDelete.invoices.invoice_number}`}?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePayment}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
