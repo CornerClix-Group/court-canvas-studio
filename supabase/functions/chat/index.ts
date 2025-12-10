@@ -1,42 +1,54 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple in-memory rate limiting (per IP)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_REQUESTS = 10; // max requests per window
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute window
+const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute window
 
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+// Persistent rate limiting using Supabase
+async function isRateLimited(supabase: any, ip: string): Promise<boolean> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_SECONDS * 1000);
   
-  if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-  
-  if (entry.count >= RATE_LIMIT_REQUESTS) {
-    return true;
-  }
-  
-  entry.count++;
-  return false;
-}
-
-// Clean up old entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitMap.delete(ip);
+  try {
+    // Count requests in the current window
+    const { count, error } = await supabase
+      .from('chat_rate_limits')
+      .select('*', { count: 'exact', head: true })
+      .eq('ip_address', ip)
+      .gte('created_at', windowStart.toISOString());
+    
+    if (error) {
+      // If table doesn't exist or other error, fall back to allowing request
+      // but log the error for debugging
+      console.error('Rate limit check error:', error.message);
+      return false;
     }
+    
+    if ((count || 0) >= RATE_LIMIT_REQUESTS) {
+      return true;
+    }
+    
+    // Record this request
+    const { error: insertError } = await supabase
+      .from('chat_rate_limits')
+      .insert({ ip_address: ip });
+    
+    if (insertError) {
+      console.error('Rate limit insert error:', insertError.message);
+    }
+    
+    return false;
+  } catch (err) {
+    console.error('Rate limit error:', err);
+    return false; // Allow request on error to avoid blocking legitimate users
   }
-}, 60 * 1000);
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -44,13 +56,23 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase configuration missing');
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
     // Get client IP for rate limiting
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                      req.headers.get('x-real-ip') || 
                      'unknown';
     
-    // Check rate limit
-    if (isRateLimited(clientIP)) {
+    // Check persistent rate limit
+    if (await isRateLimited(supabase, clientIP)) {
       console.log(`Rate limit exceeded for IP: ${clientIP}`);
       return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
         status: 429,
