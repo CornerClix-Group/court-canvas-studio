@@ -466,7 +466,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Generating receipt email for customer:", customer.email);
 
     const emailResponse = await resend.emails.send({
-      from: `CourtPro Augusta <onboarding@resend.dev>`,
+      from: "CourtPro Augusta <receipts@courtproaugusta.com>",
       to: [customer.email],
       subject,
       html,
