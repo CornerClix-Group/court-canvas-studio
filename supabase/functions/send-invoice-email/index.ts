@@ -18,7 +18,7 @@ const COMPANY_INFO = {
     full: "500 Furys Ferry Rd. Suite 107, Augusta, GA 30907",
   },
   phone: "(706) 309-1993",
-  email: "estimates@courtproaugusta.com",
+  email: "billing@courtproaugusta.com",
   website: "courtproaugusta.com",
 };
 
@@ -276,7 +276,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: `${COMPANY_INFO.dbaName} <onboarding@resend.dev>`,
+      from: "CourtPro Augusta <billing@courtproaugusta.com>",
       to: [customerEmail],
       cc: [COMPANY_INFO.email],
       subject: emailSubject,

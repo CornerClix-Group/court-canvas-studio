@@ -3,12 +3,12 @@
 const COMPANY_INFO = {
   name: "CourtHaus Construction, LLC",
   dba: "CourtPro Augusta",
-  address: "4150 Columbia Road",
-  city: "Martinez",
+  address: "500 Furys Ferry Rd. Suite 107",
+  city: "Augusta",
   state: "GA",
   zip: "30907",
-  phone: "(762) 222-2818",
-  email: "estimates@courtproaugusta.com",
+  phone: "(706) 309-1993",
+  email: "billing@courtproaugusta.com",
 };
 
 export interface LineItem {
