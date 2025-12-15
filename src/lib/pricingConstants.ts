@@ -188,6 +188,7 @@ export const MATERIAL_PRICES = {
   CUSHION_POWDER_PER_GAL: 35.00,
   ACRYLIC_RESURFACER_PER_GAL: 11.73,     // Updated to 2026 price
   COLOR_COAT_PER_GAL: 15.85,             // Updated to 2026 price
+  COLOR_PREMIUM_PER_GAL: 24.53,          // US Open Blue / Purple pricing
   LINE_PAINT_PER_COURT: 75.00,
   GEL_PER_SQFT: 3.50,
 };
@@ -211,6 +212,7 @@ export const LABOR_RATES = {
   PRESSURE_WASH_PER_SQFT: 0.15,          // NEW: Pressure washing
   BIRDBATH_REPAIR_PER_SQFT: 3.50,        // NEW: Patching/leveling
   PRIME_SEAL_PER_SQFT: 0.20,             // NEW: 1K PrimeSeal application
+  CORE_DRILL_PER_HOLE: 250.00,           // Cost per post hole
 };
 
 // =====================================================
