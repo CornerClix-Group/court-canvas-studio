@@ -18,6 +18,9 @@ verify_jwt = true
 [functions.generate-invoice-pdf]
 verify_jwt = true
 
+[functions.generate-estimate-pdf]
+verify_jwt = true
+
 [functions.generate-usta-form]
 verify_jwt = true
 
