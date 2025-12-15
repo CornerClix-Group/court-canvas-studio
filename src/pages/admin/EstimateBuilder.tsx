@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { EstimateWizardSteps } from "@/components/admin/EstimateWizardSteps";
+import { JobTemplates, type JobTemplate } from "@/components/admin/JobTemplates";
 import { SystemSelector } from "@/components/admin/SystemSelector";
 import { MaterialBreakdown } from "@/components/admin/MaterialBreakdown";
 import { CustomerSelect } from "@/components/admin/CustomerSelect";
@@ -307,6 +308,22 @@ export default function EstimateBuilder() {
     }
   };
 
+  const handleApplyTemplate = (template: JobTemplate) => {
+    setProjectType(template.projectType);
+    setCourtPreset(template.courtPreset);
+    setNumberOfCourts(template.numberOfCourts);
+    setCustomSqFt(template.customSqFt);
+    setBaseType(template.baseType);
+    setCrackRepairLf(template.crackRepairLf);
+    setSelectedSystem(template.selectedSystem);
+    setSurfaceCondition(template.surfaceCondition);
+    setCurrentStep(6); // Jump to review
+    toast({
+      title: "Template Applied",
+      description: `"${template.name}" loaded. Review and adjust as needed.`,
+    });
+  };
+
   const handleAddAddon = (addonKey: string) => {
     const addon = ADDONS[addonKey as keyof typeof ADDONS];
     if (!addon) return;
@@ -420,8 +437,10 @@ export default function EstimateBuilder() {
       case 1:
         return (
           <div className="space-y-6">
-            <div>
-              <Label className="text-base font-semibold mb-4 block">Project Type</Label>
+            <JobTemplates onSelectTemplate={handleApplyTemplate} />
+            
+            <div className="border-t pt-6">
+              <Label className="text-base font-semibold mb-4 block">Or Build Custom Estimate</Label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {Object.entries(PROJECT_TYPES).map(([key, type]) => (
                   <Card
