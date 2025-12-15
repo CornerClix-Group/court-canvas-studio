@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -8,6 +9,10 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MINUTES = 60;
+const MAX_REQUESTS_PER_WINDOW = 5;
 
 // Validation schema
 const contactFormSchema = z.object({
@@ -38,6 +43,43 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Initialize Supabase client with service role for rate limiting
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = createClient(supabaseUrl, supabaseServiceKey) as any;
+
+    // Get client IP for rate limiting
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    // Check rate limit using existing chat_rate_limits table
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString();
+    
+    const { count, error: rateLimitError } = await supabase
+      .from('chat_rate_limits')
+      .select('*', { count: 'exact', head: true })
+      .eq('ip_address', clientIP)
+      .gte('created_at', windowStart);
+    
+    if (rateLimitError) {
+      console.error("Rate limit check error:", rateLimitError);
+    }
+    
+    const isAllowed = rateLimitError || (count || 0) < MAX_REQUESTS_PER_WINDOW;
+    
+    if (!isAllowed) {
+      console.log(`Rate limit exceeded for IP: ${clientIP.substring(0, 10)}...`);
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const rawData = await req.json();
 
     // Validate and sanitize input
@@ -55,6 +97,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const formData = parseResult.data;
+
+    // Record rate limit entry after validation passes
+    const { error: insertError } = await supabase
+      .from('chat_rate_limits')
+      .insert({ ip_address: clientIP });
+    
+    if (insertError) {
+      console.error("Failed to record rate limit entry:", insertError);
+    }
 
     console.log("Received contact form submission:", { 
       name: formData.name.substring(0, 20), 
@@ -83,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "CourtPro Augusta <onboarding@resend.dev>",
+      from: "CourtPro Augusta <estimates@courtproaugusta.com>",
       to: ["estimates@courtproaugusta.com"],
       replyTo: formData.email,
       subject: `Quote Request from ${safeName} - ${safeType}`,
