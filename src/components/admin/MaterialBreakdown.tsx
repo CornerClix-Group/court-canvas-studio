@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Package, Wrench, PlusCircle, Calculator } from "lucide-react";
+import { Package, Wrench, PlusCircle, Calculator, Droplets } from "lucide-react";
 import type { CalculationResult } from "@/lib/courtCalculator";
 
 interface MaterialBreakdownProps {
@@ -105,6 +104,38 @@ export function MaterialBreakdown({ calculation }: MaterialBreakdownProps) {
                   </span>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Surface Condition Work */}
+      {calculation.conditionWork && calculation.conditionWork.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Droplets className="w-5 h-5" />
+                Surface Prep
+              </span>
+              <span className="text-lg font-semibold">
+                {formatCurrency(calculation.subtotals.condition)}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {calculation.conditionWork.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.quantity.toLocaleString()} {item.unit} @ {formatCurrency(item.unitPrice)}/{item.unit}
+                    </p>
+                  </div>
+                  <p className="font-semibold">{formatCurrency(item.total)}</p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

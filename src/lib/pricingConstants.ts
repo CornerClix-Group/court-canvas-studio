@@ -1,9 +1,15 @@
+// =====================================================
+// CourtPro Augusta - 2026 Pricing Constants
+// Last Updated: January 2026
+// =====================================================
+
 // Coverage rates (gallons per square yard) - Source: Laykold Pro Plus Guide
 export const COVERAGE_RATES = {
   CUSHION_GRANULE_RATE: 0.20,    // Laykold Pro Plus Guide
   CUSHION_POWDER_RATE: 0.12,    // Laykold Pro Plus Guide
   ACRYLIC_RESURFACER_RATE: 0.06,
   COLOR_COAT_RATE: 0.065,
+  ACRYLIC_RATE: 0.05,           // Standard acrylic coverage gal/sq yd/coat
 };
 
 // Court dimensions (sq ft)
@@ -154,7 +160,7 @@ export const SURFACING_SYSTEMS: Record<string, SystemDefinition> = {
     cushionLayers: 0,
     forceReduction: '17%',
     isGelSystem: true,
-    gelSqFtPrice: 3.50, // Placeholder price per sq ft
+    gelSqFtPrice: 3.50,
     coats: {
       resurfacer: 0,
       colorCoat: 2,
@@ -166,12 +172,22 @@ export const SURFACING_SYSTEMS: Record<string, SystemDefinition> = {
   },
 };
 
-// Material unit prices (update these with actual costs)
+// =====================================================
+// 2026 MATERIAL COSTS - Updated from Supplier Quote
+// =====================================================
 export const MATERIAL_PRICES = {
+  // Per gallon costs calculated from drum pricing
+  COST_RESURFACER_PER_GAL: 11.73,        // $645.15 per 55-gal drum
+  COST_COLOR_PER_GAL: 15.85,             // $871.75 per 55-gal drum
+  COST_LINE_PAINT_PER_GAL: 30.61,        // $153.05 per 5-gal pail
+  COST_CRACK_FILLER_PER_UNIT: 21.00,     // Per sausage
+  COST_PRIME_SEAL_PER_GAL: 18.50,        // 1K PrimeSeal
+  
+  // Legacy compatibility (keep for existing calculator)
   CUSHION_GRANULE_PER_GAL: 45.00,
   CUSHION_POWDER_PER_GAL: 35.00,
-  ACRYLIC_RESURFACER_PER_GAL: 25.00,
-  COLOR_COAT_PER_GAL: 40.00,
+  ACRYLIC_RESURFACER_PER_GAL: 11.73,     // Updated to 2026 price
+  COLOR_COAT_PER_GAL: 15.85,             // Updated to 2026 price
   LINE_PAINT_PER_COURT: 75.00,
   GEL_PER_SQFT: 3.50,
 };
@@ -183,16 +199,88 @@ export const DRUM_SIZES = {
   COLOR_DRUM: 30, // gallons (color coats often in smaller containers)
 };
 
-// Labor rates (placeholder - adjust per region)
+// =====================================================
+// LABOR RATES
+// =====================================================
 export const LABOR_RATES = {
   SURFACE_PREP_PER_SQFT: 0.50,
-  CRACK_REPAIR_PER_LF: 2.50,
+  CRACK_REPAIR_PER_LF: 2.50,             // $2.00 labor + materials
   RESURFACING_PER_SQFT: 1.00,
   CUSHION_APPLICATION_PER_SQFT: 0.75,
   LINE_STRIPING_PER_COURT: 150.00,
+  PRESSURE_WASH_PER_SQFT: 0.15,          // NEW: Pressure washing
+  BIRDBATH_REPAIR_PER_SQFT: 3.50,        // NEW: Patching/leveling
+  PRIME_SEAL_PER_SQFT: 0.20,             // NEW: 1K PrimeSeal application
 };
 
-// Add-on items
+// =====================================================
+// PROFIT & PRICING DEFAULTS
+// =====================================================
+export const DEFAULT_PROFIT_MARGIN = 1.4;  // 40% margin (multiply cost by 1.4)
+export const MIN_PROFIT_MARGIN = 1.2;      // 20% minimum
+export const MAX_PROFIT_MARGIN = 1.8;      // 80% maximum
+
+// =====================================================
+// PROJECT TYPES
+// =====================================================
+export const PROJECT_TYPES = {
+  NEW_CONSTRUCTION: { id: 'new_construction', name: 'New Construction', iconName: 'Building' },
+  RESURFACING: { id: 'resurfacing', name: 'Resurfacing', iconName: 'RefreshCw' },
+  REPAIR_ONLY: { id: 'repair_only', name: 'Repair Only', iconName: 'Wrench' },
+  PICKLEBALL: { id: 'pickleball', name: 'Pickleball', iconName: 'Target' },
+  TENNIS: { id: 'tennis', name: 'Tennis', iconName: 'Circle' },
+  BASKETBALL: { id: 'basketball', name: 'Basketball', iconName: 'CircleDot' },
+  MULTI_SPORT: { id: 'multi_sport', name: 'Multi-Sport', iconName: 'LayoutGrid' },
+};
+
+// =====================================================
+// COAT SYSTEMS (for simplified selection)
+// =====================================================
+export const COAT_SYSTEMS = {
+  TWO_COAT: { 
+    id: 'two_coat', 
+    name: '2-Coat Color', 
+    description: 'Basic color system',
+    coats: 2,
+    multiplier: 1.0,
+  },
+  THREE_COAT: { 
+    id: 'three_coat', 
+    name: '3-Coat Standard', 
+    description: 'Standard durability',
+    coats: 3,
+    multiplier: 1.25,
+  },
+  CUSHION: { 
+    id: 'cushion', 
+    name: 'Cushion System', 
+    description: 'Maximum comfort',
+    coats: 5,
+    multiplier: 1.6,
+  },
+};
+
+// =====================================================
+// LAYKOLD COLOR OPTIONS
+// =====================================================
+export const LAYKOLD_COLORS = [
+  { id: 'burgundy', name: 'Burgundy', hex: '#722F37' },
+  { id: 'dark_green', name: 'Dark Green', hex: '#1B4D3E' },
+  { id: 'light_green', name: 'Light Green', hex: '#90EE90' },
+  { id: 'dark_blue', name: 'Dark Blue', hex: '#00008B' },
+  { id: 'light_blue', name: 'Light Blue', hex: '#ADD8E6' },
+  { id: 'red', name: 'Red', hex: '#C41E3A' },
+  { id: 'terra_cotta', name: 'Terra Cotta', hex: '#E2725B' },
+  { id: 'sand', name: 'Sand', hex: '#C2B280' },
+  { id: 'gray', name: 'Gray', hex: '#808080' },
+  { id: 'slate', name: 'Slate', hex: '#708090' },
+  { id: 'purple', name: 'Purple', hex: '#663399' },
+  { id: 'black', name: 'Black', hex: '#1a1a1a' },
+];
+
+// =====================================================
+// ADD-ON ITEMS
+// =====================================================
 export const ADDONS = {
   NET_POST_PICKLEBALL: {
     id: 'net_post_pickleball',
@@ -231,15 +319,9 @@ export const ADDONS = {
   },
 };
 
-// Project types
-export const PROJECT_TYPES = {
-  PICKLEBALL: { id: 'pickleball', name: 'Pickleball', iconName: 'Target' },
-  TENNIS: { id: 'tennis', name: 'Tennis', iconName: 'Circle' },
-  BASKETBALL: { id: 'basketball', name: 'Basketball', iconName: 'CircleDot' },
-  MULTI_SPORT: { id: 'multi_sport', name: 'Multi-Sport', iconName: 'LayoutGrid' },
-};
-
-// Base/substrate options
+// =====================================================
+// BASE/SUBSTRATE OPTIONS
+// =====================================================
 export const BASE_OPTIONS = {
   EXISTING_ASPHALT: {
     id: 'existing_asphalt',
