@@ -25,7 +25,7 @@ import {
   BASE_OPTIONS, 
   ADDONS 
 } from "@/lib/pricingConstants";
-import { calculateMaterials, generateLineItems, type CourtConfig } from "@/lib/courtCalculator";
+import { calculateMaterials, generateLineItems, generateQuoteText, type CourtConfig } from "@/lib/courtCalculator";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -39,7 +39,11 @@ import {
   Circle,
   CircleDot,
   LayoutGrid,
-  LucideIcon
+  LucideIcon,
+  Copy,
+  Download,
+  Mail,
+  Loader2
 } from "lucide-react";
 
 const projectIcons: Record<string, LucideIcon> = {
@@ -73,7 +77,8 @@ export default function EstimateBuilder() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
-
+  const [exporting, setExporting] = useState<'copy' | 'pdf' | 'email' | null>(null);
+  const [customerData, setCustomerData] = useState<{ contact_name: string; email: string | null } | null>(null);
   // Wizard state
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [projectType, setProjectType] = useState<string>("pickleball");
@@ -111,6 +116,182 @@ export default function EstimateBuilder() {
     }
     return null;
   }, [courtConfig, totalSqFt]);
+
+  // Fetch customer data when selected
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      if (!customerId) {
+        setCustomerData(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("customers")
+        .select("contact_name, email")
+        .eq("id", customerId)
+        .single();
+      setCustomerData(data);
+    };
+    fetchCustomer();
+  }, [customerId]);
+
+  const handleCopyToClipboard = async () => {
+    if (!calculation) return;
+    setExporting('copy');
+    try {
+      const quoteText = generateQuoteText(calculation, {
+        contactName: customerData?.contact_name || '',
+        email: customerData?.email || '',
+      });
+      await navigator.clipboard.writeText(quoteText);
+      toast({
+        title: "Copied!",
+        description: "Quote copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to copy to clipboard",
+      });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!calculation) return;
+    
+    // First save the estimate to get an ID
+    setExporting('pdf');
+    try {
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const estimateNumber = `EST-${timestamp}`;
+      
+      const { data: estimate, error: estimateError } = await supabase
+        .from("estimates")
+        .insert({
+          estimate_number: estimateNumber,
+          customer_id: customerId,
+          subtotal: calculation.grandTotal,
+          total: calculation.grandTotal,
+          notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
+          status: "draft",
+        })
+        .select()
+        .single();
+
+      if (estimateError) throw estimateError;
+
+      const lineItems = generateLineItems(calculation);
+      const itemsToInsert = lineItems.map(item => ({
+        ...item,
+        estimate_id: estimate.id,
+      }));
+
+      await supabase.from("estimate_items").insert(itemsToInsert);
+
+      // Generate PDF
+      const { data, error } = await supabase.functions.invoke("generate-estimate-pdf", {
+        body: { estimateId: estimate.id },
+      });
+
+      if (error) throw error;
+
+      // Download the PDF
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${data.pdf}`;
+      link.download = `Estimate-${estimateNumber}.pdf`;
+      link.click();
+
+      toast({
+        title: "PDF Downloaded",
+        description: `Estimate ${estimateNumber} saved and downloaded.`,
+      });
+
+      navigate("/admin/estimates");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate PDF",
+      });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleEmailEstimate = async () => {
+    if (!calculation || !customerId) {
+      toast({
+        variant: "destructive",
+        title: "Customer Required",
+        description: "Please select a customer with an email address to send the estimate.",
+      });
+      return;
+    }
+
+    if (!customerData?.email) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "The selected customer does not have an email address.",
+      });
+      return;
+    }
+
+    setExporting('email');
+    try {
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const estimateNumber = `EST-${timestamp}`;
+      
+      const { data: estimate, error: estimateError } = await supabase
+        .from("estimates")
+        .insert({
+          estimate_number: estimateNumber,
+          customer_id: customerId,
+          subtotal: calculation.grandTotal,
+          total: calculation.grandTotal,
+          notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
+          status: "draft",
+        })
+        .select()
+        .single();
+
+      if (estimateError) throw estimateError;
+
+      const lineItems = generateLineItems(calculation);
+      const itemsToInsert = lineItems.map(item => ({
+        ...item,
+        estimate_id: estimate.id,
+      }));
+
+      await supabase.from("estimate_items").insert(itemsToInsert);
+
+      // Send email
+      const { error } = await supabase.functions.invoke("send-estimate-email", {
+        body: { estimateId: estimate.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Estimate Sent",
+        description: `Estimate ${estimateNumber} has been emailed to ${customerData.email}`,
+      });
+
+      navigate("/admin/estimates");
+    } catch (error) {
+      console.error("Error sending estimate:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send estimate email",
+      });
+    } finally {
+      setExporting(null);
+    }
+  };
 
   const handleAddAddon = (addonKey: string) => {
     const addon = ADDONS[addonKey as keyof typeof ADDONS];
@@ -496,6 +677,60 @@ export default function EstimateBuilder() {
                   onChange={(e) => setNotes(e.target.value)}
                   rows={4}
                 />
+              </CardContent>
+            </Card>
+
+            {/* Export Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Export Options</CardTitle>
+                <CardDescription>Share or save this estimate</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleCopyToClipboard}
+                    disabled={exporting !== null}
+                  >
+                    {exporting === 'copy' ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Copy className="w-4 h-4 mr-2" />
+                    )}
+                    Copy to Clipboard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadPdf}
+                    disabled={exporting !== null}
+                  >
+                    {exporting === 'pdf' ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    Download PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleEmailEstimate}
+                    disabled={exporting !== null || !customerId}
+                    title={!customerId ? "Select a customer first" : ""}
+                  >
+                    {exporting === 'email' ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="w-4 h-4 mr-2" />
+                    )}
+                    Email to Customer
+                  </Button>
+                </div>
+                {!customerId && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Select a customer in Step 1 to enable email delivery
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
