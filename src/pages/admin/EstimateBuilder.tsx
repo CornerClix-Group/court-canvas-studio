@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EstimateWizardSteps } from "@/components/admin/EstimateWizardSteps";
 import { JobTemplates, type JobTemplate } from "@/components/admin/JobTemplates";
 import { SystemSelector } from "@/components/admin/SystemSelector";
+import { SystemTierComparison } from "@/components/admin/SystemTierComparison";
 import { MaterialBreakdown } from "@/components/admin/MaterialBreakdown";
 import { CustomerSelect } from "@/components/admin/CustomerSelect";
 import { 
@@ -867,6 +868,22 @@ export default function EstimateBuilder() {
                 )}
               </CardContent>
             </Card>
+
+            {/* System Tier Comparison */}
+            <SystemTierComparison
+              baseConfig={{
+                projectType,
+                totalSqFt,
+                numberOfCourts,
+                baseType,
+                crackRepairLf,
+                addons: selectedAddons,
+                surfaceCondition,
+                profitMargin,
+              }}
+              selectedSystem={selectedSystem}
+              onSelectSystem={setSelectedSystem}
+            />
 
             {calculation && <MaterialBreakdown calculation={calculation} showCosts={showCostView} />}
             
