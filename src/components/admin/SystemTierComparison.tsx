@@ -12,12 +12,13 @@ interface SystemTierComparisonProps {
   onSelectSystem: (systemId: string) => void;
 }
 
-const TIER_SYSTEMS = ['PRO_PLUS_STANDARD', 'PRO_PLUS_XTREME', 'PRO_PLUS_SUPREME'] as const;
+const TIER_SYSTEMS = ['PRO_PLUS_STANDARD', 'PRO_PLUS_XTREME', 'PRO_PLUS_SUPREME', 'PICKLEBALL_GEL'] as const;
 
 const tierLabels: Record<string, { label: string; icon: typeof Star }> = {
   PRO_PLUS_STANDARD: { label: 'Good', icon: Star },
   PRO_PLUS_XTREME: { label: 'Better', icon: Zap },
   PRO_PLUS_SUPREME: { label: 'Best', icon: Crown },
+  PICKLEBALL_GEL: { label: 'Premium', icon: Crown },
 };
 
 export function SystemTierComparison({ 
@@ -53,7 +54,7 @@ export function SystemTierComparison({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {tierCalculations.map(({ systemId, system, calculation, tierInfo }) => {
             const isSelected = selectedSystem === systemId;
             const TierIcon = tierInfo.icon;
@@ -81,7 +82,9 @@ export function SystemTierComparison({
                   {/* Tier Label */}
                   <div className="text-center">
                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${
-                      tierInfo.label === 'Best' 
+                      tierInfo.label === 'Premium'
+                        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
+                        : tierInfo.label === 'Best' 
                         ? 'bg-primary/10 text-primary' 
                         : tierInfo.label === 'Better'
                         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
@@ -96,7 +99,7 @@ export function SystemTierComparison({
                   <div className="text-center">
                     <h3 className="font-bold text-lg">{system.shortName}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {system.cushionLayers} cushion layers
+                      {system.isGelSystem ? 'Gel cushion technology' : `${system.cushionLayers} cushion layers`}
                     </p>
                   </div>
 
