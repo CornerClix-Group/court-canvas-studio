@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,7 @@ import {
   BASE_OPTIONS, 
   ADDONS 
 } from "@/lib/pricingConstants";
-import { calculateMaterials, generateLineItems, generateQuoteText, type CourtConfig } from "@/lib/courtCalculator";
+import { calculateMaterials, generateLineItems, generateQuoteText, type CourtConfig, type SurfaceCondition } from "@/lib/courtCalculator";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -90,6 +91,11 @@ export default function EstimateBuilder() {
   const [selectedSystem, setSelectedSystem] = useState<string>("PRO_PLUS_STANDARD");
   const [selectedAddons, setSelectedAddons] = useState<AddonSelection[]>([]);
   const [notes, setNotes] = useState<string>("");
+  const [surfaceCondition, setSurfaceCondition] = useState<SurfaceCondition>({
+    pressureWash: false,
+    birdbathSqFt: 0,
+    primeSeal: false,
+  });
 
   // Calculate total sq ft
   const totalSqFt = useMemo(() => {
@@ -107,7 +113,8 @@ export default function EstimateBuilder() {
     baseType,
     crackRepairLf,
     addons: selectedAddons,
-  }), [projectType, totalSqFt, numberOfCourts, selectedSystem, baseType, crackRepairLf, selectedAddons]);
+    surfaceCondition,
+  }), [projectType, totalSqFt, numberOfCourts, selectedSystem, baseType, crackRepairLf, selectedAddons, surfaceCondition]);
 
   // Calculate estimate
   const calculation = useMemo(() => {
@@ -549,19 +556,86 @@ export default function EstimateBuilder() {
             </div>
 
             {(baseType === "EXISTING_ASPHALT" || baseType === "EXISTING_CONCRETE") && (
-              <div>
-                <Label htmlFor="crackRepair">Crack Repair (Linear Feet)</Label>
-                <Input
-                  id="crackRepair"
-                  type="number"
-                  min={0}
-                  value={crackRepairLf || ""}
-                  onChange={(e) => setCrackRepairLf(parseInt(e.target.value) || 0)}
-                  placeholder="Estimated linear feet of cracks"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Leave at 0 if no crack repair is needed
-                </p>
+              <div className="space-y-4">
+                <Label className="text-base font-semibold mb-4 block">Surface Condition & Prep</Label>
+                
+                {/* Pressure Wash */}
+                <div className="flex items-center space-x-3 p-4 border rounded-lg">
+                  <Checkbox
+                    id="pressureWash"
+                    checked={surfaceCondition.pressureWash}
+                    onCheckedChange={(checked) => 
+                      setSurfaceCondition(prev => ({ ...prev, pressureWash: checked === true }))
+                    }
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="pressureWash" className="font-medium cursor-pointer">
+                      Pressure Wash Surface
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Clean surface before resurfacing (+$0.15/sq ft)
+                    </p>
+                  </div>
+                  <Badge variant="outline">$0.15/sq ft</Badge>
+                </div>
+                
+                {/* 1K PrimeSeal */}
+                <div className="flex items-center space-x-3 p-4 border rounded-lg">
+                  <Checkbox
+                    id="primeSeal"
+                    checked={surfaceCondition.primeSeal}
+                    onCheckedChange={(checked) => 
+                      setSurfaceCondition(prev => ({ ...prev, primeSeal: checked === true }))
+                    }
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="primeSeal" className="font-medium cursor-pointer">
+                      1K PrimeSeal Application
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Primer for better adhesion on concrete/asphalt (+$0.20/sq ft)
+                    </p>
+                  </div>
+                  <Badge variant="outline">$0.20/sq ft</Badge>
+                </div>
+                
+                {/* Birdbaths / Low Spots */}
+                <div className="p-4 border rounded-lg space-y-3">
+                  <Label htmlFor="birdbathSqFt" className="font-medium">
+                    Birdbath / Low Spot Repair (sq ft)
+                  </Label>
+                  <Input
+                    id="birdbathSqFt"
+                    type="number"
+                    min={0}
+                    value={surfaceCondition.birdbathSqFt || ""}
+                    onChange={(e) => 
+                      setSurfaceCondition(prev => ({ ...prev, birdbathSqFt: parseInt(e.target.value) || 0 }))
+                    }
+                    placeholder="Estimated sq ft of low spots to fill"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Areas with standing water that need leveling (+$3.50/sq ft)
+                  </p>
+                </div>
+                
+                {/* Crack Repair */}
+                <div className="p-4 border rounded-lg space-y-3">
+                  <Label htmlFor="crackRepair" className="font-medium">
+                    Crack Repair (Linear Feet)
+                  </Label>
+                  <Input
+                    id="crackRepair"
+                    type="number"
+                    min={0}
+                    value={crackRepairLf || ""}
+                    onChange={(e) => setCrackRepairLf(parseInt(e.target.value) || 0)}
+                    placeholder="Estimated linear feet of cracks"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Leave at 0 if no crack repair is needed (+$2.50/LF)
+                  </p>
+                </div>
               </div>
             )}
           </div>
