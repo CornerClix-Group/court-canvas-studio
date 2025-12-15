@@ -12,6 +12,7 @@ import TennisCourts from "./pages/TennisCourts";
 import CourtResurfacing from "./pages/CourtResurfacing";
 import BasketballCourts from "./pages/BasketballCourts";
 import MultiSportCourts from "./pages/MultiSportCourts";
+import SalesEstimator from "./pages/SalesEstimator";
 import AdminAuth from "./pages/admin/Auth";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -43,6 +44,9 @@ const App = () => (
           <Route path="/court-resurfacing" element={<CourtResurfacing />} />
           <Route path="/basketball-courts" element={<BasketballCourts />} />
           <Route path="/multi-sport-courts" element={<MultiSportCourts />} />
+          
+          {/* Sales Estimator - Public field tool */}
+          <Route path="/estimator" element={<SalesEstimator />} />
           
           {/* Admin Routes */}
           <Route path="/admin/auth" element={<AdminAuth />} />
