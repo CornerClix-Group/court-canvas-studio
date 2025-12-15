@@ -3,11 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Package, Wrench, PlusCircle, Calculator, Droplets } from "lucide-react";
 import type { CalculationResult } from "@/lib/courtCalculator";
 
-interface MaterialBreakdownProps {
+export interface MaterialBreakdownProps {
   calculation: CalculationResult;
+  showCosts?: boolean;
 }
 
-export function MaterialBreakdown({ calculation }: MaterialBreakdownProps) {
+export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBreakdownProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -44,8 +45,12 @@ export function MaterialBreakdown({ calculation }: MaterialBreakdownProps) {
               <p className="text-lg font-semibold">{calculation.summary.system.cushionLayers || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Grand Total</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(calculation.grandTotal)}</p>
+              <p className="text-sm text-muted-foreground">
+                {showCosts ? "Total Cost" : "Grand Total"}
+              </p>
+              <p className="text-2xl font-bold text-primary">
+                {formatCurrency(showCosts ? calculation.costTotal : calculation.grandTotal)}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -256,8 +261,12 @@ export function MaterialBreakdown({ calculation }: MaterialBreakdownProps) {
       <Card className="bg-primary text-primary-foreground">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
-            <span className="text-lg font-medium">Grand Total</span>
-            <span className="text-3xl font-bold">{formatCurrency(calculation.grandTotal)}</span>
+            <span className="text-lg font-medium">
+              {showCosts ? "Total Cost (Before Markup)" : "Grand Total"}
+            </span>
+            <span className="text-3xl font-bold">
+              {formatCurrency(showCosts ? calculation.costTotal : calculation.grandTotal)}
+            </span>
           </div>
         </CardContent>
       </Card>

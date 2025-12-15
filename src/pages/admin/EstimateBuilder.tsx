@@ -24,8 +24,12 @@ import {
   PROJECT_TYPES, 
   COURT_PRESETS, 
   BASE_OPTIONS, 
-  ADDONS 
+  ADDONS,
+  DEFAULT_PROFIT_MARGIN,
+  MIN_PROFIT_MARGIN,
+  MAX_PROFIT_MARGIN,
 } from "@/lib/pricingConstants";
+import { Slider } from "@/components/ui/slider";
 import { calculateMaterials, generateLineItems, generateQuoteText, type CourtConfig, type SurfaceCondition } from "@/lib/courtCalculator";
 import { 
   ArrowLeft, 
@@ -96,6 +100,8 @@ export default function EstimateBuilder() {
     birdbathSqFt: 0,
     primeSeal: false,
   });
+  const [profitMargin, setProfitMargin] = useState<number>(DEFAULT_PROFIT_MARGIN);
+  const [showCostView, setShowCostView] = useState<boolean>(false);
 
   // Calculate total sq ft
   const totalSqFt = useMemo(() => {
@@ -114,7 +120,8 @@ export default function EstimateBuilder() {
     crackRepairLf,
     addons: selectedAddons,
     surfaceCondition,
-  }), [projectType, totalSqFt, numberOfCourts, selectedSystem, baseType, crackRepairLf, selectedAddons, surfaceCondition]);
+    profitMargin,
+  }), [projectType, totalSqFt, numberOfCourts, selectedSystem, baseType, crackRepairLf, selectedAddons, surfaceCondition, profitMargin]);
 
   // Calculate estimate
   const calculation = useMemo(() => {
@@ -733,9 +740,116 @@ export default function EstimateBuilder() {
         );
 
       case 6:
+        const marginPercent = Math.round((profitMargin - 1) * 100);
+        const formatCurrency = (val: number) => 
+          new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+        
         return (
           <div className="space-y-6">
-            {calculation && <MaterialBreakdown calculation={calculation} />}
+            {/* Profit Margin & View Toggle */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Calculator className="w-5 h-5" />
+                    Pricing Controls
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={showCostView ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => setShowCostView(false)}
+                    >
+                      Customer View
+                    </Button>
+                    <Button
+                      variant={showCostView ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowCostView(true)}
+                    >
+                      Internal View
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Profit Margin Slider */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">Profit Margin</Label>
+                    <span className="text-lg font-bold text-primary">{marginPercent}%</span>
+                  </div>
+                  <Slider
+                    value={[profitMargin]}
+                    onValueChange={([value]) => setProfitMargin(value)}
+                    min={MIN_PROFIT_MARGIN}
+                    max={MAX_PROFIT_MARGIN}
+                    step={0.05}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{Math.round((MIN_PROFIT_MARGIN - 1) * 100)}%</span>
+                    <span>{Math.round((MAX_PROFIT_MARGIN - 1) * 100)}%</span>
+                  </div>
+                </div>
+
+                {/* Profit Summary */}
+                {calculation && (
+                  <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Materials:</span>
+                          <span className="font-medium">{formatCurrency(calculation.subtotals.materials)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Labor:</span>
+                          <span className="font-medium">{formatCurrency(calculation.subtotals.labor)}</span>
+                        </div>
+                        {calculation.subtotals.condition > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Prep Work:</span>
+                            <span className="font-medium">{formatCurrency(calculation.subtotals.condition)}</span>
+                          </div>
+                        )}
+                        {calculation.subtotals.base > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Base Work:</span>
+                            <span className="font-medium">{formatCurrency(calculation.subtotals.base)}</span>
+                          </div>
+                        )}
+                        {calculation.subtotals.addons > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Add-ons:</span>
+                            <span className="font-medium">{formatCurrency(calculation.subtotals.addons)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2 border-l pl-4">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total Cost:</span>
+                          <span className="font-medium">{formatCurrency(calculation.costTotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-primary">
+                          <span>Markup ({marginPercent}%):</span>
+                          <span className="font-medium">+{formatCurrency(calculation.profitAmount)}</span>
+                        </div>
+                        <div className="border-t pt-2 flex justify-between">
+                          <span className="font-semibold">Customer Price:</span>
+                          <span className="font-bold text-lg">{formatCurrency(calculation.grandTotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-green-600">
+                          <span>Gross Profit:</span>
+                          <span className="font-semibold">{formatCurrency(calculation.profitAmount)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {calculation && <MaterialBreakdown calculation={calculation} showCosts={showCostView} />}
             
             <Card>
               <CardHeader>
