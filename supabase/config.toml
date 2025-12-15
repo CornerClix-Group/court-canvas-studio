@@ -29,3 +29,15 @@ verify_jwt = true
 
 [functions.email-webhook]
 verify_jwt = false
+
+[functions.send-estimate-email]
+verify_jwt = true
+
+[functions.generate-usta-form]
+verify_jwt = true
+
+[functions.send-usta-form]
+verify_jwt = true
+
+[functions.email-webhook]
+verify_jwt = false
