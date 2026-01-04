@@ -93,6 +93,21 @@ export default function AdminAuth() {
       // Log the login activity
       await ActivityLogger.login();
 
+      // Update invitation status on first login (fire and forget)
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          supabase
+            .from("team_invitations")
+            .update({ 
+              status: "logged_in", 
+              first_login_at: new Date().toISOString() 
+            })
+            .eq("user_id", user.id)
+            .eq("status", "pending_login")
+            .then(() => {});
+        }
+      });
+
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
