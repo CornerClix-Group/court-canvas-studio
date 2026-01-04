@@ -92,6 +92,25 @@ serve(async (req) => {
       }
     }
 
+    // Record the invitation in team_invitations table
+    const { error: invitationError } = await supabase
+      .from("team_invitations")
+      .insert({
+        user_id: newUser.user.id,
+        email,
+        full_name: fullName || null,
+        invited_by: caller.id,
+        roles: roles || [],
+        status: "pending_login",
+      });
+
+    if (invitationError) {
+      console.error("Error recording invitation:", invitationError);
+      // Don't throw - user was created successfully
+    } else {
+      console.log("Invitation recorded successfully");
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

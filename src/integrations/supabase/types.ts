@@ -885,6 +885,42 @@ export type Database = {
           },
         ]
       }
+      team_invitations: {
+        Row: {
+          created_at: string | null
+          email: string
+          first_login_at: string | null
+          full_name: string | null
+          id: string
+          invited_by: string
+          roles: string[] | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          first_login_at?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by: string
+          roles?: string[] | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          first_login_at?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by?: string
+          roles?: string[] | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string | null
