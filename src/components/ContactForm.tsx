@@ -26,16 +26,7 @@ const ContactForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Send to n8n webhook
-      await fetch("https://n8n.srv1047215.hstgr.cloud/webhook/courtpro-leads", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(formData)
-      });
-
-      // Send email notification
+      // Send email notification (edge function also forwards to n8n server-side)
       const { error } = await supabase.functions.invoke('send-contact-email', {
         body: formData,
       });
