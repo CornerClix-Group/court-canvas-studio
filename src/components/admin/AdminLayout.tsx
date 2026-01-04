@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AlertTriangle } from "lucide-react";
+import { ChangePasswordDialog } from "@/components/admin/ChangePasswordDialog";
+import { ActivityLogger } from "@/lib/activityLogger";
 import {
   LayoutDashboard,
   Users,
@@ -19,6 +21,7 @@ import {
   ChevronRight,
   FolderKanban,
   Shield,
+  Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +41,7 @@ export default function AdminLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -68,6 +72,7 @@ export default function AdminLayout() {
   }, [navigate]);
 
   const handleLogout = async () => {
+    await ActivityLogger.logout();
     const { error } = await supabase.auth.signOut();
     if (error) {
       toast({
@@ -202,15 +207,26 @@ export default function AdminLayout() {
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Log out
-            </Button>
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => setChangePasswordOpen(true)}
+              >
+                <Key className="w-4 h-4 mr-2" />
+                Change Password
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Log out
+              </Button>
+            </div>
           </div>
         </div>
       </aside>
@@ -234,6 +250,12 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
     </div>
   );
 }

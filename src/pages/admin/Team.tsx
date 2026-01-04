@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole, AppRole } from "@/hooks/useUserRole";
 import { RoleSelector, RoleBadge } from "@/components/admin/RoleSelector";
 import { InviteTeamMemberDialog } from "@/components/admin/InviteTeamMemberDialog";
 import { ResetPasswordDialog } from "@/components/admin/ResetPasswordDialog";
 import { ManagePermissionsDialog } from "@/components/admin/ManagePermissionsDialog";
+import { ActivityLogViewer } from "@/components/admin/ActivityLogViewer";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserCircle, Plus, Shield, Pencil, Trash2, MoreVertical, KeyRound, Settings } from "lucide-react";
+import { UserCircle, Plus, Shield, Pencil, Trash2, MoreVertical, KeyRound, Settings, Users, Activity } from "lucide-react";
 
 interface TeamMember {
   id: string;
@@ -192,7 +194,7 @@ export default function AdminTeam() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Team Management</h1>
           <p className="text-muted-foreground mt-1">
-            Manage team members, roles, and permissions
+            Manage team members, roles, permissions, and view activity
           </p>
         </div>
         {canManageTeam && (
@@ -213,7 +215,22 @@ export default function AdminTeam() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <Tabs defaultValue="members" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="members" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Team Members
+          </TabsTrigger>
+          {canManageTeam && (
+            <TabsTrigger value="activity" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Activity Log
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="members" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {teamMembers.map((member) => (
           <Card key={member.id} className="relative">
             <CardHeader className="pb-3">
@@ -283,27 +300,35 @@ export default function AdminTeam() {
             </CardContent>
           </Card>
         ))}
-      </div>
+          </div>
 
-      {teamMembers.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Shield className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">No team members yet</h3>
-            <p className="text-muted-foreground text-center mt-1">
-              {canManageTeam 
-                ? "Click 'Invite Team Member' to add your first team member"
-                : "Team members will appear here once they are added"}
-            </p>
-            {canManageTeam && (
-              <Button className="mt-4" onClick={() => setShowInviteDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Invite Team Member
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+          {teamMembers.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Shield className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold">No team members yet</h3>
+                <p className="text-muted-foreground text-center mt-1">
+                  {canManageTeam 
+                    ? "Click 'Invite Team Member' to add your first team member"
+                    : "Team members will appear here once they are added"}
+                </p>
+                {canManageTeam && (
+                  <Button className="mt-4" onClick={() => setShowInviteDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Invite Team Member
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {canManageTeam && (
+          <TabsContent value="activity">
+            <ActivityLogViewer />
+          </TabsContent>
+        )}
+      </Tabs>
 
       {/* Invite Team Member Dialog */}
       <InviteTeamMemberDialog
