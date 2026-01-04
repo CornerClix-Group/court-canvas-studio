@@ -10,6 +10,7 @@ import { InviteTeamMemberDialog } from "@/components/admin/InviteTeamMemberDialo
 import { ResetPasswordDialog } from "@/components/admin/ResetPasswordDialog";
 import { ManagePermissionsDialog } from "@/components/admin/ManagePermissionsDialog";
 import { ActivityLogViewer } from "@/components/admin/ActivityLogViewer";
+import { RecentInvitations } from "@/components/admin/RecentInvitations";
 import {
   Dialog,
   DialogContent,
@@ -230,6 +231,8 @@ export default function AdminTeam() {
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
+          {canManageTeam && <RecentInvitations onRefresh={fetchTeamMembers} />}
+          
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {teamMembers.map((member) => (
           <Card key={member.id} className="relative">
