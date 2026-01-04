@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, Download } from "lucide-react";
 import {
   generateReceiptEmailHTML,
   getReceiptEmailSubject,
@@ -37,6 +40,9 @@ export function ReceiptEmailPreview({
   onSendEmail,
   sending,
 }: ReceiptEmailPreviewProps) {
+  const [downloading, setDownloading] = useState(false);
+  const { toast } = useToast();
+  
   const isStandalone = !invoice;
   const receiptNumber = `RCP-${payment.id.substring(0, 8).toUpperCase()}`;
   
@@ -47,6 +53,43 @@ export function ReceiptEmailPreview({
   const subject = isStandalone
     ? getStandaloneReceiptEmailSubject(receiptNumber, payment.payment_type || 'payment')
     : getReceiptEmailSubject(receiptNumber);
+
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-receipt-pdf", {
+        body: { paymentId: payment.id },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Trigger download
+      const link = document.createElement("a");
+      link.href = data.pdfUrl;
+      link.download = `${data.receiptNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Receipt Downloaded",
+        description: `Downloaded ${data.receiptNumber}.pdf`,
+      });
+    } catch (error: any) {
+      console.error("Error downloading receipt:", error);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: error.message || "Failed to generate receipt PDF",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,12 +138,30 @@ export function ReceiptEmailPreview({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadPdf} 
+            disabled={downloading || sending}
+            className="gap-2"
+          >
+            {downloading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                Download PDF
+              </>
+            )}
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending || downloading}>
             Cancel
           </Button>
           <Button 
             onClick={onSendEmail} 
-            disabled={sending || !customer.email}
+            disabled={sending || downloading || !customer.email}
             className="gap-2"
           >
             {sending ? (
