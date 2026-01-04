@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.submit-lead]
 verify_jwt = false
+
+[functions.resend-credentials]
+verify_jwt = true
