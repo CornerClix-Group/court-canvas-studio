@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { hashEmail, setLeadCookie, setUserProperties, trackEvent } from "@/lib/analytics";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LeadCaptureModalProps {
   open: boolean;
@@ -47,22 +48,16 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
         state: formData.state,
       });
 
-      // POST to n8n webhook for lead capture
-      const webhookUrl = "https://n8n.srv1047215.hstgr.cloud/webhook/courtpro-leads";
-      
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      // Submit lead via secure edge function (forwards to n8n server-side)
+      const { error } = await supabase.functions.invoke('submit-lead', {
+        body: {
           ...formData,
           lead_hash: emailHash,
           timestamp: new Date().toISOString(),
-        }),
+        },
       });
 
-      if (!response.ok) {
+      if (error) {
         throw new Error("Failed to submit lead");
       }
 

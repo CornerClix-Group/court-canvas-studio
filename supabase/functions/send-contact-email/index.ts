@@ -143,6 +143,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
+    // Forward to n8n webhook (server-side, secure)
+    const n8nWebhookUrl = Deno.env.get("N8N_WEBHOOK_URL");
+    if (n8nWebhookUrl) {
+      try {
+        const n8nResponse = await fetch(n8nWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        console.log("n8n webhook response status:", n8nResponse.status);
+      } catch (n8nError) {
+        // Log but don't fail the request if n8n webhook fails
+        console.error("n8n webhook error:", n8nError);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, message: "Email sent successfully" }),
       {
