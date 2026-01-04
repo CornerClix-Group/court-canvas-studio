@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, UserPlus, CheckCircle2, Copy, RotateCcw } from "lucide-react";
+import { Clock, UserPlus, CheckCircle2, RotateCcw, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface Invitation {
@@ -26,6 +26,7 @@ interface RecentInvitationsProps {
 export function RecentInvitations({ onRefresh }: RecentInvitationsProps) {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resending, setResending] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -71,10 +72,28 @@ export function RecentInvitations({ onRefresh }: RecentInvitationsProps) {
   }
 
   const handleResendCredentials = async (invitation: Invitation) => {
-    toast({
-      title: "Feature coming soon",
-      description: "Resend credentials functionality will be added",
-    });
+    setResending(invitation.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-credentials", {
+        body: { invitationId: invitation.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Credentials sent",
+        description: `New login credentials have been emailed to ${invitation.email}`,
+      });
+    } catch (error: any) {
+      console.error("Error resending credentials:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to resend",
+        description: error.message || "Could not send credentials. Please try again.",
+      });
+    } finally {
+      setResending(null);
+    }
   };
 
   if (loading) {
@@ -151,9 +170,16 @@ export function RecentInvitations({ onRefresh }: RecentInvitationsProps) {
                   size="sm"
                   className="shrink-0 ml-2"
                   onClick={() => handleResendCredentials(invitation)}
+                  disabled={resending === invitation.id}
                 >
-                  <RotateCcw className="h-4 w-4 mr-1" />
-                  Resend
+                  {resending === invitation.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Resend
+                    </>
+                  )}
                 </Button>
               )}
             </div>
