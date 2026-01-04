@@ -2,18 +2,18 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole, AppRole } from "@/hooks/useUserRole";
 import { RoleSelector, RoleBadge } from "@/components/admin/RoleSelector";
+import { InviteTeamMemberDialog } from "@/components/admin/InviteTeamMemberDialog";
+import { ResetPasswordDialog } from "@/components/admin/ResetPasswordDialog";
+import { ManagePermissionsDialog } from "@/components/admin/ManagePermissionsDialog";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -25,7 +25,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { UserCircle, Plus, Shield, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UserCircle, Plus, Shield, Pencil, Trash2, MoreVertical, KeyRound, Settings } from "lucide-react";
 
 interface TeamMember {
   id: string;
@@ -41,6 +48,12 @@ export default function AdminTeam() {
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<TeamMember | null>(null);
   const [saving, setSaving] = useState(false);
+  
+  // New state for dialogs
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [resetPasswordMember, setResetPasswordMember] = useState<TeamMember | null>(null);
+  const [permissionsMember, setPermissionsMember] = useState<TeamMember | null>(null);
+  
   const { toast } = useToast();
   const { isOwner, isAdmin } = useUserRole();
 
@@ -179,9 +192,15 @@ export default function AdminTeam() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Team Management</h1>
           <p className="text-muted-foreground mt-1">
-            Manage team members and their roles
+            Manage team members, roles, and permissions
           </p>
         </div>
+        {canManageTeam && (
+          <Button onClick={() => setShowInviteDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Invite Team Member
+          </Button>
+        )}
       </div>
 
       {!canManageTeam && (
@@ -198,56 +217,67 @@ export default function AdminTeam() {
         {teamMembers.map((member) => (
           <Card key={member.id} className="relative">
             <CardHeader className="pb-3">
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                  <UserCircle className="w-8 h-8 text-muted-foreground" />
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                    <UserCircle className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg truncate">
+                      {member.full_name || "Unnamed User"}
+                    </CardTitle>
+                    <CardDescription className="truncate">
+                      {member.email}
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-lg truncate">
-                    {member.full_name || "Unnamed User"}
-                  </CardTitle>
-                  <CardDescription className="truncate">
-                    {member.email}
-                  </CardDescription>
-                </div>
+                {canManageTeam && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditRoles(member)}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit Roles
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setPermissionsMember(member)}>
+                        <Settings className="w-4 h-4 mr-2" />
+                        Manage Permissions
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setResetPasswordMember(member)}>
+                        <KeyRound className="w-4 h-4 mr-2" />
+                        Reset Password
+                      </DropdownMenuItem>
+                      {member.roles.length > 0 && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => setDeleteConfirm(member)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remove All Roles
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {member.roles.length > 0 ? (
-                    member.roles.map((role) => (
-                      <RoleBadge key={role} role={role} />
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground italic">
-                      No roles assigned
-                    </span>
-                  )}
-                </div>
-
-                {canManageTeam && (
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleEditRoles(member)}
-                    >
-                      <Pencil className="w-4 h-4 mr-2" />
-                      Edit Roles
-                    </Button>
-                    {member.roles.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteConfirm(member)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
+              <div className="flex flex-wrap gap-1.5">
+                {member.roles.length > 0 ? (
+                  member.roles.map((role) => (
+                    <RoleBadge key={role} role={role} />
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">
+                    No roles assigned
+                  </span>
                 )}
               </div>
             </CardContent>
@@ -261,11 +291,41 @@ export default function AdminTeam() {
             <Shield className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold">No team members yet</h3>
             <p className="text-muted-foreground text-center mt-1">
-              Team members will appear here once they sign up
+              {canManageTeam 
+                ? "Click 'Invite Team Member' to add your first team member"
+                : "Team members will appear here once they are added"}
             </p>
+            {canManageTeam && (
+              <Button className="mt-4" onClick={() => setShowInviteDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Invite Team Member
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
+
+      {/* Invite Team Member Dialog */}
+      <InviteTeamMemberDialog
+        open={showInviteDialog}
+        onOpenChange={setShowInviteDialog}
+        onSuccess={fetchTeamMembers}
+      />
+
+      {/* Reset Password Dialog */}
+      <ResetPasswordDialog
+        open={!!resetPasswordMember}
+        onOpenChange={(open) => !open && setResetPasswordMember(null)}
+        member={resetPasswordMember}
+      />
+
+      {/* Manage Permissions Dialog */}
+      <ManagePermissionsDialog
+        open={!!permissionsMember}
+        onOpenChange={(open) => !open && setPermissionsMember(null)}
+        member={permissionsMember}
+        onSuccess={fetchTeamMembers}
+      />
 
       {/* Edit Roles Dialog */}
       <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>

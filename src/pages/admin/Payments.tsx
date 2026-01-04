@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Search, CreditCard, DollarSign, Calendar, Building2, MoreHorizontal, Mail, Plus, RefreshCw, Trash2, Download, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,6 +107,9 @@ export default function AdminPayments() {
   
   // Record payment modal state
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+  
+  // Download PDF state
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
   
   // Delete payment state
   const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
@@ -281,6 +284,43 @@ export default function AdminPayments() {
     } finally {
       setDeleting(false);
       setPaymentToDelete(null);
+    }
+  };
+
+  const handleDownloadReceipt = async (payment: Payment) => {
+    setDownloadingPdfId(payment.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-receipt-pdf", {
+        body: { paymentId: payment.id },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Trigger download
+      const link = document.createElement("a");
+      link.href = data.pdfUrl;
+      link.download = `${data.receiptNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Receipt Downloaded",
+        description: `Downloaded ${data.receiptNumber}.pdf`,
+      });
+    } catch (error: any) {
+      console.error("Error downloading receipt:", error);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: error.message || "Failed to generate receipt PDF",
+      });
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -474,6 +514,17 @@ export default function AdminPayments() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleDownloadReceipt(payment)}
+                                  disabled={downloadingPdfId === payment.id}
+                                >
+                                  {downloadingPdfId === payment.id ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Download className="mr-2 h-4 w-4" />
+                                  )}
+                                  Download PDF
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleSendReceipt(payment)}
                                   disabled={!payment.invoices?.customers?.email && !payment.customers?.email}
