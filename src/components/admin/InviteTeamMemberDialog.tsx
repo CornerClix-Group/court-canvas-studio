@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AppRole } from "@/hooks/useUserRole";
 import { RoleSelector } from "@/components/admin/RoleSelector";
+import { ActivityLogger } from "@/lib/activityLogger";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,24 @@ export function InviteTeamMemberDialog({
         email: data.email,
         password: data.temporaryPassword,
       });
+
+      // Log the activity
+      await ActivityLogger.inviteTeamMember(data.email);
+
+      // Send notification to master admin
+      try {
+        await supabase.functions.invoke("notify-admin-action", {
+          body: {
+            action: "invite_member",
+            entityType: "team_member",
+            entityName: data.email,
+            performedBy: (await supabase.auth.getUser()).data.user?.email || "Unknown",
+            details: { roles: selectedRoles },
+          },
+        });
+      } catch (notifyError) {
+        console.error("Failed to send admin notification:", notifyError);
+      }
 
       toast({
         title: "Team member invited!",

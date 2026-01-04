@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, ShieldCheck, Info } from "lucide-react";
 import { z } from "zod";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ActivityLogger } from "@/lib/activityLogger";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -88,6 +89,9 @@ export default function AdminAuth() {
         }
         return;
       }
+
+      // Log the login activity
+      await ActivityLogger.login();
 
       toast({
         title: "Welcome back!",

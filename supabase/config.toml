@@ -41,3 +41,6 @@ verify_jwt = true
 
 [functions.generate-receipt-pdf]
 verify_jwt = true
+
+[functions.notify-admin-action]
+verify_jwt = true

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ActivityLogger } from "@/lib/activityLogger";
 import {
   Dialog,
   DialogContent,
@@ -69,6 +70,23 @@ export function ResetPasswordDialog({
         email: data.email,
         password: data.newPassword,
       });
+
+      // Log the activity
+      await ActivityLogger.resetTeamPassword(data.email);
+
+      // Send notification to master admin
+      try {
+        await supabase.functions.invoke("notify-admin-action", {
+          body: {
+            action: "reset_password",
+            entityType: "team_member",
+            entityName: data.email,
+            performedBy: (await supabase.auth.getUser()).data.user?.email || "Unknown",
+          },
+        });
+      } catch (notifyError) {
+        console.error("Failed to send admin notification:", notifyError);
+      }
 
       toast({
         title: "Password reset!",
