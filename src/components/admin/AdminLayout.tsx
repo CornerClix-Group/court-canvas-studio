@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AlertTriangle } from "lucide-react";
 import { ChangePasswordDialog } from "@/components/admin/ChangePasswordDialog";
+import { ForcePasswordChangeDialog } from "@/components/admin/ForcePasswordChangeDialog";
 import { ActivityLogger } from "@/lib/activityLogger";
 import {
   LayoutDashboard,
@@ -42,6 +43,7 @@ export default function AdminLayout() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -55,6 +57,8 @@ export default function AdminLayout() {
 
       if (!session) {
         navigate("/admin/auth");
+      } else if (session.user?.user_metadata?.requires_password_change) {
+        setForcePasswordChange(true);
       }
     });
 
@@ -65,6 +69,8 @@ export default function AdminLayout() {
 
       if (!session) {
         navigate("/admin/auth");
+      } else if (session.user?.user_metadata?.requires_password_change) {
+        setForcePasswordChange(true);
       }
     });
 
@@ -255,6 +261,12 @@ export default function AdminLayout() {
       <ChangePasswordDialog
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
+      />
+
+      {/* Force Password Change Dialog (cannot be dismissed) */}
+      <ForcePasswordChangeDialog
+        open={forcePasswordChange}
+        onSuccess={() => setForcePasswordChange(false)}
       />
     </div>
   );

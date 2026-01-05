@@ -75,10 +75,15 @@ serve(async (req) => {
     // Generate a new temporary password
     const newPassword = generateSecurePassword();
 
-    // Update the user's password
+    // Update the user's password and set the requires_password_change flag
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       invitation.user_id,
-      { password: newPassword }
+      { 
+        password: newPassword,
+        user_metadata: {
+          requires_password_change: true,
+        },
+      }
     );
 
     if (updateError) {
