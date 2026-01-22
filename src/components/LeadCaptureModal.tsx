@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { hashEmail, setLeadCookie, setUserProperties, trackEvent } from "@/lib/analytics";
@@ -25,6 +26,7 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
     city: "",
     state: "",
     sport: courtType,
+    smsOptIn: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +54,8 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
       const { error } = await supabase.functions.invoke('submit-lead', {
         body: {
           ...formData,
+          sms_opt_in: formData.smsOptIn,
+          sms_opt_in_timestamp: formData.smsOptIn ? new Date().toISOString() : null,
           lead_hash: emailHash,
           timestamp: new Date().toISOString(),
         },
@@ -125,6 +129,27 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
               placeholder="(555) 123-4567"
             />
           </div>
+          {formData.phone && (
+            <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg border border-border">
+              <Checkbox
+                id="smsOptIn"
+                checked={formData.smsOptIn}
+                onCheckedChange={(checked) => setFormData({ ...formData, smsOptIn: checked === true })}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="smsOptIn" className="text-xs font-medium cursor-pointer">
+                  I agree to receive text messages
+                </Label>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  By checking this box, you consent to receive SMS from CourtPro Augusta. 
+                  Message & data rates may apply. Reply STOP to unsubscribe.{" "}
+                  <a href="/privacy" className="text-primary hover:underline">Privacy</a> |{" "}
+                  <a href="/terms" className="text-primary hover:underline">Terms</a>
+                </p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="city">City *</Label>
