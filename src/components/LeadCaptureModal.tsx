@@ -145,7 +145,8 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
                   By checking this box, you consent to receive SMS from CourtPro Augusta. 
                   Message & data rates may apply. Reply STOP to unsubscribe.{" "}
                   <a href="/privacy" className="text-primary hover:underline">Privacy</a> |{" "}
-                  <a href="/terms" className="text-primary hover:underline">Terms</a>
+                  <a href="/terms" className="text-primary hover:underline">Terms</a> |{" "}
+                  <a href="/sms-terms" className="text-primary hover:underline">SMS Terms</a>
                 </p>
               </div>
             </div>
