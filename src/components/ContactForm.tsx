@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,6 +18,7 @@ const ContactForm = () => {
     location: "",
     timeline: "",
     notes: "",
+    smsOptIn: false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +46,7 @@ const ContactForm = () => {
         location: "",
         timeline: "",
         notes: "",
+        smsOptIn: false,
       });
     } catch (error: any) {
       console.error("Error sending request:", error);
@@ -143,6 +146,28 @@ const ContactForm = () => {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 />
               </div>
+
+              {formData.phone && (
+                <div className="flex items-start space-x-3 p-4 bg-muted/50 rounded-lg border border-border">
+                  <Checkbox
+                    id="smsOptIn"
+                    checked={formData.smsOptIn}
+                    onCheckedChange={(checked) => setFormData({ ...formData, smsOptIn: checked === true })}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="smsOptIn" className="text-sm font-medium cursor-pointer">
+                      I agree to receive text messages
+                    </Label>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      By checking this box, you consent to receive SMS text messages from CourtPro Augusta at the phone number provided. 
+                      Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe or HELP for assistance. 
+                      View our <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a> and{" "}
+                      <a href="/terms" className="text-primary hover:underline">Terms of Service</a>.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-3">
                 <Button type="submit" size="lg" className="font-semibold" disabled={isSubmitting}>
