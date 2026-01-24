@@ -15,7 +15,8 @@ import {
   Target, 
   Percent,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Boxes
 } from "lucide-react";
 
 interface PricingConfigItem {
@@ -48,6 +49,12 @@ const CATEGORY_CONFIG = {
     description: "New build and infrastructure costs",
     icon: Building2,
     color: "bg-green-500",
+  },
+  equipment: {
+    label: "Equipment",
+    description: "Court equipment and accessories",
+    icon: Boxes,
+    color: "bg-cyan-500",
   },
   coverage: {
     label: "Coverage Rates",
@@ -262,7 +269,7 @@ export default function PricingConfig() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
             const Icon = config.icon;
             const categoryChanges = configs.filter(

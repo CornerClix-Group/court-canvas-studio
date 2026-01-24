@@ -122,6 +122,10 @@ export default function EstimateBuilder() {
     lightingRequired: false,
     lightPoleCount: 4,
     playgroundInterest: false,
+    netPostSets: 0,
+    benchCount: 0,
+    windscreenLinearFeet: 0,
+    ballContainmentLinearFeet: 0,
   });
   const [profitMargin, setProfitMargin] = useState<number>(DEFAULT_PROFIT_MARGIN);
   const [showCostView, setShowCostView] = useState<boolean>(false);
@@ -1046,6 +1050,125 @@ export default function EstimateBuilder() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Equipment Add-ons Section */}
+            <div className="border-t pt-6">
+              <Label className="text-base font-semibold mb-4 block flex items-center gap-2">
+                <PlusCircle className="w-5 h-5" />
+                Equipment Add-ons
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Net Post Sets */}
+                <Card className={constructionOptions.netPostSets > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold">Net Post Sets</p>
+                        <p className="text-sm text-muted-foreground">Pair of posts with sleeves</p>
+                        <p className="text-sm font-medium text-primary">${PRICING.EQUIPMENT.NET_POST_SET.toLocaleString()}/set</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setConstructionOptions(prev => ({ ...prev, netPostSets: Math.max(0, prev.netPostSets - 1) }))}
+                        disabled={constructionOptions.netPostSets === 0}
+                      >-</Button>
+                      <span className="w-8 text-center font-bold">{constructionOptions.netPostSets}</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setConstructionOptions(prev => ({ ...prev, netPostSets: prev.netPostSets + 1 }))}
+                      >+</Button>
+                      {constructionOptions.netPostSets > 0 && (
+                        <span className="ml-auto font-semibold">${(constructionOptions.netPostSets * PRICING.EQUIPMENT.NET_POST_SET).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Player Benches */}
+                <Card className={constructionOptions.benchCount > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold">Player Benches (6ft)</p>
+                        <p className="text-sm text-muted-foreground">Aluminum courtside bench</p>
+                        <p className="text-sm font-medium text-primary">${PRICING.EQUIPMENT.PLAYER_BENCH_6FT.toLocaleString()}/bench</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setConstructionOptions(prev => ({ ...prev, benchCount: Math.max(0, prev.benchCount - 1) }))}
+                        disabled={constructionOptions.benchCount === 0}
+                      >-</Button>
+                      <span className="w-8 text-center font-bold">{constructionOptions.benchCount}</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setConstructionOptions(prev => ({ ...prev, benchCount: prev.benchCount + 1 }))}
+                      >+</Button>
+                      {constructionOptions.benchCount > 0 && (
+                        <span className="ml-auto font-semibold">${(constructionOptions.benchCount * PRICING.EQUIPMENT.PLAYER_BENCH_6FT).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Windscreen */}
+                <Card className={constructionOptions.windscreenLinearFeet > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="mb-3">
+                      <p className="font-semibold">Windscreen</p>
+                      <p className="text-sm text-muted-foreground">Privacy/wind mesh</p>
+                      <p className="text-sm font-medium text-primary">${PRICING.EQUIPMENT.WINDSCREEN_PER_LF.toFixed(2)}/linear ft</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={constructionOptions.windscreenLinearFeet || ''}
+                        onChange={(e) => setConstructionOptions(prev => ({ ...prev, windscreenLinearFeet: parseInt(e.target.value) || 0 }))}
+                        placeholder="Linear feet"
+                        className="w-32"
+                      />
+                      <span className="text-sm text-muted-foreground">LF</span>
+                      {constructionOptions.windscreenLinearFeet > 0 && (
+                        <span className="ml-auto font-semibold">${(constructionOptions.windscreenLinearFeet * PRICING.EQUIPMENT.WINDSCREEN_PER_LF).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Ball Containment */}
+                <Card className={constructionOptions.ballContainmentLinearFeet > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="mb-3">
+                      <p className="font-semibold">Ball Containment</p>
+                      <p className="text-sm text-muted-foreground">Overhead netting system</p>
+                      <p className="text-sm font-medium text-primary">${PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF.toFixed(2)}/linear ft</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={constructionOptions.ballContainmentLinearFeet || ''}
+                        onChange={(e) => setConstructionOptions(prev => ({ ...prev, ballContainmentLinearFeet: parseInt(e.target.value) || 0 }))}
+                        placeholder="Linear feet"
+                        className="w-32"
+                      />
+                      <span className="text-sm text-muted-foreground">LF</span>
+                      {constructionOptions.ballContainmentLinearFeet > 0 && (
+                        <span className="ml-auto font-semibold">${(constructionOptions.ballContainmentLinearFeet * PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         );
 
