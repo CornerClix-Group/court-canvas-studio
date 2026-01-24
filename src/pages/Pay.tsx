@@ -301,9 +301,9 @@ export default function Pay() {
 
               <div className="text-xs text-muted-foreground text-center space-y-1">
                 <p className="font-medium">Payment options at checkout:</p>
-                <p>💳 Credit/Debit Card</p>
-                <p>📅 Affirm - Pay over 3-12 months</p>
-                <p>📅 Klarna - Pay in 4 or finance</p>
+                <p>💳 Credit/Debit Card (Visa, Mastercard, Amex)</p>
+                <p>📱 Apple Pay, Cash App, Amazon Pay</p>
+                <p>📅 Klarna - Pay in 4 or finance over time</p>
               </div>
             </CardContent>
           </Card>

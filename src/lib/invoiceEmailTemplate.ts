@@ -137,14 +137,14 @@ export function generateInvoiceEmailHTML(invoice: InvoiceForEmail, lineItems: Li
       </div>
     </div>
     
-    <!-- Financing Available Banner -->
+    <!-- Flexible Payment Options Banner -->
     <div style="margin-top: 24px; background: linear-gradient(135deg, #059669 0%, #0891b2 100%); padding: 20px; border-radius: 8px; text-align: center;">
-      <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Financing Available</h3>
+      <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Flexible Payment Options</h3>
       <p style="color: #d1fae5; margin: 0; font-size: 14px;">
-        Pay over 3-12 months with Affirm or Klarna
+        Finance with Klarna - Pay in 4 or spread over time
       </p>
       <p style="color: #a7f3d0; margin: 8px 0 0 0; font-size: 12px;">
-        Flexible payment options available when you pay online
+        Also accepting Apple Pay, Cash App, Amazon Pay & cards
       </p>
     </div>
 
