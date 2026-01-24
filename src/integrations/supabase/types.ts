@@ -244,6 +244,7 @@ export type Database = {
       }
       estimate_attachments: {
         Row: {
+          annotations: Json | null
           caption: string | null
           created_at: string
           estimate_id: string | null
@@ -256,6 +257,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          annotations?: Json | null
           caption?: string | null
           created_at?: string
           estimate_id?: string | null
@@ -268,6 +270,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          annotations?: Json | null
           caption?: string | null
           created_at?: string
           estimate_id?: string | null

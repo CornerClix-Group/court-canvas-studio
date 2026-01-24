@@ -1,22 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 
-// Company information
 const COMPANY_INFO = {
-  legalName: "CourtHaus Construction, LLC",
-  dbaName: "CourtPro Augusta",
   displayName: "CourtHaus Construction, LLC dba CourtPro Augusta",
-  address: {
-    street: "500 Furys Ferry Rd.",
-    suite: "Suite 107",
-    city: "Augusta",
-    state: "GA",
-    zip: "30907",
-    full: "500 Furys Ferry Rd. Suite 107, Augusta, GA 30907",
-  },
+  address: { street: "500 Furys Ferry Rd.", suite: "Suite 107", city: "Augusta", state: "GA", zip: "30907" },
   phone: "(706) 309-1993",
   email: "estimates@courtproaugusta.com",
-  website: "courtproaugusta.com",
 };
 
 const corsHeaders = {
@@ -24,483 +14,126 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface EstimateItem {
-  description: string;
-  quantity: number;
-  unit_price: number;
-  total: number;
-  unit: string | null;
-}
+const formatCurrency = (amount: number): string => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+const formatDate = (dateStr: string): string => new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-interface EstimateAttachment {
-  id: string;
-  file_path: string;
-  file_name: string;
-  caption: string | null;
-  sort_order: number;
-}
+function groupItemsForCustomer(items: any[]) {
+  const groups: Record<string, { items: any[], label: string, details: string }> = {
+    surfacePrep: { items: [], label: 'Surface Preparation', details: 'Professional surface preparation including cleaning, crack repair, and priming' },
+    surfacing: { items: [], label: 'Court Surfacing System', details: 'Premium court surfacing with cushion layers and color coats' },
+    striping: { items: [], label: 'Professional Line Striping', details: 'Complete court line marking' },
+    baseWork: { items: [], label: 'Site Preparation & Base Work', details: 'Substrate preparation and base installation' },
+  };
+  const addons: any[] = [];
 
-// Customer-friendly grouped items for PDF output
-interface CustomerLineItem {
-  description: string;
-  details: string;
-  total: number;
-}
-
-interface EstimateData {
-  id: string;
-  estimate_number: string;
-  created_at: string;
-  valid_until: string | null;
-  subtotal: number;
-  tax_rate: number | null;
-  tax_amount: number | null;
-  total: number;
-  notes: string | null;
-  status: string;
-  customers: {
-    contact_name: string;
-    company_name: string | null;
-    address: string | null;
-    city: string | null;
-    state: string | null;
-    zip: string | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
-  estimate_items: EstimateItem[];
-  estimate_attachments?: EstimateAttachment[];
-}
-
-// Group detailed line items into customer-friendly categories
-function groupItemsForCustomer(items: EstimateItem[]): CustomerLineItem[] {
-  const customerItems: CustomerLineItem[] = [];
-  
-  // Group items by category based on description patterns
-  const surfacePrep: EstimateItem[] = [];
-  const surfacing: EstimateItem[] = [];
-  const striping: EstimateItem[] = [];
-  const baseWork: EstimateItem[] = [];
-  const addons: EstimateItem[] = [];
-  
   items.forEach(item => {
     const desc = item.description.toLowerCase();
-    if (desc.includes('pressure') || desc.includes('wash') || desc.includes('crack') || 
-        desc.includes('birdbath') || desc.includes('prime') || desc.includes('prep')) {
-      surfacePrep.push(item);
-    } else if (desc.includes('line') || desc.includes('striping') || desc.includes('stripe')) {
-      striping.push(item);
-    } else if (desc.includes('base') || desc.includes('substrate')) {
-      baseWork.push(item);
-    } else if (desc.includes('granule') || desc.includes('powder') || desc.includes('color') || 
-               desc.includes('resurfacer') || desc.includes('laykold') || desc.includes('application') ||
-               desc.includes('surfacing') || desc.includes('cushion') || desc.includes('gel')) {
-      surfacing.push(item);
-    } else {
-      addons.push(item);
-    }
+    if (desc.includes('pressure') || desc.includes('wash') || desc.includes('crack') || desc.includes('prime') || desc.includes('prep')) groups.surfacePrep.items.push(item);
+    else if (desc.includes('line') || desc.includes('striping')) groups.striping.items.push(item);
+    else if (desc.includes('base') || desc.includes('substrate')) groups.baseWork.items.push(item);
+    else if (desc.includes('granule') || desc.includes('color') || desc.includes('resurfacer') || desc.includes('laykold') || desc.includes('surfacing') || desc.includes('cushion')) groups.surfacing.items.push(item);
+    else addons.push(item);
   });
-  
-  // Create grouped line items
-  if (surfacePrep.length > 0) {
-    const total = surfacePrep.reduce((sum, item) => sum + item.total, 0);
-    customerItems.push({
-      description: 'Surface Preparation',
-      details: 'Professional surface preparation including cleaning, crack repair, and priming as needed',
-      total,
-    });
-  }
-  
-  if (surfacing.length > 0) {
-    const total = surfacing.reduce((sum, item) => sum + item.total, 0);
-    customerItems.push({
-      description: 'Court Surfacing System',
-      details: 'Premium court surfacing system with cushion layers and color coats',
-      total,
-    });
-  }
-  
-  if (striping.length > 0) {
-    const total = striping.reduce((sum, item) => sum + item.total, 0);
-    customerItems.push({
-      description: 'Professional Line Striping',
-      details: 'Complete court line marking with premium line paint',
-      total,
-    });
-  }
-  
-  if (baseWork.length > 0) {
-    const total = baseWork.reduce((sum, item) => sum + item.total, 0);
-    customerItems.push({
-      description: 'Site Preparation & Base Work',
-      details: 'Substrate preparation and base installation',
-      total,
-    });
-  }
-  
-  // Add-ons remain individually listed
-  addons.forEach(item => {
-    customerItems.push({
-      description: item.description,
-      details: item.quantity > 1 ? `Quantity: ${item.quantity}` : '',
-      total: item.total,
-    });
+
+  const result: { description: string; details: string; total: number }[] = [];
+  Object.values(groups).forEach(g => {
+    if (g.items.length > 0) result.push({ description: g.label, details: g.details, total: g.items.reduce((sum, i) => sum + i.total, 0) });
   });
-  
-  return customerItems;
+  addons.forEach(item => result.push({ description: item.description, details: item.quantity > 1 ? `Quantity: ${item.quantity}` : '', total: item.total }));
+  return result;
 }
 
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
-};
-
-const formatDate = (dateStr: string): string => {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
-
-// Generate PDF content
-function generatePdfContent(estimate: EstimateData, hasAttachments: boolean): Uint8Array {
-  const customer = estimate.customers;
-  const isApproved = estimate.status === "approved";
+async function generatePdfWithImages(estimate: any, supabase: any): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const courier = await pdfDoc.embedFont(StandardFonts.Courier);
   
-  // Build content lines
-  const lines: string[] = [];
-  
-  // Add APPROVED stamp at the top if approved
-  if (isApproved) {
-    lines.push("");
-    lines.push("*".repeat(60));
-    lines.push("*" + " ".repeat(18) + "*** APPROVED ***" + " ".repeat(18) + "*");
-    lines.push("*".repeat(60));
-    lines.push("");
-  }
-  
-  // Company header with full legal name and address
-  lines.push(COMPANY_INFO.displayName);
-  lines.push(COMPANY_INFO.address.street + " " + COMPANY_INFO.address.suite);
-  lines.push(`${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}`);
-  lines.push("");
-  lines.push(`Phone: ${COMPANY_INFO.phone}`);
-  lines.push(`Email: ${COMPANY_INFO.email}`);
-  lines.push("");
-  lines.push("=".repeat(60));
-  lines.push("");
-  lines.push(`ESTIMATE ${estimate.estimate_number}`);
-  lines.push("");
-  lines.push(`Date: ${formatDate(estimate.created_at)}`);
-  if (estimate.valid_until) {
-    lines.push(`Valid Until: ${formatDate(estimate.valid_until)}`);
-  }
-  lines.push(`Status: ${estimate.status.toUpperCase()}`);
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  
-  // Prepared For
-  lines.push("PREPARED FOR:");
-  if (customer) {
-    if (customer.company_name) lines.push(customer.company_name);
-    lines.push(customer.contact_name);
-    if (customer.address) lines.push(customer.address);
-    if (customer.city || customer.state || customer.zip) {
-      lines.push(`${customer.city || ""}, ${customer.state || ""} ${customer.zip || ""}`.trim());
-    }
-    if (customer.email) lines.push(customer.email);
-    if (customer.phone) lines.push(customer.phone);
-  } else {
-    lines.push("(No customer specified)");
-  }
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  
-  // Group items for customer-friendly display
-  const customerItems = groupItemsForCustomer(estimate.estimate_items);
-  
-  // Scope of Work header
-  lines.push("SCOPE OF WORK");
-  lines.push("-".repeat(60));
-  
-  // Customer-friendly line items (no per-unit pricing)
-  for (const item of customerItems) {
-    lines.push("");
-    lines.push(item.description);
-    if (item.details) {
-      lines.push(`  ${item.details}`);
-    }
-    lines.push(`  Amount: ${formatCurrency(item.total)}`);
-  }
-  
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  
-  // Totals (simplified for customer)
-  lines.push("");
-  if (estimate.tax_rate && estimate.tax_amount) {
-    lines.push("SUBTOTAL:".padStart(45) + formatCurrency(estimate.subtotal).padStart(22));
-    lines.push(`TAX (${estimate.tax_rate}%):`.padStart(45) + formatCurrency(estimate.tax_amount).padStart(22));
-    lines.push("=".repeat(67));
-  }
-  lines.push("ESTIMATE TOTAL:".padStart(45) + formatCurrency(estimate.total).padStart(22));
-  
-  lines.push("");
-  
-  // Notes
-  if (estimate.notes) {
-    lines.push("-".repeat(60));
-    lines.push("PROJECT NOTES:");
-    lines.push(estimate.notes);
-  }
-  
-  // Site Documentation Reference
-  if (hasAttachments) {
-    lines.push("");
-    lines.push("-".repeat(60));
-    lines.push("");
-    lines.push("SITE DOCUMENTATION:");
-    lines.push("");
-    lines.push("GIS aerial imagery and site photos have been included with");
-    lines.push("this estimate for your reference. These images show the");
-    lines.push("project area and current site conditions.");
-    const attachments = estimate.estimate_attachments || [];
-    attachments.forEach((attachment, index) => {
-      lines.push(`  ${index + 1}. ${attachment.caption || attachment.file_name}`);
-    });
-  }
-  
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  
-  // Terms
-  lines.push("TERMS & CONDITIONS:");
-  lines.push("");
-  lines.push("1. This estimate is valid for 30 days from the date above.");
-  lines.push("2. A 50% deposit is required to schedule the project.");
-  lines.push("3. Final payment is due upon completion.");
-  lines.push("4. Pricing is subject to site inspection and conditions.");
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  lines.push("TO ACCEPT THIS ESTIMATE:");
-  lines.push("");
-  lines.push(`Contact us at ${COMPANY_INFO.email} or ${COMPANY_INFO.phone}`);
-  lines.push("");
-  lines.push("Thank you for considering CourtPro Augusta!");
-  
-  const content = lines.join("\n");
-  
-  // Create PDF
-  const pdf = createSimplePdf(content, isApproved);
-  return pdf;
-}
-
-function createSimplePdf(textContent: string, isApproved: boolean = false): Uint8Array {
-  const lines = textContent.split("\n");
-  
-  // PDF structure
-  let pdf = "%PDF-1.4\n";
-  let objects: string[] = [];
-  
-  // Object 1: Catalog
-  objects.push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-  
-  // Object 2: Pages
-  objects.push("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-  
-  // Object 3: Page - with extended graphics state for transparency
-  objects.push("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /ExtGState << /GS1 7 0 R >> >> >>\nendobj\n");
-  
-  // Object 5: Courier Font
-  const fontObj = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
-  
-  // Object 6: Helvetica Bold Font for stamp
-  const boldFontObj = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
-  
-  // Object 7: Graphics state for transparency
-  const gsObj = "7 0 obj\n<< /Type /ExtGState /CA 0.3 /ca 0.3 >>\nendobj\n";
-  
-  // Build content stream
-  let contentStream = "BT\n/F1 9 Tf\n";
-  let yPos = 750;
-  const lineHeight = 11;
+  const page = pdfDoc.addPage([612, 792]);
+  let y = 742;
   const leftMargin = 50;
-  
-  for (const line of lines) {
-    if (yPos < 50) {
-      break;
+
+  if (estimate.status === "approved") {
+    page.drawText("APPROVED", { x: 150, y: 400, size: 72, font: helveticaBold, color: rgb(0, 0.5, 0), opacity: 0.2, rotate: { type: 'degrees' as const, angle: 45 } });
+  }
+
+  page.drawText(COMPANY_INFO.displayName, { x: leftMargin, y, size: 12, font: helveticaBold }); y -= 14;
+  page.drawText(`${COMPANY_INFO.address.street} ${COMPANY_INFO.address.suite}`, { x: leftMargin, y, size: 10, font: courier }); y -= 12;
+  page.drawText(`${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}`, { x: leftMargin, y, size: 10, font: courier }); y -= 12;
+  page.drawText(`Phone: ${COMPANY_INFO.phone} | Email: ${COMPANY_INFO.email}`, { x: leftMargin, y, size: 10, font: courier }); y -= 25;
+
+  page.drawText(`ESTIMATE ${estimate.estimate_number}`, { x: leftMargin, y, size: 14, font: helveticaBold }); y -= 16;
+  page.drawText(`Date: ${formatDate(estimate.created_at)}`, { x: leftMargin, y, size: 10, font: courier }); y -= 12;
+  if (estimate.valid_until) { page.drawText(`Valid Until: ${formatDate(estimate.valid_until)}`, { x: leftMargin, y, size: 10, font: courier }); y -= 12; }
+  y -= 15;
+
+  page.drawText("PREPARED FOR:", { x: leftMargin, y, size: 11, font: helveticaBold }); y -= 14;
+  const c = estimate.customers;
+  if (c) {
+    if (c.company_name) { page.drawText(c.company_name, { x: leftMargin, y, size: 10, font: courier }); y -= 12; }
+    page.drawText(c.contact_name, { x: leftMargin, y, size: 10, font: courier }); y -= 12;
+    if (c.address) { page.drawText(c.address, { x: leftMargin, y, size: 10, font: courier }); y -= 12; }
+    if (c.city || c.state) { page.drawText(`${c.city || ''}, ${c.state || ''} ${c.zip || ''}`, { x: leftMargin, y, size: 10, font: courier }); y -= 12; }
+  }
+  y -= 15;
+
+  page.drawText("SCOPE OF WORK", { x: leftMargin, y, size: 12, font: helveticaBold }); y -= 18;
+  const customerItems = groupItemsForCustomer(estimate.estimate_items || []);
+  for (const item of customerItems) {
+    page.drawText(item.description, { x: leftMargin, y, size: 10, font: helveticaBold }); y -= 12;
+    if (item.details) { page.drawText(`  ${item.details}`, { x: leftMargin, y, size: 9, font: helvetica }); y -= 11; }
+    page.drawText(`  ${formatCurrency(item.total)}`, { x: leftMargin, y, size: 10, font: courier }); y -= 16;
+  }
+
+  y -= 10;
+  page.drawText(`TOTAL: ${formatCurrency(estimate.total)}`, { x: 400, y, size: 14, font: helveticaBold });
+  y -= 30;
+  page.drawText("Thank you for considering CourtPro Augusta!", { x: leftMargin, y, size: 10, font: helvetica });
+
+  // Embed site photos
+  const attachments = estimate.estimate_attachments?.slice(0, 4) || [];
+  if (attachments.length > 0) {
+    let imgPage = pdfDoc.addPage([612, 792]);
+    let imgY = 742;
+    imgPage.drawText("SITE DOCUMENTATION", { x: 50, y: imgY, size: 16, font: helveticaBold }); imgY -= 30;
+
+    for (const att of attachments) {
+      try {
+        const { data } = await supabase.storage.from('estimate-attachments').download(att.file_path);
+        if (!data) continue;
+        const bytes = new Uint8Array(await data.arrayBuffer());
+        const img = att.file_name.toLowerCase().endsWith('.png') ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+        const scale = Math.min(500 / img.width, 300 / img.height, 1);
+        const w = img.width * scale, h = img.height * scale;
+        if (imgY - h - 50 < 50) { imgPage = pdfDoc.addPage([612, 792]); imgY = 742; }
+        imgPage.drawImage(img, { x: (612 - w) / 2, y: imgY - h, width: w, height: h }); imgY -= h + 15;
+        imgPage.drawText(att.caption || att.file_name, { x: 50, y: imgY, size: 10, font: helvetica }); imgY -= 25;
+      } catch (e) { console.error('Image error:', e); }
     }
-    // Escape special characters for PDF
-    const escapedLine = line
-      .replace(/\\/g, "\\\\")
-      .replace(/\(/g, "\\(")
-      .replace(/\)/g, "\\)");
-    contentStream += `1 0 0 1 ${leftMargin} ${yPos} Tm\n(${escapedLine}) Tj\n`;
-    yPos -= lineHeight;
   }
-  contentStream += "ET\n";
-  
-  // Add diagonal APPROVED watermark if approved
-  if (isApproved) {
-    contentStream += "q\n"; // Save graphics state
-    contentStream += "/GS1 gs\n"; // Apply transparency
-    contentStream += "0 0.5 0 rg\n"; // Green color
-    contentStream += "BT\n";
-    contentStream += "/F2 60 Tf\n"; // Large bold font
-    // Rotate 45 degrees and position in center
-    contentStream += "0.707 0.707 -0.707 0.707 180 350 Tm\n";
-    contentStream += "(APPROVED) Tj\n";
-    contentStream += "ET\n";
-    contentStream += "Q\n"; // Restore graphics state
-  }
-  
-  // Object 4: Content stream
-  objects.push(`4 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream\nendobj\n`);
-  
-  // Add font objects
-  objects.push(fontObj);
-  objects.push(boldFontObj);
-  
-  // Add graphics state object
-  objects.push(gsObj);
-  
-  // Calculate offsets
-  let currentOffset = pdf.length;
-  const finalOffsets: number[] = [];
-  for (const obj of objects) {
-    finalOffsets.push(currentOffset);
-    currentOffset += obj.length;
-  }
-  
-  // Build final PDF
-  pdf += objects.join("");
-  
-  // Cross-reference table
-  const xrefOffset = pdf.length;
-  pdf += "xref\n";
-  pdf += `0 ${objects.length + 1}\n`;
-  pdf += "0000000000 65535 f \n";
-  for (const offset of finalOffsets) {
-    pdf += offset.toString().padStart(10, "0") + " 00000 n \n";
-  }
-  
-  // Trailer
-  pdf += "trailer\n";
-  pdf += `<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
-  pdf += "startxref\n";
-  pdf += `${xrefOffset}\n`;
-  pdf += "%%EOF";
-  
-  return new TextEncoder().encode(pdf);
+
+  return await pdfDoc.save();
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { estimateId } = await req.json();
+    if (!estimateId) throw new Error("Estimate ID is required");
 
-    if (!estimateId) {
-      throw new Error("Estimate ID is required");
-    }
+    const { data: estimate, error } = await supabase.from("estimates").select(`*, customers(*), estimate_items(*), estimate_attachments(*)`).eq("id", estimateId).single();
+    if (error) throw new Error(error.message);
 
-    console.log(`Generating PDF for estimate: ${estimateId}`);
+    estimate.estimate_items?.sort((a: any, b: any) => a.sort_order - b.sort_order);
+    estimate.estimate_attachments?.sort((a: any, b: any) => a.sort_order - b.sort_order);
 
-    // Fetch estimate with customer, items, and attachments
-    const { data: estimate, error: fetchError } = await supabase
-      .from("estimates")
-      .select(`
-        *,
-        customers (
-          contact_name,
-          company_name,
-          address,
-          city,
-          state,
-          zip,
-          email,
-          phone
-        ),
-        estimate_items (
-          description,
-          quantity,
-          unit_price,
-          total,
-          unit,
-          sort_order
-        ),
-        estimate_attachments (
-          id,
-          file_path,
-          file_name,
-          caption,
-          sort_order
-        )
-      `)
-      .eq("id", estimateId)
-      .single();
-
-    if (fetchError) {
-      console.error("Error fetching estimate:", fetchError);
-      throw new Error(`Failed to fetch estimate: ${fetchError.message}`);
-    }
-
-    if (!estimate) {
-      throw new Error("Estimate not found");
-    }
-
-    // Sort items by sort_order
-    estimate.estimate_items.sort((a: any, b: any) => a.sort_order - b.sort_order);
-    
-    // Sort attachments by sort_order if present
-    if (estimate.estimate_attachments) {
-      estimate.estimate_attachments.sort((a: any, b: any) => a.sort_order - b.sort_order);
-    }
-
-    const hasAttachments = estimate.estimate_attachments && estimate.estimate_attachments.length > 0;
-
-    // Generate PDF
-    const pdfBytes = generatePdfContent(estimate as EstimateData, hasAttachments);
-    
-    // Return PDF directly as base64 (estimates don't need storage)
+    const pdfBytes = await generatePdfWithImages(estimate, supabase);
     const base64Pdf = btoa(String.fromCharCode(...pdfBytes));
-    
-    console.log(`PDF generated successfully for estimate: ${estimate.estimate_number}`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        pdf: base64Pdf,
-        fileName: `${estimate.estimate_number}.pdf`,
-        hasAttachments,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ success: true, pdf: base64Pdf, fileName: `${estimate.estimate_number}.pdf`, hasAttachments: estimate.estimate_attachments?.length > 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error: any) {
-    console.error("Error generating PDF:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
