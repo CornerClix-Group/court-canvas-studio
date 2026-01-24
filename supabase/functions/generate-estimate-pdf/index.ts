@@ -32,6 +32,13 @@ interface EstimateItem {
   unit: string | null;
 }
 
+// Customer-friendly grouped items for PDF output
+interface CustomerLineItem {
+  description: string;
+  details: string;
+  total: number;
+}
+
 interface EstimateData {
   estimate_number: string;
   created_at: string;
@@ -53,6 +60,84 @@ interface EstimateData {
     phone: string | null;
   } | null;
   estimate_items: EstimateItem[];
+}
+
+// Group detailed line items into customer-friendly categories
+function groupItemsForCustomer(items: EstimateItem[]): CustomerLineItem[] {
+  const customerItems: CustomerLineItem[] = [];
+  
+  // Group items by category based on description patterns
+  const surfacePrep: EstimateItem[] = [];
+  const surfacing: EstimateItem[] = [];
+  const striping: EstimateItem[] = [];
+  const baseWork: EstimateItem[] = [];
+  const addons: EstimateItem[] = [];
+  
+  items.forEach(item => {
+    const desc = item.description.toLowerCase();
+    if (desc.includes('pressure') || desc.includes('wash') || desc.includes('crack') || 
+        desc.includes('birdbath') || desc.includes('prime') || desc.includes('prep')) {
+      surfacePrep.push(item);
+    } else if (desc.includes('line') || desc.includes('striping') || desc.includes('stripe')) {
+      striping.push(item);
+    } else if (desc.includes('base') || desc.includes('substrate')) {
+      baseWork.push(item);
+    } else if (desc.includes('granule') || desc.includes('powder') || desc.includes('color') || 
+               desc.includes('resurfacer') || desc.includes('laykold') || desc.includes('application') ||
+               desc.includes('surfacing') || desc.includes('cushion') || desc.includes('gel')) {
+      surfacing.push(item);
+    } else {
+      addons.push(item);
+    }
+  });
+  
+  // Create grouped line items
+  if (surfacePrep.length > 0) {
+    const total = surfacePrep.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Surface Preparation',
+      details: 'Professional surface preparation including cleaning, crack repair, and priming as needed',
+      total,
+    });
+  }
+  
+  if (surfacing.length > 0) {
+    const total = surfacing.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Court Surfacing System',
+      details: 'Premium court surfacing system with cushion layers and color coats',
+      total,
+    });
+  }
+  
+  if (striping.length > 0) {
+    const total = striping.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Professional Line Striping',
+      details: 'Complete court line marking with premium line paint',
+      total,
+    });
+  }
+  
+  if (baseWork.length > 0) {
+    const total = baseWork.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Site Preparation & Base Work',
+      details: 'Substrate preparation and base installation',
+      total,
+    });
+  }
+  
+  // Add-ons remain individually listed
+  addons.forEach(item => {
+    customerItems.push({
+      description: item.description,
+      details: item.quantity > 1 ? `Quantity: ${item.quantity}` : '',
+      total: item.total,
+    });
+  });
+  
+  return customerItems;
 }
 
 const formatCurrency = (amount: number): string => {
@@ -126,29 +211,35 @@ function generatePdfContent(estimate: EstimateData): Uint8Array {
   lines.push("-".repeat(60));
   lines.push("");
   
-  // Line items header
-  lines.push("DESCRIPTION".padEnd(35) + "QTY".padStart(8) + "PRICE".padStart(12) + "TOTAL".padStart(12));
-  lines.push("-".repeat(67));
+  // Group items for customer-friendly display
+  const customerItems = groupItemsForCustomer(estimate.estimate_items);
   
-  // Line items
-  for (const item of estimate.estimate_items) {
-    const desc = item.description.substring(0, 34).padEnd(35);
-    const qty = item.quantity.toString().padStart(8);
-    const price = formatCurrency(item.unit_price).padStart(12);
-    const total = formatCurrency(item.total).padStart(12);
-    lines.push(`${desc}${qty}${price}${total}`);
+  // Scope of Work header
+  lines.push("SCOPE OF WORK");
+  lines.push("-".repeat(60));
+  
+  // Customer-friendly line items (no per-unit pricing)
+  for (const item of customerItems) {
+    lines.push("");
+    lines.push(item.description);
+    if (item.details) {
+      lines.push(`  ${item.details}`);
+    }
+    lines.push(`  Amount: ${formatCurrency(item.total)}`);
   }
   
-  lines.push("-".repeat(67));
+  lines.push("");
+  lines.push("-".repeat(60));
   lines.push("");
   
-  // Totals
-  lines.push("SUBTOTAL:".padStart(47) + formatCurrency(estimate.subtotal).padStart(20));
+  // Totals (simplified for customer)
+  lines.push("");
   if (estimate.tax_rate && estimate.tax_amount) {
-    lines.push(`TAX (${estimate.tax_rate}%):`.padStart(47) + formatCurrency(estimate.tax_amount).padStart(20));
+    lines.push("SUBTOTAL:".padStart(45) + formatCurrency(estimate.subtotal).padStart(22));
+    lines.push(`TAX (${estimate.tax_rate}%):`.padStart(45) + formatCurrency(estimate.tax_amount).padStart(22));
+    lines.push("=".repeat(67));
   }
-  lines.push("=".repeat(67));
-  lines.push("ESTIMATED TOTAL:".padStart(47) + formatCurrency(estimate.total).padStart(20));
+  lines.push("ESTIMATE TOTAL:".padStart(45) + formatCurrency(estimate.total).padStart(22));
   
   lines.push("");
   

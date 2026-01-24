@@ -30,6 +30,88 @@ interface LineItem {
   total: number;
 }
 
+// Customer-friendly grouped item for email display
+interface CustomerLineItem {
+  description: string;
+  details: string;
+  total: number;
+}
+
+// Group detailed line items into customer-friendly categories
+function groupItemsForCustomer(items: LineItem[]): CustomerLineItem[] {
+  const customerItems: CustomerLineItem[] = [];
+  
+  const surfacePrep: LineItem[] = [];
+  const surfacing: LineItem[] = [];
+  const striping: LineItem[] = [];
+  const baseWork: LineItem[] = [];
+  const addons: LineItem[] = [];
+  
+  items.forEach(item => {
+    const desc = item.description.toLowerCase();
+    if (desc.includes('pressure') || desc.includes('wash') || desc.includes('crack') || 
+        desc.includes('birdbath') || desc.includes('prime') || desc.includes('prep')) {
+      surfacePrep.push(item);
+    } else if (desc.includes('line') || desc.includes('striping') || desc.includes('stripe')) {
+      striping.push(item);
+    } else if (desc.includes('base') || desc.includes('substrate')) {
+      baseWork.push(item);
+    } else if (desc.includes('granule') || desc.includes('powder') || desc.includes('color') || 
+               desc.includes('resurfacer') || desc.includes('laykold') || desc.includes('application') ||
+               desc.includes('surfacing') || desc.includes('cushion') || desc.includes('gel')) {
+      surfacing.push(item);
+    } else {
+      addons.push(item);
+    }
+  });
+  
+  if (surfacePrep.length > 0) {
+    const total = surfacePrep.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Surface Preparation',
+      details: 'Professional surface preparation including cleaning, crack repair, and priming',
+      total,
+    });
+  }
+  
+  if (surfacing.length > 0) {
+    const total = surfacing.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Court Surfacing System',
+      details: 'Premium court surfacing with cushion layers and color coats',
+      total,
+    });
+  }
+  
+  if (striping.length > 0) {
+    const total = striping.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Professional Line Striping',
+      details: 'Complete court line marking',
+      total,
+    });
+  }
+  
+  if (baseWork.length > 0) {
+    const total = baseWork.reduce((sum, item) => sum + item.total, 0);
+    customerItems.push({
+      description: 'Site Preparation & Base Work',
+      details: 'Substrate preparation and base installation',
+      total,
+    });
+  }
+  
+  addons.forEach(item => {
+    customerItems.push({
+      description: item.description,
+      details: item.quantity > 1 ? `Quantity: ${item.quantity}` : '',
+      total: item.total,
+    });
+  });
+  
+  return customerItems;
+}
+
 interface Customer {
   contact_name: string;
   company_name: string | null;
@@ -75,14 +157,18 @@ function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[]): s
   const customerName = estimate.customer?.contact_name || "Valued Customer";
   const validUntil = estimate.valid_until ? formatDate(estimate.valid_until) : "30 days from receipt";
 
-  const itemsHTML = lineItems
+  // Group items for customer-friendly display (no per-unit pricing)
+  const groupedItems = groupItemsForCustomer(lineItems);
+  
+  const itemsHTML = groupedItems
     .map(
       (item) => `
       <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left;">${item.description}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity} ${item.unit || ""}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price)}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.total)}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left;">
+          <strong>${item.description}</strong>
+          ${item.details ? `<br><span style="color: #6b7280; font-size: 13px;">${item.details}</span>` : ''}
+        </td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; vertical-align: top;">${formatCurrency(item.total)}</td>
       </tr>
     `
     )
@@ -149,15 +235,13 @@ function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[]): s
           </td>
         </tr>
         
-        <!-- Line Items -->
+        <!-- Scope of Work (Customer-Friendly Grouped) -->
         <tr>
           <td style="padding: 0 30px 20px 30px;">
             <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 16px;">Scope of Work</h3>
             <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
               <tr style="background-color: #f9fafb;">
-                <th style="padding: 12px; text-align: left; color: #374151; font-size: 13px; font-weight: 600;">Description</th>
-                <th style="padding: 12px; text-align: center; color: #374151; font-size: 13px; font-weight: 600;">Qty</th>
-                <th style="padding: 12px; text-align: right; color: #374151; font-size: 13px; font-weight: 600;">Rate</th>
+                <th style="padding: 12px; text-align: left; color: #374151; font-size: 13px; font-weight: 600;">Service</th>
                 <th style="padding: 12px; text-align: right; color: #374151; font-size: 13px; font-weight: 600;">Amount</th>
               </tr>
               ${itemsHTML}
