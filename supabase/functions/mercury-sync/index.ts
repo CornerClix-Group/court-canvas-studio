@@ -38,18 +38,57 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const mercuryApiKey = Deno.env.get("MERCURY_API_KEY");
-    if (!mercuryApiKey) {
-      throw new Error("Mercury API key not configured");
+    // Authentication check - require valid user token
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify user token
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error("Auth error:", authError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify user has admin/owner/accounting role for sensitive banking data
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    const hasAccess = roles?.some((r) =>
+      ["owner", "admin", "accounting"].includes(r.role)
+    );
+
+    if (!hasAccess) {
+      console.error("Forbidden: User lacks required role", { userId: user.id });
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const mercuryApiKey = Deno.env.get("MERCURY_API_KEY");
+    if (!mercuryApiKey) {
+      throw new Error("Mercury API key not configured");
+    }
+
     const { action } = await req.json();
 
-    console.log("Mercury sync action:", action);
+    console.log("Mercury sync action:", action, "by user:", user.email);
 
     // Fetch accounts first
     const accountsResponse = await fetch(`${MERCURY_API_BASE}/accounts`, {
