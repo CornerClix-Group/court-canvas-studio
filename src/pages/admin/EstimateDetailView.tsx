@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -51,6 +52,11 @@ import {
   Loader2,
   Building,
   RefreshCcw,
+  Pencil,
+  Save,
+  X,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 interface Estimate {
@@ -114,13 +120,23 @@ const statusLabels: Record<string, string> = {
 export default function EstimateDetailView() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const isEditMode = searchParams.get("edit") === "true";
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  
+  // Edit mode state
+  const [editNotes, setEditNotes] = useState("");
+  const [editValidUntil, setEditValidUntil] = useState("");
+  const [editItems, setEditItems] = useState<EstimateItem[]>([]);
+  const [editCustomItems, setEditCustomItems] = useState<CustomItem[]>([]);
   
   // Dialog states
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
@@ -132,6 +148,16 @@ export default function EstimateDetailView() {
       fetchEstimate();
     }
   }, [id]);
+
+  // Initialize edit state when entering edit mode
+  useEffect(() => {
+    if (isEditMode && estimate) {
+      setEditNotes(estimate.notes || "");
+      setEditValidUntil(estimate.valid_until || "");
+      setEditItems([...items]);
+      setEditCustomItems([...customItems]);
+    }
+  }, [isEditMode, estimate, items, customItems]);
 
   const fetchEstimate = async () => {
     try {
@@ -357,12 +383,194 @@ export default function EstimateDetailView() {
     }
   };
 
+  const handleEnterEditMode = () => {
+    if (estimate?.status !== "draft") {
+      toast({
+        variant: "destructive",
+        title: "Cannot Edit",
+        description: "Only draft estimates can be edited.",
+      });
+      return;
+    }
+    setSearchParams({ edit: "true" });
+  };
+
+  const handleCancelEdit = () => {
+    setSearchParams({});
+    // Reset edit state
+    if (estimate) {
+      setEditNotes(estimate.notes || "");
+      setEditValidUntil(estimate.valid_until || "");
+      setEditItems([...items]);
+      setEditCustomItems([...customItems]);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!estimate) return;
+
+    setSaving(true);
+    try {
+      // Calculate new totals
+      const lineItemsTotal = editItems.reduce((sum, item) => sum + item.total, 0);
+      const customItemsTotal = editCustomItems.reduce((sum, item) => sum + item.customer_price, 0);
+      const newTotal = lineItemsTotal + customItemsTotal;
+
+      // Update estimate
+      const { error: estimateError } = await supabase
+        .from("estimates")
+        .update({
+          notes: editNotes || null,
+          valid_until: editValidUntil || null,
+          subtotal: newTotal,
+          total: newTotal,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", estimate.id);
+
+      if (estimateError) throw estimateError;
+
+      // Delete and re-insert line items
+      await supabase.from("estimate_items").delete().eq("estimate_id", estimate.id);
+      
+      if (editItems.length > 0) {
+        const itemsToInsert = editItems.map((item, index) => ({
+          estimate_id: estimate.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          total: item.total,
+          sort_order: index,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("estimate_items")
+          .insert(itemsToInsert);
+
+        if (itemsError) throw itemsError;
+      }
+
+      // Delete and re-insert custom items
+      await supabase.from("estimate_custom_items").delete().eq("estimate_id", estimate.id);
+      
+      if (editCustomItems.length > 0) {
+        const customToInsert = editCustomItems.map((item, index) => ({
+          estimate_id: estimate.id,
+          description: item.description,
+          customer_price: item.customer_price,
+          sort_order: index,
+        }));
+
+        const { error: customError } = await supabase
+          .from("estimate_custom_items")
+          .insert(customToInsert);
+
+        if (customError) throw customError;
+      }
+
+      await logActivity({
+        action: "update",
+        entityType: "estimate",
+        entityId: estimate.id,
+        entityName: estimate.estimate_number,
+      });
+
+      toast({
+        title: "Estimate Updated",
+        description: "Changes have been saved successfully.",
+      });
+
+      setSearchParams({});
+      fetchEstimate();
+    } catch (error) {
+      console.error("Error saving estimate:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save changes.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateItem = (index: number, field: keyof EstimateItem, value: string | number) => {
+    setEditItems(prev => {
+      const updated = [...prev];
+      const item = { ...updated[index] };
+      
+      if (field === "quantity" || field === "unit_price") {
+        const numValue = typeof value === "string" ? parseFloat(value) || 0 : value;
+        item[field] = numValue;
+        item.total = item.quantity * item.unit_price;
+      } else if (field === "description" || field === "unit") {
+        item[field] = value as string;
+      }
+      
+      updated[index] = item;
+      return updated;
+    });
+  };
+
+  const handleAddItem = () => {
+    const newItem: EstimateItem = {
+      id: `new-${Date.now()}`,
+      description: "",
+      quantity: 1,
+      unit: "each",
+      unit_price: 0,
+      total: 0,
+      sort_order: editItems.length,
+    };
+    setEditItems(prev => [...prev, newItem]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setEditItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateCustomItem = (index: number, field: keyof CustomItem, value: string | number) => {
+    setEditCustomItems(prev => {
+      const updated = [...prev];
+      const item = { ...updated[index] };
+      
+      if (field === "customer_price") {
+        item.customer_price = typeof value === "string" ? parseFloat(value) || 0 : value;
+      } else if (field === "description") {
+        item.description = value as string;
+      }
+      
+      updated[index] = item;
+      return updated;
+    });
+  };
+
+  const handleAddCustomItem = () => {
+    const newItem: CustomItem = {
+      id: `new-${Date.now()}`,
+      description: "",
+      customer_price: 0,
+      sort_order: editCustomItems.length,
+    };
+    setEditCustomItems(prev => [...prev, newItem]);
+  };
+
+  const handleRemoveCustomItem = (index: number) => {
+    setEditCustomItems(prev => prev.filter((_, i) => i !== index));
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
     }).format(amount);
   };
+
+  // Calculate edit mode totals
+  const editLineItemsTotal = editItems.reduce((sum, item) => sum + item.total, 0);
+  const editCustomItemsTotal = editCustomItems.reduce((sum, item) => sum + item.customer_price, 0);
+  const editGrandTotal = editLineItemsTotal + editCustomItemsTotal;
 
   if (loading) {
     return (
@@ -383,6 +591,8 @@ export default function EstimateDetailView() {
     );
   }
 
+  const canEdit = estimate.status === "draft";
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -399,6 +609,9 @@ export default function EstimateDetailView() {
               <Badge variant="outline" className={statusColors[estimate.status]}>
                 {statusLabels[estimate.status]}
               </Badge>
+              {isEditMode && (
+                <Badge variant="secondary">Editing</Badge>
+              )}
             </div>
             <p className="text-muted-foreground mt-1">
               Created {format(new Date(estimate.created_at), "MMMM d, yyyy")}
@@ -408,46 +621,81 @@ export default function EstimateDetailView() {
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleDownloadPdf}
-            disabled={actionLoading !== null}
-          >
-            {actionLoading === "pdf" ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            Download PDF
-          </Button>
-          
-          {estimate.status === "draft" && (
-            <Button
-              onClick={handleSendEstimate}
-              disabled={actionLoading !== null || !estimate.customers?.email}
-            >
-              {actionLoading === "send" ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
+          {isEditMode ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                disabled={saving}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+            </>
+          ) : (
+            <>
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  onClick={handleEnterEditMode}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
               )}
-              Send to Customer
-            </Button>
-          )}
-          
-          {estimate.status === "sent" && (
-            <Button
-              variant="outline"
-              onClick={handleSendEstimate}
-              disabled={actionLoading !== null || !estimate.customers?.email}
-            >
-              {actionLoading === "send" ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Mail className="w-4 h-4 mr-2" />
+              <Button
+                variant="outline"
+                onClick={handleDownloadPdf}
+                disabled={actionLoading !== null}
+              >
+                {actionLoading === "pdf" ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Download PDF
+              </Button>
+              
+              {estimate.status === "draft" && (
+                <Button
+                  onClick={handleSendEstimate}
+                  disabled={actionLoading !== null || !estimate.customers?.email}
+                >
+                  {actionLoading === "send" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-2" />
+                  )}
+                  Send to Customer
+                </Button>
               )}
-              Resend
-            </Button>
+              
+              {estimate.status === "sent" && (
+                <Button
+                  variant="outline"
+                  onClick={handleSendEstimate}
+                  disabled={actionLoading !== null || !estimate.customers?.email}
+                >
+                  {actionLoading === "send" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4 mr-2" />
+                  )}
+                  Resend
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -464,79 +712,195 @@ export default function EstimateDetailView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.description}</TableCell>
-                      <TableCell className="text-right">
-                        {item.quantity} {item.unit || ""}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(item.unit_price)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
+              {isEditMode ? (
+                <div className="space-y-4">
+                  {editItems.map((item, index) => (
+                    <div key={item.id} className="grid grid-cols-12 gap-2 items-start">
+                      <div className="col-span-5">
+                        <Input
+                          value={item.description}
+                          onChange={(e) => handleUpdateItem(index, "description", e.target.value)}
+                          placeholder="Description"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateItem(index, "quantity", e.target.value)}
+                          placeholder="Qty"
+                          min={0}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input
+                          type="number"
+                          value={item.unit_price}
+                          onChange={(e) => handleUpdateItem(index, "unit_price", e.target.value)}
+                          placeholder="Unit Price"
+                          min={0}
+                          step={0.01}
+                        />
+                      </div>
+                      <div className="col-span-2 text-right font-medium pt-2">
                         {formatCurrency(item.total)}
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                      <div className="col-span-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem(index)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
+                  <Button variant="outline" size="sm" onClick={handleAddItem}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Line Item
+                  </Button>
                   
-                  {customItems.length > 0 && (
+                  {/* Custom Items in Edit Mode */}
+                  {(editCustomItems.length > 0 || isEditMode) && (
                     <>
+                      <Separator className="my-4" />
+                      <h4 className="font-medium">Additional Work</h4>
+                      {editCustomItems.map((item, index) => (
+                        <div key={item.id} className="grid grid-cols-12 gap-2 items-start">
+                          <div className="col-span-9">
+                            <Input
+                              value={item.description}
+                              onChange={(e) => handleUpdateCustomItem(index, "description", e.target.value)}
+                              placeholder="Description"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Input
+                              type="number"
+                              value={item.customer_price}
+                              onChange={(e) => handleUpdateCustomItem(index, "customer_price", e.target.value)}
+                              placeholder="Price"
+                              min={0}
+                              step={0.01}
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveCustomItem(index)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Button variant="outline" size="sm" onClick={handleAddCustomItem}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Custom Item
+                      </Button>
+                    </>
+                  )}
+                  
+                  <Separator className="my-4" />
+                  <div className="flex justify-end">
+                    <div className="w-64 space-y-2">
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>Total</span>
+                        <span>{formatCurrency(editGrandTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={4} className="bg-muted/50 font-medium">
-                          Additional Work
-                        </TableCell>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Unit Price</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
                       </TableRow>
-                      {customItems.map((item) => (
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell colSpan={3}>{item.description}</TableCell>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell className="text-right">
+                            {item.quantity} {item.unit || ""}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(item.unit_price)}
+                          </TableCell>
                           <TableCell className="text-right font-medium">
-                            {formatCurrency(item.customer_price)}
+                            {formatCurrency(item.total)}
                           </TableCell>
                         </TableRow>
                       ))}
-                    </>
-                  )}
-                </TableBody>
-              </Table>
-              
-              <Separator className="my-4" />
-              
-              <div className="flex justify-end">
-                <div className="w-64 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>{formatCurrency(estimate.subtotal)}</span>
+                      
+                      {customItems.length > 0 && (
+                        <>
+                          <TableRow>
+                            <TableCell colSpan={4} className="bg-muted/50 font-medium">
+                              Additional Work
+                            </TableCell>
+                          </TableRow>
+                          {customItems.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell colSpan={3}>{item.description}</TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(item.customer_price)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </>
+                      )}
+                    </TableBody>
+                  </Table>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="flex justify-end">
+                    <div className="w-64 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span>{formatCurrency(estimate.subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>Total</span>
+                        <span>{formatCurrency(estimate.total)}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span>{formatCurrency(estimate.total)}</span>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
           {/* Notes */}
-          {estimate.notes && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground whitespace-pre-wrap">{estimate.notes}</p>
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditMode ? (
+                <Textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Add notes..."
+                  rows={4}
+                />
+              ) : (
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {estimate.notes || "No notes"}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -591,110 +955,127 @@ export default function EstimateDetailView() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valid Until</span>
-                <span>
-                  {estimate.valid_until
-                    ? format(new Date(estimate.valid_until), "MMM d, yyyy")
-                    : "—"}
-                </span>
-              </div>
-              {estimate.sent_at && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Sent</span>
-                  <span>{format(new Date(estimate.sent_at), "MMM d, yyyy")}</span>
+              {isEditMode ? (
+                <div>
+                  <Label htmlFor="validUntil">Valid Until</Label>
+                  <Input
+                    id="validUntil"
+                    type="date"
+                    value={editValidUntil}
+                    onChange={(e) => setEditValidUntil(e.target.value)}
+                    className="mt-1"
+                  />
                 </div>
-              )}
-              {estimate.approved_at && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Approved</span>
-                  <span>{format(new Date(estimate.approved_at), "MMM d, yyyy")}</span>
-                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valid Until</span>
+                    <span>
+                      {estimate.valid_until
+                        ? format(new Date(estimate.valid_until), "MMM d, yyyy")
+                        : "—"}
+                    </span>
+                  </div>
+                  {estimate.sent_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Sent</span>
+                      <span>{format(new Date(estimate.sent_at), "MMM d, yyyy")}</span>
+                    </div>
+                  )}
+                  {estimate.approved_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Approved</span>
+                      <span>{format(new Date(estimate.approved_at), "MMM d, yyyy")}</span>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
 
-          {/* Status Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-              <CardDescription>Update the estimate status</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {/* Draft Actions */}
-              {estimate.status === "draft" && (
-                <>
+          {/* Status Actions - only show when not editing */}
+          {!isEditMode && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Actions</CardTitle>
+                <CardDescription>Update the estimate status</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {/* Draft Actions */}
+                {estimate.status === "draft" && (
+                  <>
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => updateStatus("sent", { sent_at: new Date().toISOString() })}
+                      disabled={actionLoading !== null}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Mark as Sent
+                    </Button>
+                  </>
+                )}
+
+                {/* Sent Actions */}
+                {estimate.status === "sent" && (
+                  <>
+                    <Button
+                      className="w-full"
+                      onClick={() => updateStatus("approved", { approved_at: new Date().toISOString() })}
+                      disabled={actionLoading !== null}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Mark as Approved
+                    </Button>
+                    <Button
+                      className="w-full"
+                      variant="destructive"
+                      onClick={() => setShowDeclineDialog(true)}
+                      disabled={actionLoading !== null}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Mark as Declined
+                    </Button>
+                  </>
+                )}
+
+                {/* Approved Actions */}
+                {estimate.status === "approved" && (
+                  <>
+                    <Button
+                      className="w-full"
+                      onClick={() => navigate(`/admin/invoices/from-estimate/${estimate.id}`)}
+                    >
+                      <ArrowRightCircle className="w-4 h-4 mr-2" />
+                      Convert to Invoice
+                    </Button>
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => setShowConvertToProjectDialog(true)}
+                      disabled={actionLoading !== null}
+                    >
+                      <Building className="w-4 h-4 mr-2" />
+                      Create Project
+                    </Button>
+                  </>
+                )}
+
+                {/* Declined/Expired Actions */}
+                {(estimate.status === "declined" || estimate.status === "expired") && (
                   <Button
                     className="w-full"
                     variant="outline"
-                    onClick={() => updateStatus("sent", { sent_at: new Date().toISOString() })}
+                    onClick={() => updateStatus("draft")}
                     disabled={actionLoading !== null}
                   >
-                    <Send className="w-4 h-4 mr-2" />
-                    Mark as Sent
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    Reopen as Draft
                   </Button>
-                </>
-              )}
-
-              {/* Sent Actions */}
-              {estimate.status === "sent" && (
-                <>
-                  <Button
-                    className="w-full"
-                    onClick={() => updateStatus("approved", { approved_at: new Date().toISOString() })}
-                    disabled={actionLoading !== null}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Mark as Approved
-                  </Button>
-                  <Button
-                    className="w-full"
-                    variant="destructive"
-                    onClick={() => setShowDeclineDialog(true)}
-                    disabled={actionLoading !== null}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Mark as Declined
-                  </Button>
-                </>
-              )}
-
-              {/* Approved Actions */}
-              {estimate.status === "approved" && (
-                <>
-                  <Button
-                    className="w-full"
-                    onClick={() => navigate(`/admin/invoices/from-estimate/${estimate.id}`)}
-                  >
-                    <ArrowRightCircle className="w-4 h-4 mr-2" />
-                    Convert to Invoice
-                  </Button>
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => setShowConvertToProjectDialog(true)}
-                    disabled={actionLoading !== null}
-                  >
-                    <Building className="w-4 h-4 mr-2" />
-                    Create Project
-                  </Button>
-                </>
-              )}
-
-              {/* Declined/Expired Actions */}
-              {(estimate.status === "declined" || estimate.status === "expired") && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => updateStatus("draft")}
-                  disabled={actionLoading !== null}
-                >
-                  <RefreshCcw className="w-4 h-4 mr-2" />
-                  Reopen as Draft
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
