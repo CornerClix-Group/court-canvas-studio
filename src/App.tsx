@@ -14,6 +14,8 @@ import CourtResurfacing from "./pages/CourtResurfacing";
 import BasketballCourts from "./pages/BasketballCourts";
 import MultiSportCourts from "./pages/MultiSportCourts";
 import SalesEstimator from "./pages/SalesEstimator";
+import Pay from "./pages/Pay";
+import PaySuccess from "./pages/PaySuccess";
 import AdminAuth from "./pages/admin/Auth";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -49,6 +51,10 @@ const App = () => (
           
           {/* Sales Estimator - Public field tool */}
           <Route path="/estimator" element={<SalesEstimator />} />
+          
+          {/* Payment Portal - Public routes for customer payments */}
+          <Route path="/pay/:token" element={<Pay />} />
+          <Route path="/pay/:token/success" element={<PaySuccess />} />
           
           {/* Admin Routes */}
           <Route path="/admin/auth" element={<AdminAuth />} />

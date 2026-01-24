@@ -22,6 +22,8 @@ const COMPANY_INFO = {
   website: "courtproaugusta.com",
 };
 
+const CONVENIENCE_FEE_PERCENT = 0.03;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -56,9 +58,11 @@ interface Invoice {
   tax_rate: number | null;
   tax_amount: number | null;
   total: number;
+  amount_paid: number | null;
   notes: string | null;
   due_date: string | null;
   status: string;
+  payment_link_token: string | null;
   customers: Customer | null;
 }
 
@@ -78,8 +82,23 @@ const formatDate = (dateStr: string | null): string => {
   });
 };
 
-const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string => {
+// Generate a secure payment link token
+const generatePaymentToken = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < 32; i++) {
+    result += chars[array[i] % chars.length];
+  }
+  return result;
+};
+
+const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl: string): string => {
   const customer = invoice.customers;
+  const amountDue = Number(invoice.total) - Number(invoice.amount_paid || 0);
+  const convenienceFee = amountDue * CONVENIENCE_FEE_PERCENT;
+  const totalWithFee = amountDue + convenienceFee;
   
   const lineItemsHTML = lineItems.map(item => `
     <tr>
@@ -134,7 +153,7 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
               </div>
               <div style="background: #fef3c7; padding: 16px 24px; border-radius: 8px;">
                 <p style="margin: 0; color: #92400e; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Amount Due</p>
-                <p style="margin: 4px 0 0 0; font-size: 28px; font-weight: bold; color: #92400e;">${formatCurrency(invoice.total)}</p>
+                <p style="margin: 4px 0 0 0; font-size: 28px; font-weight: bold; color: #92400e;">${formatCurrency(amountDue)}</p>
               </div>
             </div>
           </div>
@@ -169,7 +188,7 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
               ` : ""}
               <div style="display: flex; justify-content: space-between; padding: 16px 0; background: #f9fafb; margin-top: 8px; border-radius: 8px; padding-left: 12px; padding-right: 12px;">
                 <span style="font-weight: bold; font-size: 18px;">Total Due</span>
-                <span style="font-weight: bold; font-size: 18px; color: #0369a1;">${formatCurrency(invoice.total)}</span>
+                <span style="font-weight: bold; font-size: 18px; color: #0369a1;">${formatCurrency(amountDue)}</span>
               </div>
             </div>
           </div>
@@ -182,17 +201,38 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[]): string =>
           </div>
           ` : ""}
 
-          <!-- Payment Instructions -->
-          <div style="margin-top: 40px; padding: 24px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
-            <h3 style="margin: 0 0 12px 0; color: #0369a1; font-size: 14px; font-weight: bold;">Payment Instructions</h3>
+          <!-- Payment Options -->
+          <div style="margin-top: 40px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 32px; border-radius: 12px; text-align: center;">
+            <h3 style="margin: 0 0 8px 0; color: white; font-size: 20px; font-weight: bold;">Pay Online</h3>
+            <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 14px;">
+              Quick and secure payment with credit card or financing options
+            </p>
+            <a href="${paymentUrl}" style="display: inline-block; background: white; color: #059669; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              💳 Pay ${formatCurrency(totalWithFee)} Now
+            </a>
+            <p style="margin: 16px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
+              Includes 3% convenience fee (${formatCurrency(convenienceFee)}) • Financing available with Affirm or Klarna
+            </p>
+          </div>
+
+          <!-- Or Pay by Check -->
+          <div style="margin-top: 24px; padding: 24px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
+            <h3 style="margin: 0 0 12px 0; color: #0369a1; font-size: 14px; font-weight: bold;">Or Pay by Check (No Fee)</h3>
             <p style="margin: 0; color: #4b5563; font-size: 14px;">
-              Please make checks payable to:<br>
+              Pay <strong>${formatCurrency(amountDue)}</strong> by check (no convenience fee).<br><br>
+              Make checks payable to:<br>
               <strong>${COMPANY_INFO.legalName}</strong><br><br>
               Mail to:<br>
               <strong>${COMPANY_INFO.address.street} ${COMPANY_INFO.address.suite}</strong><br>
               <strong>${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}</strong><br><br>
-              For questions, contact us at <strong>${COMPANY_INFO.email}</strong> or <strong>${COMPANY_INFO.phone}</strong><br><br>
               Please reference invoice number <strong>${invoice.invoice_number}</strong> with your payment.
+            </p>
+          </div>
+
+          <!-- Questions -->
+          <div style="margin-top: 24px; text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px;">
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">
+              Questions? Contact us at <strong>${COMPANY_INFO.email}</strong> or <strong>${COMPANY_INFO.phone}</strong>
             </p>
           </div>
         </div>
@@ -268,9 +308,33 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Customer email is required to send invoice");
     }
 
+    // Generate or use existing payment link token
+    let paymentToken = invoice.payment_link_token;
+    if (!paymentToken) {
+      paymentToken = generatePaymentToken();
+      
+      // Save the payment token to the invoice
+      const { error: tokenError } = await supabase
+        .from("invoices")
+        .update({
+          payment_link_token: paymentToken,
+          payment_link_created_at: new Date().toISOString(),
+        })
+        .eq("id", invoiceId);
+
+      if (tokenError) {
+        console.error("Error saving payment token:", tokenError);
+        throw new Error("Failed to generate payment link");
+      }
+      console.log("Generated new payment token for invoice");
+    }
+
+    const paymentUrl = `https://courtproaugusta.lovable.app/pay/${paymentToken}`;
+    console.log("Payment URL:", paymentUrl);
+
     console.log("Generating invoice email for:", customerEmail);
 
-    const invoiceHTML = generateInvoiceHTML(invoice as Invoice, lineItems || []);
+    const invoiceHTML = generateInvoiceHTML(invoice as Invoice, lineItems || [], paymentUrl);
 
     const emailSubject = `Invoice ${invoice.invoice_number} from ${COMPANY_INFO.displayName}`;
 
@@ -321,7 +385,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Invoice sent successfully", emailId: resendEmailId }),
+      JSON.stringify({ success: true, message: "Invoice sent successfully", emailId: resendEmailId, paymentUrl }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
