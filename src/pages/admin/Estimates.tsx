@@ -53,6 +53,9 @@ import {
   Clock,
   Eye,
   RefreshCcw,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -70,6 +73,11 @@ interface Estimate {
     company_name: string | null;
     email: string | null;
   } | null;
+}
+
+interface LinkedRecords {
+  invoices: Array<{ id: string; invoice_number: string }>;
+  projects: Array<{ id: string; project_name: string }>;
 }
 
 const statusColors: Record<string, string> = {
@@ -103,6 +111,21 @@ export default function AdminEstimates() {
     estimateNumber: string;
     action: "sent" | "approved" | "declined" | "expired" | "draft";
   } | null>(null);
+
+  // Delete dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    estimate: Estimate | null;
+    linkedRecords: LinkedRecords | null;
+    checking: boolean;
+    deleting: boolean;
+  }>({
+    open: false,
+    estimate: null,
+    linkedRecords: null,
+    checking: false,
+    deleting: false,
+  });
 
   const fetchEstimates = async () => {
     try {
@@ -201,6 +224,105 @@ export default function AdminEstimates() {
     });
   };
 
+  const checkLinkedRecords = async (estimateId: string): Promise<LinkedRecords> => {
+    const [invoicesResult, projectsResult] = await Promise.all([
+      supabase
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("estimate_id", estimateId),
+      supabase
+        .from("projects")
+        .select("id, project_name")
+        .eq("estimate_id", estimateId),
+    ]);
+
+    return {
+      invoices: invoicesResult.data || [],
+      projects: projectsResult.data || [],
+    };
+  };
+
+  const openDeleteDialog = async (estimate: Estimate) => {
+    setDeleteDialog({
+      open: true,
+      estimate,
+      linkedRecords: null,
+      checking: true,
+      deleting: false,
+    });
+
+    const linkedRecords = await checkLinkedRecords(estimate.id);
+
+    setDeleteDialog((prev) => ({
+      ...prev,
+      linkedRecords,
+      checking: false,
+    }));
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog.estimate) return;
+
+    const { id, estimate_number } = deleteDialog.estimate;
+
+    setDeleteDialog((prev) => ({ ...prev, deleting: true }));
+
+    try {
+      // Delete attachments (and their storage files)
+      const { data: attachments } = await supabase
+        .from("estimate_attachments")
+        .select("file_path")
+        .eq("estimate_id", id);
+
+      if (attachments && attachments.length > 0) {
+        const filePaths = attachments.map((a) => a.file_path);
+        await supabase.storage.from("estimate-attachments").remove(filePaths);
+        await supabase.from("estimate_attachments").delete().eq("estimate_id", id);
+      }
+
+      // Delete custom items
+      await supabase.from("estimate_custom_items").delete().eq("estimate_id", id);
+
+      // Delete line items
+      await supabase.from("estimate_items").delete().eq("estimate_id", id);
+
+      // Delete the estimate
+      const { error } = await supabase.from("estimates").delete().eq("id", id);
+
+      if (error) throw error;
+
+      await logActivity({
+        action: "delete",
+        entityType: "estimate",
+        entityId: id,
+        entityName: estimate_number,
+      });
+
+      toast({
+        title: "Estimate Deleted",
+        description: `Estimate ${estimate_number} has been deleted.`,
+      });
+
+      setDeleteDialog({
+        open: false,
+        estimate: null,
+        linkedRecords: null,
+        checking: false,
+        deleting: false,
+      });
+
+      fetchEstimates();
+    } catch (error) {
+      console.error("Error deleting estimate:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete estimate. Please try again.",
+      });
+      setDeleteDialog((prev) => ({ ...prev, deleting: false }));
+    }
+  };
+
   const filteredEstimates = estimates.filter(
     (estimate) =>
       estimate.estimate_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -273,6 +395,10 @@ export default function AdminEstimates() {
 
     return actionLabels[confirmDialog.action] || { title: "", description: "" };
   };
+
+  const canDelete = deleteDialog.linkedRecords && 
+    deleteDialog.linkedRecords.invoices.length === 0 && 
+    deleteDialog.linkedRecords.projects.length === 0;
 
   return (
     <div className="space-y-6">
@@ -357,6 +483,7 @@ export default function AdminEstimates() {
                 <TableBody>
                   {filteredEstimates.map((estimate) => {
                     const statusActions = getStatusActions(estimate);
+                    const canEdit = estimate.status === "draft";
                     
                     return (
                       <TableRow key={estimate.id}>
@@ -429,27 +556,46 @@ export default function AdminEstimates() {
                               View
                             </Button>
                             
-                            {statusActions.length > 0 && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {statusActions.map((action, index) => (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {canEdit && (
+                                  <>
                                     <DropdownMenuItem
-                                      key={action.action}
-                                      onClick={() => openConfirmDialog(estimate, action.action)}
-                                      className={action.variant === "destructive" ? "text-destructive focus:text-destructive" : ""}
+                                      onClick={() => navigate(`/admin/estimates/${estimate.id}?edit=true`)}
                                     >
-                                      {action.icon}
-                                      {action.label}
+                                      <Pencil className="w-4 h-4 mr-2" />
+                                      Edit
                                     </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
+                                
+                                {statusActions.map((action) => (
+                                  <DropdownMenuItem
+                                    key={action.action}
+                                    onClick={() => openConfirmDialog(estimate, action.action)}
+                                    className={action.variant === "destructive" ? "text-destructive focus:text-destructive" : ""}
+                                  >
+                                    {action.icon}
+                                    {action.label}
+                                  </DropdownMenuItem>
+                                ))}
+                                
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => openDeleteDialog(estimate)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -462,7 +608,7 @@ export default function AdminEstimates() {
         </CardContent>
       </Card>
 
-      {/* Confirmation Dialog */}
+      {/* Status Change Confirmation Dialog */}
       <AlertDialog 
         open={confirmDialog?.open ?? false} 
         onOpenChange={(open) => !open && setConfirmDialog(null)}
@@ -479,6 +625,87 @@ export default function AdminEstimates() {
             <AlertDialogAction onClick={handleStatusChange}>
               Confirm
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteDialog.open} 
+        onOpenChange={(open) => !open && !deleteDialog.deleting && setDeleteDialog({
+          open: false,
+          estimate: null,
+          linkedRecords: null,
+          checking: false,
+          deleting: false,
+        })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {deleteDialog.checking ? (
+                "Checking for linked records..."
+              ) : canDelete ? (
+                <>
+                  <Trash2 className="w-5 h-5 text-destructive" />
+                  Delete Estimate?
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                  Cannot Delete Estimate
+                </>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                {deleteDialog.checking ? (
+                  <p>Please wait while we check for linked invoices and projects...</p>
+                ) : canDelete ? (
+                  <p>
+                    Are you sure you want to delete estimate{" "}
+                    <strong>{deleteDialog.estimate?.estimate_number}</strong>? This will also
+                    delete all associated line items, custom items, and attachments. This action
+                    cannot be undone.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <p>
+                      This estimate cannot be deleted because it has linked records:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {deleteDialog.linkedRecords?.invoices.map((inv) => (
+                        <li key={inv.id}>
+                          Invoice: <strong>{inv.invoice_number}</strong>
+                        </li>
+                      ))}
+                      {deleteDialog.linkedRecords?.projects.map((proj) => (
+                        <li key={proj.id}>
+                          Project: <strong>{proj.project_name}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-sm">
+                      Please remove or unlink these records first before deleting the estimate.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteDialog.deleting}>
+              {canDelete ? "Cancel" : "Close"}
+            </AlertDialogCancel>
+            {canDelete && (
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleteDialog.deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteDialog.deleting ? "Deleting..." : "Delete Estimate"}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
