@@ -17,7 +17,7 @@ const corsHeaders = {
 const formatCurrency = (amount: number): string => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 const formatDate = (dateStr: string): string => new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-function groupItemsForCustomer(items: any[]) {
+function groupItemsForCustomer(items: any[], customItems: any[] = []) {
   const groups: Record<string, { items: any[], label: string, details: string }> = {
     surfacePrep: { items: [], label: 'Surface Preparation', details: 'Professional surface preparation including cleaning, crack repair, and priming' },
     surfacing: { items: [], label: 'Court Surfacing System', details: 'Premium court surfacing with cushion layers and color coats' },
@@ -40,6 +40,18 @@ function groupItemsForCustomer(items: any[]) {
     if (g.items.length > 0) result.push({ description: g.label, details: g.details, total: g.items.reduce((sum, i) => sum + i.total, 0) });
   });
   addons.forEach(item => result.push({ description: item.description, details: item.quantity > 1 ? `Quantity: ${item.quantity}` : '', total: item.total }));
+  
+  // Add custom items - show only description and customer price (no vendor details)
+  if (customItems && customItems.length > 0) {
+    customItems.forEach(item => {
+      result.push({ 
+        description: item.description, 
+        details: '', 
+        total: Number(item.customer_price) || 0 
+      });
+    });
+  }
+  
   return result;
 }
 
@@ -78,7 +90,7 @@ async function generatePdfWithImages(estimate: any, supabase: any): Promise<Uint
   y -= 15;
 
   page.drawText("SCOPE OF WORK", { x: leftMargin, y, size: 12, font: helveticaBold }); y -= 18;
-  const customerItems = groupItemsForCustomer(estimate.estimate_items || []);
+  const customerItems = groupItemsForCustomer(estimate.estimate_items || [], estimate.estimate_custom_items || []);
   for (const item of customerItems) {
     page.drawText(item.description, { x: leftMargin, y, size: 10, font: helveticaBold }); y -= 12;
     if (item.details) { page.drawText(`  ${item.details}`, { x: leftMargin, y, size: 9, font: helvetica }); y -= 11; }
@@ -123,7 +135,7 @@ serve(async (req) => {
     const { estimateId } = await req.json();
     if (!estimateId) throw new Error("Estimate ID is required");
 
-    const { data: estimate, error } = await supabase.from("estimates").select(`*, customers(*), estimate_items(*), estimate_attachments(*)`).eq("id", estimateId).single();
+    const { data: estimate, error } = await supabase.from("estimates").select(`*, customers(*), estimate_items(*), estimate_attachments(*), estimate_custom_items(*)`).eq("id", estimateId).single();
     if (error) throw new Error(error.message);
 
     estimate.estimate_items?.sort((a: any, b: any) => a.sort_order - b.sort_order);
