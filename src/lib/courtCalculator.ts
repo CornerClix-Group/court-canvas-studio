@@ -1,12 +1,12 @@
 import {
   PRICING,
-  COVERAGE_RATES,
   SURFACING_SYSTEMS,
   MATERIAL_PRICES,
   DRUM_SIZES,
   BASE_OPTIONS,
   type SystemDefinition,
 } from './pricingConstants';
+import type { DynamicPricing } from '@/hooks/usePricingConfig';
 
 export interface SurfaceCondition {
   pressureWash: boolean;
@@ -96,11 +96,24 @@ export interface CalculationResult {
   };
 }
 
-export function calculateMaterials(config: CourtConfig): CalculationResult {
+// Default pricing fallback (uses hardcoded PRICING)
+const getDefaultPricing = (): DynamicPricing => ({
+  MATERIALS: { ...PRICING.MATERIALS },
+  LABOR: { ...PRICING.LABOR },
+  CONSTRUCTION: { ...PRICING.CONSTRUCTION },
+  EQUIPMENT: { ...PRICING.EQUIPMENT },
+  COVERAGE: { ...PRICING.COVERAGE },
+  DEFAULT_MARGIN: PRICING.DEFAULT_MARGIN,
+  MIN_MARGIN: PRICING.MIN_MARGIN,
+  MAX_MARGIN: PRICING.MAX_MARGIN,
+});
+
+export function calculateMaterials(config: CourtConfig, dynamicPricing?: DynamicPricing): CalculationResult {
+  const pricing = dynamicPricing || getDefaultPricing();
   const sqYards = config.totalSqFt / 9;
   const system = SURFACING_SYSTEMS[config.systemId] || SURFACING_SYSTEMS.HARD_COURT;
   const baseOption = BASE_OPTIONS[config.baseType as keyof typeof BASE_OPTIONS] || BASE_OPTIONS.EXISTING_ASPHALT;
-  const profitMargin = config.profitMargin || PRICING.DEFAULT_MARGIN;
+  const profitMargin = config.profitMargin || pricing.DEFAULT_MARGIN;
   
   const materials: MaterialLine[] = [];
   const labor: MaterialLine[] = [];
@@ -115,8 +128,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: 'Pressure Washing',
         quantity: config.totalSqFt,
         unit: 'sq ft',
-        unitPrice: PRICING.LABOR.WASH_PER_SF,
-        total: config.totalSqFt * PRICING.LABOR.WASH_PER_SF,
+        unitPrice: pricing.LABOR.WASH_PER_SF,
+        total: config.totalSqFt * pricing.LABOR.WASH_PER_SF,
         category: 'condition',
       });
     }
@@ -136,8 +149,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     // 1K PrimeSeal (Material + Labor)
     if (config.surfaceCondition.primeSeal) {
       // Material cost: coverage rate × price per gallon
-      const primeSealGallons = sqYards * PRICING.COVERAGE.ACRYLIC_GAL_PER_SY;
-      const primeSealMaterialCost = primeSealGallons * PRICING.MATERIALS.PRIMESEAL_PER_GAL;
+      const primeSealGallons = sqYards * pricing.COVERAGE.ACRYLIC_GAL_PER_SY;
+      const primeSealMaterialCost = primeSealGallons * pricing.MATERIALS.PRIMESEAL_PER_GAL;
       const primeSealLaborCost = config.totalSqFt * 0.20; // Labor at $0.20/sf
       conditionWork.push({
         name: '1K PrimeSeal Application',
@@ -152,8 +165,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   
   // Crack Repair (Material + Labor) - moved here as condition work
   if (config.crackRepairLf > 0) {
-    const crackMaterialCost = (config.crackRepairLf / 50) * PRICING.MATERIALS.CRACK_FILLER_UNIT; // ~50 LF per unit
-    const crackLaborCost = config.crackRepairLf * PRICING.LABOR.CRACK_REPAIR_PER_LF;
+    const crackMaterialCost = (config.crackRepairLf / 50) * pricing.MATERIALS.CRACK_FILLER_UNIT; // ~50 LF per unit
+    const crackLaborCost = config.crackRepairLf * pricing.LABOR.CRACK_REPAIR_PER_LF;
     conditionWork.push({
       name: 'Crack Repair',
       quantity: config.crackRepairLf,
@@ -179,7 +192,7 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   } else {
     // Granule coats (for cushion systems)
     if (system.coats.granule > 0) {
-      const granuleGallons = sqYards * PRICING.COVERAGE.CUSHION_GRANULE_GAL_PER_SY * system.coats.granule;
+      const granuleGallons = sqYards * pricing.COVERAGE.CUSHION_GRANULE_GAL_PER_SY * system.coats.granule;
       const granuleDrums = Math.ceil(granuleGallons / DRUM_SIZES.STANDARD_DRUM);
       materials.push({
         name: 'Laykold Cushion Plus Granule',
@@ -195,7 +208,7 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     
     // Powder coats (for cushion systems)
     if (system.coats.powder > 0) {
-      const powderGallons = sqYards * PRICING.COVERAGE.CUSHION_POWDER_GAL_PER_SY * system.coats.powder;
+      const powderGallons = sqYards * pricing.COVERAGE.CUSHION_POWDER_GAL_PER_SY * system.coats.powder;
       const powderDrums = Math.ceil(powderGallons / DRUM_SIZES.STANDARD_DRUM);
       materials.push({
         name: 'Laykold Cushion Plus Powder',
@@ -211,14 +224,14 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     
     // Resurfacer (for hard court systems)
     if (system.coats.resurfacer > 0) {
-      const resurfacerGallons = sqYards * PRICING.COVERAGE.ACRYLIC_GAL_PER_SY * system.coats.resurfacer;
+      const resurfacerGallons = sqYards * pricing.COVERAGE.ACRYLIC_GAL_PER_SY * system.coats.resurfacer;
       const resurfacerDrums = Math.ceil(resurfacerGallons / DRUM_SIZES.STANDARD_DRUM);
       materials.push({
         name: 'Acrylic Resurfacer',
         quantity: Math.ceil(resurfacerGallons * 10) / 10,
         unit: 'gallon',
-        unitPrice: PRICING.MATERIALS.RESURFACER_PER_GAL,
-        total: resurfacerGallons * PRICING.MATERIALS.RESURFACER_PER_GAL,
+        unitPrice: pricing.MATERIALS.RESURFACER_PER_GAL,
+        total: resurfacerGallons * pricing.MATERIALS.RESURFACER_PER_GAL,
         drums: resurfacerDrums,
         drumSize: DRUM_SIZES.STANDARD_DRUM,
         category: 'material',
@@ -228,14 +241,14 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   
   // Color coats (all non-gel systems)
   if (system.coats.colorCoat > 0 && !system.isGelSystem) {
-    const colorCoatGallons = sqYards * PRICING.COVERAGE.COLOR_COAT_GAL_PER_SY * system.coats.colorCoat;
+    const colorCoatGallons = sqYards * pricing.COVERAGE.COLOR_COAT_GAL_PER_SY * system.coats.colorCoat;
     const colorCoatDrums = Math.ceil(colorCoatGallons / DRUM_SIZES.COLOR_DRUM);
     materials.push({
       name: 'Laykold ColorFlex',
       quantity: Math.ceil(colorCoatGallons * 10) / 10,
       unit: 'gallon',
-      unitPrice: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
-      total: colorCoatGallons * PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
+      unitPrice: pricing.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
+      total: colorCoatGallons * pricing.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
       drums: colorCoatDrums,
       drumSize: DRUM_SIZES.COLOR_DRUM,
       category: 'material',
@@ -244,12 +257,12 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   
   // Line paint material
   const linePaintGallons = config.numberOfCourts * 0.5; // ~0.5 gal per court
-  const linePaintMaterialCost = linePaintGallons * PRICING.MATERIALS.LINE_PAINT_PER_GAL;
+  const linePaintMaterialCost = linePaintGallons * pricing.MATERIALS.LINE_PAINT_PER_GAL;
   materials.push({
     name: 'Line Paint',
     quantity: Math.ceil(linePaintGallons * 10) / 10,
     unit: 'gallon',
-    unitPrice: PRICING.MATERIALS.LINE_PAINT_PER_GAL,
+    unitPrice: pricing.MATERIALS.LINE_PAINT_PER_GAL,
     total: linePaintMaterialCost,
     category: 'material',
   });
@@ -257,10 +270,10 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   // ========== LABOR CALCULATIONS ==========
   // Acrylic/Surfacing Installation Labor
   const installLaborRate = system.isGelSystem 
-    ? PRICING.LABOR.CUSHION_INSTALL_PER_SF * 1.5  // Gel is premium install
+    ? pricing.LABOR.CUSHION_INSTALL_PER_SF * 1.5  // Gel is premium install
     : system.cushionLayers > 0 
-      ? PRICING.LABOR.CUSHION_INSTALL_PER_SF      // $1.25/sf for cushion
-      : PRICING.LABOR.ACRYLIC_INSTALL_PER_SF;     // $0.65/sf for standard
+      ? pricing.LABOR.CUSHION_INSTALL_PER_SF      // $1.25/sf for cushion
+      : pricing.LABOR.ACRYLIC_INSTALL_PER_SF;     // $0.65/sf for standard
       
   labor.push({
     name: `${system.shortName} Installation`,
@@ -276,8 +289,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     name: 'Court Line Striping',
     quantity: config.numberOfCourts,
     unit: 'court',
-    unitPrice: PRICING.LABOR.STRIPING_PER_COURT,
-    total: config.numberOfCourts * PRICING.LABOR.STRIPING_PER_COURT,
+    unitPrice: pricing.LABOR.STRIPING_PER_COURT,
+    total: config.numberOfCourts * pricing.LABOR.STRIPING_PER_COURT,
     category: 'labor',
   });
   
@@ -303,8 +316,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     // New court construction (asphalt or post-tension)
     if (opts.newConstruction && opts.constructionType) {
       const pricePerSf = opts.constructionType === 'asphalt' 
-        ? PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF 
-        : PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF;
+        ? pricing.CONSTRUCTION.ASPHALT_PAVING_PER_SF 
+        : pricing.CONSTRUCTION.CONCRETE_PT_PER_SF;
       const constructionName = opts.constructionType === 'asphalt' 
         ? 'Asphalt Paving (1.5" Overlay)' 
         : 'Post-Tension Concrete Slab';
@@ -324,8 +337,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: '10\' Black Vinyl Chain Link Fence',
         quantity: opts.fencingLinearFeet,
         unit: 'linear ft',
-        unitPrice: PRICING.CONSTRUCTION.FENCING_10FT_PER_LF,
-        total: opts.fencingLinearFeet * PRICING.CONSTRUCTION.FENCING_10FT_PER_LF,
+        unitPrice: pricing.CONSTRUCTION.FENCING_10FT_PER_LF,
+        total: opts.fencingLinearFeet * pricing.CONSTRUCTION.FENCING_10FT_PER_LF,
         category: 'addon',
       });
     }
@@ -336,8 +349,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: 'LED Court Light Pole (w/ electrical)',
         quantity: opts.lightPoleCount,
         unit: 'pole',
-        unitPrice: PRICING.CONSTRUCTION.LIGHT_POLE_UNIT,
-        total: opts.lightPoleCount * PRICING.CONSTRUCTION.LIGHT_POLE_UNIT,
+        unitPrice: pricing.CONSTRUCTION.LIGHT_POLE_UNIT,
+        total: opts.lightPoleCount * pricing.CONSTRUCTION.LIGHT_POLE_UNIT,
         category: 'addon',
       });
     }
@@ -348,8 +361,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: 'Playground Allowance (Consultation Required)',
         quantity: 1,
         unit: 'allowance',
-        unitPrice: PRICING.CONSTRUCTION.PLAYGROUND_BUDGET,
-        total: PRICING.CONSTRUCTION.PLAYGROUND_BUDGET,
+        unitPrice: pricing.CONSTRUCTION.PLAYGROUND_BUDGET,
+        total: pricing.CONSTRUCTION.PLAYGROUND_BUDGET,
         category: 'addon',
       });
       requiresConsultation = true;
@@ -362,8 +375,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: 'Net Post Set (pair with sleeves)',
         quantity: opts.netPostSets,
         unit: 'set',
-        unitPrice: PRICING.EQUIPMENT.NET_POST_SET,
-        total: opts.netPostSets * PRICING.EQUIPMENT.NET_POST_SET,
+        unitPrice: pricing.EQUIPMENT.NET_POST_SET,
+        total: opts.netPostSets * pricing.EQUIPMENT.NET_POST_SET,
         category: 'addon',
       });
     }
@@ -374,8 +387,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: '6\' Aluminum Player Bench',
         quantity: opts.benchCount,
         unit: 'bench',
-        unitPrice: PRICING.EQUIPMENT.PLAYER_BENCH_6FT,
-        total: opts.benchCount * PRICING.EQUIPMENT.PLAYER_BENCH_6FT,
+        unitPrice: pricing.EQUIPMENT.PLAYER_BENCH_6FT,
+        total: opts.benchCount * pricing.EQUIPMENT.PLAYER_BENCH_6FT,
         category: 'addon',
       });
     }
@@ -386,8 +399,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: 'Windscreen Privacy Mesh',
         quantity: opts.windscreenLinearFeet,
         unit: 'linear ft',
-        unitPrice: PRICING.EQUIPMENT.WINDSCREEN_PER_LF,
-        total: opts.windscreenLinearFeet * PRICING.EQUIPMENT.WINDSCREEN_PER_LF,
+        unitPrice: pricing.EQUIPMENT.WINDSCREEN_PER_LF,
+        total: opts.windscreenLinearFeet * pricing.EQUIPMENT.WINDSCREEN_PER_LF,
         category: 'addon',
       });
     }
@@ -398,8 +411,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         name: 'Ball Containment Netting',
         quantity: opts.ballContainmentLinearFeet,
         unit: 'linear ft',
-        unitPrice: PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF,
-        total: opts.ballContainmentLinearFeet * PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF,
+        unitPrice: pricing.EQUIPMENT.BALL_CONTAINMENT_PER_LF,
+        total: opts.ballContainmentLinearFeet * pricing.EQUIPMENT.BALL_CONTAINMENT_PER_LF,
         category: 'addon',
       });
     }
@@ -414,7 +427,7 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   const addonsSubtotal = addons.reduce((sum, a) => sum + a.total, 0);
   const conditionSubtotal = conditionWork.reduce((sum, c) => sum + c.total, 0);
   const constructionSubtotal = constructionItems.reduce((sum, c) => sum + c.total, 0);
-  const mobilizationCost = PRICING.LABOR.MOBILIZATION;
+  const mobilizationCost = pricing.LABOR.MOBILIZATION;
   
   // Job Cost = Materials + Labor + Condition + Addons + Base + Construction + Mobilization
   const jobCost = materialsSubtotal + laborSubtotal + addonsSubtotal + baseCost + conditionSubtotal + constructionSubtotal + mobilizationCost;
