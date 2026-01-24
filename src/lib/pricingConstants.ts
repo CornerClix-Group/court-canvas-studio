@@ -3,16 +3,103 @@
 // Last Updated: January 2026
 // =====================================================
 
-// Coverage rates (gallons per square yard) - Source: Laykold Pro Plus Guide
-export const COVERAGE_RATES = {
-  CUSHION_GRANULE_RATE: 0.20,    // Laykold Pro Plus Guide
-  CUSHION_POWDER_RATE: 0.12,    // Laykold Pro Plus Guide
-  ACRYLIC_RESURFACER_RATE: 0.06,
-  COLOR_COAT_RATE: 0.065,
-  ACRYLIC_RATE: 0.05,           // Standard acrylic coverage gal/sq yd/coat
+// =====================================================
+// MAIN PRICING OBJECT - 2026 Market Rates
+// =====================================================
+export const PRICING = {
+  // --- MATERIALS (Laykold 2026 Price Sheet) ---
+  MATERIALS: {
+    RESURFACER_PER_GAL: 11.73,        // $645.15 / 55gal drum
+    COLOR_CONCENTRATE_PER_GAL: 15.85, // $871.75 / 55gal drum
+    PREMIUM_COLOR_ADD_ON: 8.00,       // Extra for US Open Blue/Purple
+    LINE_PAINT_PER_GAL: 30.61,        // $153.05 / 5gal pail
+    PRIMESEAL_PER_GAL: 45.00,         // For new concrete
+    CRACK_FILLER_UNIT: 25.00,         // Per gallon/sausage estimate
+  },
+
+  // --- LABOR & SUBS (2025 GA Market Standards) ---
+  LABOR: {
+    WASH_PER_SF: 0.12,                // Pressure washing
+    CRACK_REPAIR_PER_LF: 2.00,        // Route & clean
+    ACRYLIC_INSTALL_PER_SF: 0.65,     // Squeegee application (3 coats)
+    CUSHION_INSTALL_PER_SF: 1.25,     // Premium cushion install
+    STRIPING_PER_COURT: 450.00,       // Flat rate per court
+    MOBILIZATION: 1500.00,            // Truck roll / Setup fee
+    CORE_DRILL_PER_HOLE: 250.00,      // Post installation
+  },
+
+  // --- CONSTRUCTION (New Builds) ---
+  CONSTRUCTION: {
+    ASPHALT_PAVING_PER_SF: 4.50,      // 1.5" Overlay installed
+    CONCRETE_PT_PER_SF: 9.00,         // Post-Tension Slab
+    FENCING_10FT_PER_LF: 28.00,       // Black Vinyl Chain Link
+    LIGHT_POLE_UNIT: 3500.00,         // Per pole installed
+  },
+
+  // --- COVERAGE RATES ---
+  COVERAGE: {
+    ACRYLIC_GAL_PER_SY: 0.05,         // Industry standard per coat
+    CUSHION_GRANULE_GAL_PER_SY: 0.20, // Laykold Pro Plus Guide
+    CUSHION_POWDER_GAL_PER_SY: 0.12,  // Laykold Pro Plus Guide
+    COLOR_COAT_GAL_PER_SY: 0.065,     // Color coat coverage
+  },
+
+  // --- MARGIN SETTINGS ---
+  DEFAULT_MARGIN: 1.40,               // 40% Gross Margin
+  MIN_MARGIN: 1.30,                   // 30% minimum
+  MAX_MARGIN: 1.60,                   // 60% maximum
 };
 
-// Court dimensions (sq ft)
+// =====================================================
+// LEGACY EXPORTS (Backward Compatibility)
+// =====================================================
+export const COVERAGE_RATES = {
+  CUSHION_GRANULE_RATE: PRICING.COVERAGE.CUSHION_GRANULE_GAL_PER_SY,
+  CUSHION_POWDER_RATE: PRICING.COVERAGE.CUSHION_POWDER_GAL_PER_SY,
+  ACRYLIC_RESURFACER_RATE: 0.06,
+  COLOR_COAT_RATE: PRICING.COVERAGE.COLOR_COAT_GAL_PER_SY,
+  ACRYLIC_RATE: PRICING.COVERAGE.ACRYLIC_GAL_PER_SY,
+};
+
+export const MATERIAL_PRICES = {
+  // 2026 prices from PRICING object
+  COST_RESURFACER_PER_GAL: PRICING.MATERIALS.RESURFACER_PER_GAL,
+  COST_COLOR_PER_GAL: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
+  COST_LINE_PAINT_PER_GAL: PRICING.MATERIALS.LINE_PAINT_PER_GAL,
+  COST_CRACK_FILLER_PER_UNIT: PRICING.MATERIALS.CRACK_FILLER_UNIT,
+  COST_PRIME_SEAL_PER_GAL: PRICING.MATERIALS.PRIMESEAL_PER_GAL,
+  
+  // Legacy compatibility
+  CUSHION_GRANULE_PER_GAL: 45.00,
+  CUSHION_POWDER_PER_GAL: 35.00,
+  ACRYLIC_RESURFACER_PER_GAL: PRICING.MATERIALS.RESURFACER_PER_GAL,
+  COLOR_COAT_PER_GAL: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
+  COLOR_PREMIUM_PER_GAL: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL + PRICING.MATERIALS.PREMIUM_COLOR_ADD_ON,
+  LINE_PAINT_PER_COURT: 75.00, // Estimate per court for material
+  GEL_PER_SQFT: 3.50,
+};
+
+export const LABOR_RATES = {
+  // Updated to 2025 GA market standards
+  SURFACE_PREP_PER_SQFT: 0.00,        // Included in install rate
+  CRACK_REPAIR_PER_LF: PRICING.LABOR.CRACK_REPAIR_PER_LF,
+  RESURFACING_PER_SQFT: PRICING.LABOR.ACRYLIC_INSTALL_PER_SF,
+  CUSHION_APPLICATION_PER_SQFT: PRICING.LABOR.CUSHION_INSTALL_PER_SF,
+  LINE_STRIPING_PER_COURT: PRICING.LABOR.STRIPING_PER_COURT,
+  PRESSURE_WASH_PER_SQFT: PRICING.LABOR.WASH_PER_SF,
+  BIRDBATH_REPAIR_PER_SQFT: 3.50,     // Material + labor combined
+  PRIME_SEAL_PER_SQFT: 0.20,          // Application labor (material separate)
+  CORE_DRILL_PER_HOLE: PRICING.LABOR.CORE_DRILL_PER_HOLE,
+  MOBILIZATION: PRICING.LABOR.MOBILIZATION,
+};
+
+export const DEFAULT_PROFIT_MARGIN = PRICING.DEFAULT_MARGIN;
+export const MIN_PROFIT_MARGIN = PRICING.MIN_MARGIN;
+export const MAX_PROFIT_MARGIN = PRICING.MAX_MARGIN;
+
+// =====================================================
+// COURT DIMENSIONS (sq ft)
+// =====================================================
 export const COURT_SIZES = {
   // Pickleball
   PICKLEBALL_SINGLE: 880,       // 20' x 44' (playing area only)
@@ -41,7 +128,16 @@ export const COURT_PRESETS = {
   BASKETBALL_HALF: { courts: 1, sqFt: 2350, label: "Half Basketball Court (50' x 47')" },
 };
 
-// Surfacing system definitions
+// Drum sizes for ordering
+export const DRUM_SIZES = {
+  STANDARD_DRUM: 55, // gallons
+  PAIL: 5, // gallons
+  COLOR_DRUM: 30, // gallons (color coats often in smaller containers)
+};
+
+// =====================================================
+// SURFACING SYSTEMS
+// =====================================================
 export interface SystemDefinition {
   id: string;
   name: string;
@@ -173,56 +269,6 @@ export const SURFACING_SYSTEMS: Record<string, SystemDefinition> = {
 };
 
 // =====================================================
-// 2026 MATERIAL COSTS - Updated from Supplier Quote
-// =====================================================
-export const MATERIAL_PRICES = {
-  // Per gallon costs calculated from drum pricing
-  COST_RESURFACER_PER_GAL: 11.73,        // $645.15 per 55-gal drum
-  COST_COLOR_PER_GAL: 15.85,             // $871.75 per 55-gal drum
-  COST_LINE_PAINT_PER_GAL: 30.61,        // $153.05 per 5-gal pail
-  COST_CRACK_FILLER_PER_UNIT: 21.00,     // Per sausage
-  COST_PRIME_SEAL_PER_GAL: 18.50,        // 1K PrimeSeal
-  
-  // Legacy compatibility (keep for existing calculator)
-  CUSHION_GRANULE_PER_GAL: 45.00,
-  CUSHION_POWDER_PER_GAL: 35.00,
-  ACRYLIC_RESURFACER_PER_GAL: 11.73,     // Updated to 2026 price
-  COLOR_COAT_PER_GAL: 15.85,             // Updated to 2026 price
-  COLOR_PREMIUM_PER_GAL: 24.53,          // US Open Blue / Purple pricing
-  LINE_PAINT_PER_COURT: 75.00,
-  GEL_PER_SQFT: 3.50,
-};
-
-// Drum sizes for ordering
-export const DRUM_SIZES = {
-  STANDARD_DRUM: 55, // gallons
-  PAIL: 5, // gallons
-  COLOR_DRUM: 30, // gallons (color coats often in smaller containers)
-};
-
-// =====================================================
-// LABOR RATES
-// =====================================================
-export const LABOR_RATES = {
-  SURFACE_PREP_PER_SQFT: 0.50,
-  CRACK_REPAIR_PER_LF: 2.50,             // $2.00 labor + materials
-  RESURFACING_PER_SQFT: 1.00,
-  CUSHION_APPLICATION_PER_SQFT: 0.75,
-  LINE_STRIPING_PER_COURT: 150.00,
-  PRESSURE_WASH_PER_SQFT: 0.15,          // NEW: Pressure washing
-  BIRDBATH_REPAIR_PER_SQFT: 3.50,        // NEW: Patching/leveling
-  PRIME_SEAL_PER_SQFT: 0.20,             // NEW: 1K PrimeSeal application
-  CORE_DRILL_PER_HOLE: 250.00,           // Cost per post hole
-};
-
-// =====================================================
-// PROFIT & PRICING DEFAULTS
-// =====================================================
-export const DEFAULT_PROFIT_MARGIN = 1.4;  // 40% margin (multiply cost by 1.4)
-export const MIN_PROFIT_MARGIN = 1.2;      // 20% minimum
-export const MAX_PROFIT_MARGIN = 1.8;      // 80% maximum
-
-// =====================================================
 // PROJECT TYPES
 // =====================================================
 export const PROJECT_TYPES = {
@@ -309,7 +355,7 @@ export const ADDONS = {
     id: 'led_lighting_pole',
     name: 'LED Lighting Pole',
     description: 'Professional LED court lighting',
-    unitPrice: 3500.00,
+    unitPrice: PRICING.CONSTRUCTION.LIGHT_POLE_UNIT,
     unit: 'pole',
   },
   BENCH_PLAYER: {
@@ -318,6 +364,13 @@ export const ADDONS = {
     description: 'Aluminum player bench',
     unitPrice: 450.00,
     unit: 'each',
+  },
+  CORE_DRILLING: {
+    id: 'core_drilling',
+    name: 'Core Drilling',
+    description: 'Post hole drilling for net posts',
+    unitPrice: PRICING.LABOR.CORE_DRILL_PER_HOLE,
+    unit: 'hole',
   },
 };
 
@@ -340,13 +393,13 @@ export const BASE_OPTIONS = {
   NEW_ASPHALT: {
     id: 'new_asphalt',
     name: 'New Asphalt Base',
-    description: 'Install new asphalt surface',
-    pricePerSqFt: 4.50,
+    description: 'Install new 1.5" asphalt overlay',
+    pricePerSqFt: PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF,
   },
   POST_TENSION_CONCRETE: {
     id: 'post_tension_concrete',
     name: 'Post-Tension Concrete',
     description: 'Premium crack-resistant concrete base',
-    pricePerSqFt: 8.00,
+    pricePerSqFt: PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF,
   },
 };

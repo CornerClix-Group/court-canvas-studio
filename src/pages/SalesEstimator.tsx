@@ -15,12 +15,10 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
+  PRICING,
   PROJECT_TYPES, 
   COAT_SYSTEMS,
   LAYKOLD_COLORS,
-  DEFAULT_PROFIT_MARGIN,
-  MIN_PROFIT_MARGIN,
-  MAX_PROFIT_MARGIN,
 } from "@/lib/pricingConstants";
 import { calculateMaterials, generateQuoteText, type CourtConfig, type SurfaceCondition } from "@/lib/courtCalculator";
 import { 
@@ -31,8 +29,8 @@ import {
   Building,
   RefreshCw,
   Wrench,
-  Droplets,
   CircleDot,
+  TruckIcon,
 } from "lucide-react";
 
 const WIZARD_STEPS = [
@@ -78,7 +76,7 @@ export default function SalesEstimator() {
   const [stripingType, setStripingType] = useState<'pickleball' | 'tennis'>('pickleball');
 
   // Step 5: Pricing
-  const [profitMargin, setProfitMargin] = useState(DEFAULT_PROFIT_MARGIN);
+  const [profitMargin, setProfitMargin] = useState(PRICING.DEFAULT_MARGIN);
 
   // Calculations
   const totalSqFt = courtLength * courtWidth;
@@ -164,7 +162,7 @@ export default function SalesEstimator() {
       projectType,
       totalSqFt,
       numberOfCourts,
-      total: calculation.grandTotal,
+      total: calculation.clientPrice,
       createdAt: new Date().toISOString(),
     };
     
@@ -347,12 +345,12 @@ export default function SalesEstimator() {
                     <Checkbox checked={pressureWash} className="h-6 w-6" />
                     <div>
                       <p className="font-semibold text-lg">Pressure Wash</p>
-                      <p className="text-muted-foreground">$0.15 per sq ft</p>
+                      <p className="text-muted-foreground">${PRICING.LABOR.WASH_PER_SF.toFixed(2)} per sq ft</p>
                     </div>
                   </div>
                   {pressureWash && (
                     <Badge variant="secondary" className="text-lg px-4 py-2">
-                      {formatCurrency(totalSqFt * 0.15)}
+                      {formatCurrency(totalSqFt * PRICING.LABOR.WASH_PER_SF)}
                     </Badge>
                   )}
                 </div>
@@ -364,11 +362,11 @@ export default function SalesEstimator() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="font-semibold text-lg">Crack Repair</p>
-                    <p className="text-muted-foreground">$2.50 per linear ft (material + labor)</p>
+                    <p className="text-muted-foreground">${PRICING.LABOR.CRACK_REPAIR_PER_LF.toFixed(2)} per linear ft (material + labor)</p>
                   </div>
                   {crackRepairLf > 0 && (
                     <Badge variant="secondary" className="text-lg px-4 py-2">
-                      {formatCurrency(crackRepairLf * 2.50)}
+                      {formatCurrency(crackRepairLf * PRICING.LABOR.CRACK_REPAIR_PER_LF)}
                     </Badge>
                   )}
                 </div>
@@ -415,12 +413,12 @@ export default function SalesEstimator() {
                     <Checkbox checked={primeSeal} className="h-6 w-6" />
                     <div>
                       <p className="font-semibold text-lg">Apply 1K PrimeSeal</p>
-                      <p className="text-muted-foreground">$0.20 per sq ft (prevents bleed-through)</p>
+                      <p className="text-muted-foreground">~$0.40 per sq ft (material + labor)</p>
                     </div>
                   </div>
                   {primeSeal && (
                     <Badge variant="secondary" className="text-lg px-4 py-2">
-                      {formatCurrency(totalSqFt * 0.20)}
+                      {formatCurrency(totalSqFt * 0.40)}
                     </Badge>
                   )}
                 </div>
@@ -536,57 +534,74 @@ export default function SalesEstimator() {
                 <Slider
                   value={[profitMargin]}
                   onValueChange={(values) => setProfitMargin(values[0])}
-                  min={MIN_PROFIT_MARGIN}
-                  max={MAX_PROFIT_MARGIN}
+                  min={PRICING.MIN_MARGIN}
+                  max={PRICING.MAX_MARGIN}
                   step={0.05}
                   className="py-4"
                 />
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>20%</span>
-                  <span>50%</span>
-                  <span>80%</span>
+                  <span>30%</span>
+                  <span>45%</span>
+                  <span>60%</span>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Cost Breakdown */}
-            <Card>
+            {/* Estimated Job Cost (Internal) */}
+            <Card className="border-dashed">
               <CardHeader className="pb-3">
-                <CardTitle>Cost Breakdown</CardTitle>
+                <CardTitle className="text-base text-muted-foreground">Estimated Job Cost (Internal)</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-lg">
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
                   <span>Materials</span>
-                  <span className="font-semibold">{formatCurrency(calculation.subtotals.materials)}</span>
+                  <span className="font-medium">{formatCurrency(calculation.subtotals.materials)}</span>
                 </div>
-                <div className="flex justify-between text-lg">
-                  <span>Labor</span>
-                  <span className="font-semibold">{formatCurrency(calculation.subtotals.labor)}</span>
+                <div className="flex justify-between">
+                  <span>Labor (Install + Striping)</span>
+                  <span className="font-medium">{formatCurrency(calculation.subtotals.labor)}</span>
                 </div>
                 {calculation.subtotals.condition > 0 && (
-                  <div className="flex justify-between text-lg">
+                  <div className="flex justify-between">
                     <span>Prep Work</span>
-                    <span className="font-semibold">{formatCurrency(calculation.subtotals.condition)}</span>
+                    <span className="font-medium">{formatCurrency(calculation.subtotals.condition)}</span>
                   </div>
                 )}
-                <div className="border-t pt-3 flex justify-between text-lg">
-                  <span>Cost Total</span>
-                  <span className="font-semibold">{formatCurrency(calculation.costTotal)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center gap-1">
+                    <TruckIcon className="w-4 h-4" />
+                    Mobilization
+                  </span>
+                  <span className="font-medium">{formatCurrency(calculation.subtotals.mobilization)}</span>
                 </div>
-                <div className="flex justify-between text-lg text-green-600">
+                <div className="border-t pt-2 flex justify-between font-semibold">
+                  <span>Total Job Cost</span>
+                  <span>{formatCurrency(calculation.jobCost)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Profit Breakdown */}
+            <Card>
+              <CardContent className="py-4">
+                <div className="flex justify-between text-lg">
+                  <span>Job Cost</span>
+                  <span className="font-semibold">{formatCurrency(calculation.jobCost)}</span>
+                </div>
+                <div className="flex justify-between text-lg text-green-600 mt-2">
                   <span>Profit ({Math.round((profitMargin - 1) * 100)}%)</span>
                   <span className="font-semibold">+{formatCurrency(calculation.profitAmount)}</span>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Final Price */}
+            {/* Final Client Price */}
             <Card className="bg-primary text-primary-foreground">
               <CardContent className="py-8 text-center">
-                <p className="text-xl mb-2">Final Price</p>
-                <p className="text-5xl font-bold">{formatCurrency(calculation.grandTotal)}</p>
+                <p className="text-xl mb-2">Client Price</p>
+                <p className="text-5xl font-bold">{formatCurrency(calculation.clientPrice)}</p>
                 <p className="text-primary-foreground/70 mt-2">
-                  ${(calculation.grandTotal / totalSqFt).toFixed(2)} per sq ft
+                  ${(calculation.clientPrice / totalSqFt).toFixed(2)} per sq ft
                 </p>
               </CardContent>
             </Card>
@@ -633,7 +648,7 @@ export default function SalesEstimator() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">CourtPro Estimator</h1>
-          <p className="text-muted-foreground mt-1">Field Quoting Tool</p>
+          <p className="text-muted-foreground mt-1">2026 Pricing • Field Quoting Tool</p>
         </div>
 
         {/* Progress Steps */}

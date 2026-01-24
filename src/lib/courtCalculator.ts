@@ -1,11 +1,10 @@
 import {
+  PRICING,
   COVERAGE_RATES,
   SURFACING_SYSTEMS,
   MATERIAL_PRICES,
   DRUM_SIZES,
-  LABOR_RATES,
   BASE_OPTIONS,
-  DEFAULT_PROFIT_MARGIN,
   type SystemDefinition,
 } from './pricingConstants';
 
@@ -52,11 +51,18 @@ export interface CalculationResult {
     addons: number;
     base: number;
     condition: number;
+    mobilization: number;
   };
-  costTotal: number;       // Total before profit
-  profitAmount: number;    // Profit margin amount
-  grandTotal: number;      // Final price with profit
-  profitMargin: number;    // Applied margin (e.g., 1.4 = 40%)
+  // Job Cost = What you pay (Materials + Labor + Mobilization)
+  jobCost: number;
+  // Profit calculated from margin
+  profitAmount: number;
+  // Client Price = Job Cost × Margin
+  clientPrice: number;
+  // For backward compatibility
+  costTotal: number;
+  grandTotal: number;
+  profitMargin: number;
   summary: {
     totalSqFt: number;
     totalSqYds: number;
@@ -74,7 +80,7 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   const sqYards = config.totalSqFt / 9;
   const system = SURFACING_SYSTEMS[config.systemId] || SURFACING_SYSTEMS.HARD_COURT;
   const baseOption = BASE_OPTIONS[config.baseType as keyof typeof BASE_OPTIONS] || BASE_OPTIONS.EXISTING_ASPHALT;
-  const profitMargin = config.profitMargin || DEFAULT_PROFIT_MARGIN;
+  const profitMargin = config.profitMargin || PRICING.DEFAULT_MARGIN;
   
   const materials: MaterialLine[] = [];
   const labor: MaterialLine[] = [];
@@ -83,60 +89,77 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   
   // ========== SURFACE CONDITION WORK ==========
   if (config.surfaceCondition) {
-    // Pressure Wash
+    // Pressure Wash (Labor only)
     if (config.surfaceCondition.pressureWash) {
       conditionWork.push({
         name: 'Pressure Washing',
         quantity: config.totalSqFt,
         unit: 'sq ft',
-        unitPrice: LABOR_RATES.PRESSURE_WASH_PER_SQFT,
-        total: config.totalSqFt * LABOR_RATES.PRESSURE_WASH_PER_SQFT,
+        unitPrice: PRICING.LABOR.WASH_PER_SF,
+        total: config.totalSqFt * PRICING.LABOR.WASH_PER_SF,
         category: 'condition',
       });
     }
     
-    // Birdbath / Patching
+    // Birdbath / Patching (Combined material + labor)
     if (config.surfaceCondition.birdbathSqFt > 0) {
       conditionWork.push({
         name: 'Birdbath/Low Spot Repair',
         quantity: config.surfaceCondition.birdbathSqFt,
         unit: 'sq ft',
-        unitPrice: LABOR_RATES.BIRDBATH_REPAIR_PER_SQFT,
-        total: config.surfaceCondition.birdbathSqFt * LABOR_RATES.BIRDBATH_REPAIR_PER_SQFT,
+        unitPrice: 3.50, // Combined rate
+        total: config.surfaceCondition.birdbathSqFt * 3.50,
         category: 'condition',
       });
     }
     
-    // 1K PrimeSeal
+    // 1K PrimeSeal (Material + Labor)
     if (config.surfaceCondition.primeSeal) {
-      const primeSealMaterialCost = config.totalSqFt * (LABOR_RATES.PRIME_SEAL_PER_SQFT);
+      // Material cost: coverage rate × price per gallon
+      const primeSealGallons = sqYards * PRICING.COVERAGE.ACRYLIC_GAL_PER_SY;
+      const primeSealMaterialCost = primeSealGallons * PRICING.MATERIALS.PRIMESEAL_PER_GAL;
+      const primeSealLaborCost = config.totalSqFt * 0.20; // Labor at $0.20/sf
       conditionWork.push({
         name: '1K PrimeSeal Application',
         quantity: config.totalSqFt,
         unit: 'sq ft',
-        unitPrice: LABOR_RATES.PRIME_SEAL_PER_SQFT,
-        total: primeSealMaterialCost,
+        unitPrice: (primeSealMaterialCost + primeSealLaborCost) / config.totalSqFt,
+        total: primeSealMaterialCost + primeSealLaborCost,
         category: 'condition',
       });
     }
   }
   
+  // Crack Repair (Material + Labor) - moved here as condition work
+  if (config.crackRepairLf > 0) {
+    const crackMaterialCost = (config.crackRepairLf / 50) * PRICING.MATERIALS.CRACK_FILLER_UNIT; // ~50 LF per unit
+    const crackLaborCost = config.crackRepairLf * PRICING.LABOR.CRACK_REPAIR_PER_LF;
+    conditionWork.push({
+      name: 'Crack Repair',
+      quantity: config.crackRepairLf,
+      unit: 'linear ft',
+      unitPrice: (crackMaterialCost + crackLaborCost) / config.crackRepairLf,
+      total: crackMaterialCost + crackLaborCost,
+      category: 'condition',
+    });
+  }
+  
   // ========== MATERIALS CALCULATION ==========
   if (system.isGelSystem) {
-    // Gel system uses per-sqft pricing
-    const gelTotal = config.totalSqFt * (system.gelSqFtPrice || MATERIAL_PRICES.GEL_PER_SQFT);
+    // Gel system uses per-sqft pricing (material cost)
+    const gelMaterialCost = config.totalSqFt * (system.gelSqFtPrice || MATERIAL_PRICES.GEL_PER_SQFT);
     materials.push({
-      name: 'Laykold Gel System',
+      name: 'Laykold Gel System Material',
       quantity: config.totalSqFt,
       unit: 'sq ft',
       unitPrice: system.gelSqFtPrice || MATERIAL_PRICES.GEL_PER_SQFT,
-      total: gelTotal,
+      total: gelMaterialCost,
       category: 'material',
     });
   } else {
     // Granule coats (for cushion systems)
     if (system.coats.granule > 0) {
-      const granuleGallons = sqYards * COVERAGE_RATES.CUSHION_GRANULE_RATE * system.coats.granule;
+      const granuleGallons = sqYards * PRICING.COVERAGE.CUSHION_GRANULE_GAL_PER_SY * system.coats.granule;
       const granuleDrums = Math.ceil(granuleGallons / DRUM_SIZES.STANDARD_DRUM);
       materials.push({
         name: 'Laykold Cushion Plus Granule',
@@ -152,7 +175,7 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     
     // Powder coats (for cushion systems)
     if (system.coats.powder > 0) {
-      const powderGallons = sqYards * COVERAGE_RATES.CUSHION_POWDER_RATE * system.coats.powder;
+      const powderGallons = sqYards * PRICING.COVERAGE.CUSHION_POWDER_GAL_PER_SY * system.coats.powder;
       const powderDrums = Math.ceil(powderGallons / DRUM_SIZES.STANDARD_DRUM);
       materials.push({
         name: 'Laykold Cushion Plus Powder',
@@ -168,14 +191,14 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     
     // Resurfacer (for hard court systems)
     if (system.coats.resurfacer > 0) {
-      const resurfacerGallons = sqYards * COVERAGE_RATES.ACRYLIC_RESURFACER_RATE * system.coats.resurfacer;
+      const resurfacerGallons = sqYards * PRICING.COVERAGE.ACRYLIC_GAL_PER_SY * system.coats.resurfacer;
       const resurfacerDrums = Math.ceil(resurfacerGallons / DRUM_SIZES.STANDARD_DRUM);
       materials.push({
         name: 'Acrylic Resurfacer',
         quantity: Math.ceil(resurfacerGallons * 10) / 10,
         unit: 'gallon',
-        unitPrice: MATERIAL_PRICES.ACRYLIC_RESURFACER_PER_GAL,
-        total: resurfacerGallons * MATERIAL_PRICES.ACRYLIC_RESURFACER_PER_GAL,
+        unitPrice: PRICING.MATERIALS.RESURFACER_PER_GAL,
+        total: resurfacerGallons * PRICING.MATERIALS.RESURFACER_PER_GAL,
         drums: resurfacerDrums,
         drumSize: DRUM_SIZES.STANDARD_DRUM,
         category: 'material',
@@ -183,79 +206,58 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     }
   }
   
-  // Color coats (all systems except gel if handled separately)
+  // Color coats (all non-gel systems)
   if (system.coats.colorCoat > 0 && !system.isGelSystem) {
-    const colorCoatGallons = sqYards * COVERAGE_RATES.COLOR_COAT_RATE * system.coats.colorCoat;
+    const colorCoatGallons = sqYards * PRICING.COVERAGE.COLOR_COAT_GAL_PER_SY * system.coats.colorCoat;
     const colorCoatDrums = Math.ceil(colorCoatGallons / DRUM_SIZES.COLOR_DRUM);
     materials.push({
       name: 'Laykold ColorFlex',
       quantity: Math.ceil(colorCoatGallons * 10) / 10,
       unit: 'gallon',
-      unitPrice: MATERIAL_PRICES.COLOR_COAT_PER_GAL,
-      total: colorCoatGallons * MATERIAL_PRICES.COLOR_COAT_PER_GAL,
+      unitPrice: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
+      total: colorCoatGallons * PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
       drums: colorCoatDrums,
       drumSize: DRUM_SIZES.COLOR_DRUM,
       category: 'material',
     });
   }
   
-  // Line paint
-  const linePaintTotal = config.numberOfCourts * MATERIAL_PRICES.LINE_PAINT_PER_COURT;
+  // Line paint material
+  const linePaintGallons = config.numberOfCourts * 0.5; // ~0.5 gal per court
+  const linePaintMaterialCost = linePaintGallons * PRICING.MATERIALS.LINE_PAINT_PER_GAL;
   materials.push({
     name: 'Line Paint',
-    quantity: config.numberOfCourts,
-    unit: 'court',
-    unitPrice: MATERIAL_PRICES.LINE_PAINT_PER_COURT,
-    total: linePaintTotal,
+    quantity: Math.ceil(linePaintGallons * 10) / 10,
+    unit: 'gallon',
+    unitPrice: PRICING.MATERIALS.LINE_PAINT_PER_GAL,
+    total: linePaintMaterialCost,
     category: 'material',
   });
   
   // ========== LABOR CALCULATIONS ==========
-  // Surface prep
-  labor.push({
-    name: 'Surface Preparation',
-    quantity: config.totalSqFt,
-    unit: 'sq ft',
-    unitPrice: LABOR_RATES.SURFACE_PREP_PER_SQFT,
-    total: config.totalSqFt * LABOR_RATES.SURFACE_PREP_PER_SQFT,
-    category: 'labor',
-  });
-  
-  // Crack repair if applicable
-  if (config.crackRepairLf > 0) {
-    labor.push({
-      name: 'Crack Repair',
-      quantity: config.crackRepairLf,
-      unit: 'linear ft',
-      unitPrice: LABOR_RATES.CRACK_REPAIR_PER_LF,
-      total: config.crackRepairLf * LABOR_RATES.CRACK_REPAIR_PER_LF,
-      category: 'labor',
-    });
-  }
-  
-  // Surfacing labor
-  const surfacingLaborRate = system.isGelSystem 
-    ? LABOR_RATES.CUSHION_APPLICATION_PER_SQFT * 1.5 
+  // Acrylic/Surfacing Installation Labor
+  const installLaborRate = system.isGelSystem 
+    ? PRICING.LABOR.CUSHION_INSTALL_PER_SF * 1.5  // Gel is premium install
     : system.cushionLayers > 0 
-      ? LABOR_RATES.CUSHION_APPLICATION_PER_SQFT 
-      : LABOR_RATES.RESURFACING_PER_SQFT;
+      ? PRICING.LABOR.CUSHION_INSTALL_PER_SF      // $1.25/sf for cushion
+      : PRICING.LABOR.ACRYLIC_INSTALL_PER_SF;     // $0.65/sf for standard
       
   labor.push({
-    name: `${system.shortName} Application`,
+    name: `${system.shortName} Installation`,
     quantity: config.totalSqFt,
     unit: 'sq ft',
-    unitPrice: surfacingLaborRate,
-    total: config.totalSqFt * surfacingLaborRate,
+    unitPrice: installLaborRate,
+    total: config.totalSqFt * installLaborRate,
     category: 'labor',
   });
   
-  // Line striping
+  // Line striping labor
   labor.push({
     name: 'Court Line Striping',
     quantity: config.numberOfCourts,
     unit: 'court',
-    unitPrice: LABOR_RATES.LINE_STRIPING_PER_COURT,
-    total: config.numberOfCourts * LABOR_RATES.LINE_STRIPING_PER_COURT,
+    unitPrice: PRICING.LABOR.STRIPING_PER_COURT,
+    total: config.numberOfCourts * PRICING.LABOR.STRIPING_PER_COURT,
     category: 'labor',
   });
   
@@ -279,13 +281,14 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   const laborSubtotal = labor.reduce((sum, l) => sum + l.total, 0);
   const addonsSubtotal = addons.reduce((sum, a) => sum + a.total, 0);
   const conditionSubtotal = conditionWork.reduce((sum, c) => sum + c.total, 0);
+  const mobilizationCost = PRICING.LABOR.MOBILIZATION;
   
-  // Cost before profit
-  const costTotal = materialsSubtotal + laborSubtotal + addonsSubtotal + baseCost + conditionSubtotal;
+  // Job Cost = Materials + Labor + Condition + Addons + Base + Mobilization
+  const jobCost = materialsSubtotal + laborSubtotal + addonsSubtotal + baseCost + conditionSubtotal + mobilizationCost;
   
-  // Apply profit margin
-  const grandTotal = costTotal * profitMargin;
-  const profitAmount = grandTotal - costTotal;
+  // Client Price = Job Cost × Margin
+  const clientPrice = jobCost * profitMargin;
+  const profitAmount = clientPrice - jobCost;
   
   // Drum counts for ordering summary
   const drumCounts = {
@@ -306,10 +309,15 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
       addons: addonsSubtotal,
       base: baseCost,
       condition: conditionSubtotal,
+      mobilization: mobilizationCost,
     },
-    costTotal,
+    // New naming
+    jobCost,
     profitAmount,
-    grandTotal,
+    clientPrice,
+    // Legacy compatibility
+    costTotal: jobCost,
+    grandTotal: clientPrice,
     profitMargin,
     summary: {
       totalSqFt: config.totalSqFt,
@@ -353,21 +361,10 @@ export function generateQuoteText(calculation: CalculationResult, clientInfo?: {
   text += `Force Reduction: ${calculation.summary.system.forceReduction}\n\n`;
   
   text += '───────────────────────────────────────\n';
-  text += 'PRICING SUMMARY\n';
+  text += 'INVESTMENT SUMMARY\n';
   text += '───────────────────────────────────────\n';
-  text += `Materials:     ${formatCurrency(calculation.subtotals.materials)}\n`;
-  text += `Labor:         ${formatCurrency(calculation.subtotals.labor)}\n`;
-  if (calculation.subtotals.condition > 0) {
-    text += `Prep Work:     ${formatCurrency(calculation.subtotals.condition)}\n`;
-  }
-  if (calculation.subtotals.addons > 0) {
-    text += `Add-ons:       ${formatCurrency(calculation.subtotals.addons)}\n`;
-  }
-  if (calculation.subtotals.base > 0) {
-    text += `Base Work:     ${formatCurrency(calculation.subtotals.base)}\n`;
-  }
-  text += '───────────────────────────────────────\n';
-  text += `TOTAL:         ${formatCurrency(calculation.grandTotal)}\n`;
+  text += `\nTOTAL:         ${formatCurrency(calculation.clientPrice)}\n`;
+  text += `Per Sq Ft:     ${formatCurrency(calculation.clientPrice / calculation.summary.totalSqFt)}\n`;
   text += '═══════════════════════════════════════\n\n';
   
   text += 'CourtPro Augusta | (706) 309-1993\n';
@@ -395,20 +392,21 @@ export function generateLineItems(calculation: CalculationResult): Array<{
   }> = [];
   
   let sortOrder = 0;
+  const profitMultiplier = calculation.profitMargin;
   
-  // Condition work first
+  // Condition work first (with margin applied)
   calculation.conditionWork.forEach(item => {
     items.push({
       description: item.name,
       quantity: item.quantity,
       unit: item.unit,
-      unit_price: item.unitPrice,
-      total: item.total,
+      unit_price: item.unitPrice * profitMultiplier,
+      total: item.total * profitMultiplier,
       sort_order: sortOrder++,
     });
   });
   
-  // Materials section
+  // Materials section (with margin applied)
   calculation.materials.forEach(material => {
     let description = material.name;
     if (material.drums) {
@@ -418,44 +416,54 @@ export function generateLineItems(calculation: CalculationResult): Array<{
       description,
       quantity: material.quantity,
       unit: material.unit,
-      unit_price: material.unitPrice,
-      total: material.total,
+      unit_price: material.unitPrice * profitMultiplier,
+      total: material.total * profitMultiplier,
       sort_order: sortOrder++,
     });
   });
   
-  // Labor section
+  // Labor section (with margin applied)
   calculation.labor.forEach(laborItem => {
     items.push({
       description: laborItem.name,
       quantity: laborItem.quantity,
       unit: laborItem.unit,
-      unit_price: laborItem.unitPrice,
-      total: laborItem.total,
+      unit_price: laborItem.unitPrice * profitMultiplier,
+      total: laborItem.total * profitMultiplier,
       sort_order: sortOrder++,
     });
   });
   
-  // Base cost if applicable
+  // Mobilization fee (with margin applied)
+  items.push({
+    description: 'Mobilization & Setup',
+    quantity: 1,
+    unit: 'job',
+    unit_price: calculation.subtotals.mobilization * profitMultiplier,
+    total: calculation.subtotals.mobilization * profitMultiplier,
+    sort_order: sortOrder++,
+  });
+  
+  // Base cost if applicable (with margin applied)
   if (calculation.subtotals.base > 0) {
     items.push({
       description: 'Base/Substrate Work',
       quantity: calculation.summary.totalSqFt,
       unit: 'sq ft',
-      unit_price: calculation.subtotals.base / calculation.summary.totalSqFt,
-      total: calculation.subtotals.base,
+      unit_price: (calculation.subtotals.base / calculation.summary.totalSqFt) * profitMultiplier,
+      total: calculation.subtotals.base * profitMultiplier,
       sort_order: sortOrder++,
     });
   }
   
-  // Add-ons
+  // Add-ons (with margin applied)
   calculation.addons.forEach(addon => {
     items.push({
       description: addon.name,
       quantity: addon.quantity,
       unit: addon.unit,
-      unit_price: addon.unitPrice,
-      total: addon.total,
+      unit_price: addon.unitPrice * profitMultiplier,
+      total: addon.total * profitMultiplier,
       sort_order: sortOrder++,
     });
   });
@@ -481,38 +489,29 @@ export function generateCustomerLineItems(calculation: CalculationResult): Array
   const profitMultiplier = calculation.profitMargin;
   
   // Surface Preparation (grouped)
-  if (calculation.subtotals.condition > 0 || calculation.labor.some(l => l.name.includes('Crack'))) {
+  if (calculation.subtotals.condition > 0) {
     const prepItems: string[] = [];
     
     calculation.conditionWork.forEach(item => {
       if (item.name.includes('Pressure')) prepItems.push('Power washing');
       if (item.name.includes('Birdbath')) prepItems.push('Low spot repair');
       if (item.name.includes('PrimeSeal')) prepItems.push('Surface priming');
+      if (item.name.includes('Crack')) prepItems.push('Crack repair');
     });
     
-    // Check if crack repair is in labor
-    const crackRepair = calculation.labor.find(l => l.name.includes('Crack'));
-    if (crackRepair && crackRepair.total > 0) {
-      prepItems.push('Crack repair');
-    }
-    
-    const prepTotal = calculation.subtotals.condition + (crackRepair?.total || 0);
-    
-    if (prepTotal > 0) {
-      items.push({
-        description: 'Surface Preparation',
-        details: prepItems.length > 0 
-          ? `Professional surface preparation including ${prepItems.join(', ').toLowerCase()}`
-          : 'Professional surface preparation and cleaning',
-        total: prepTotal * profitMultiplier,
-        sort_order: sortOrder++,
-      });
-    }
+    items.push({
+      description: 'Surface Preparation',
+      details: prepItems.length > 0 
+        ? `Professional surface preparation including ${prepItems.join(', ').toLowerCase()}`
+        : 'Professional surface preparation and cleaning',
+      total: calculation.subtotals.condition * profitMultiplier,
+      sort_order: sortOrder++,
+    });
   }
   
   // Court Surfacing System (grouped materials + surfacing labor)
   const surfacingLabor = calculation.labor.find(l => 
-    l.name.includes('Application') || l.name.includes('Surfacing')
+    l.name.includes('Installation') || l.name.includes('Application')
   );
   const surfacingTotal = calculation.subtotals.materials + (surfacingLabor?.total || 0);
   
@@ -525,20 +524,25 @@ export function generateCustomerLineItems(calculation: CalculationResult): Array
     sort_order: sortOrder++,
   });
   
-  // Line Striping (keeps per-court pricing as this is customer-visible)
+  // Line Striping
   const stripingLabor = calculation.labor.find(l => l.name.includes('Striping'));
-  const linePaint = calculation.materials.find(m => m.name.includes('Line Paint'));
-  const stripingTotal = (stripingLabor?.total || 0) + (linePaint?.total || 0);
-  
-  if (stripingTotal > 0) {
-    const courtCount = stripingLabor?.quantity || linePaint?.quantity || 1;
+  if (stripingLabor && stripingLabor.total > 0) {
+    const courtCount = stripingLabor.quantity || 1;
     items.push({
       description: 'Professional Court Striping',
       details: `Complete line marking for ${courtCount} court${courtCount > 1 ? 's' : ''}`,
-      total: stripingTotal * profitMultiplier,
+      total: stripingLabor.total * profitMultiplier,
       sort_order: sortOrder++,
     });
   }
+  
+  // Mobilization
+  items.push({
+    description: 'Mobilization & Project Setup',
+    details: 'Equipment delivery, site setup, and project coordination',
+    total: calculation.subtotals.mobilization * profitMultiplier,
+    sort_order: sortOrder++,
+  });
   
   // Base/Substrate Work
   if (calculation.subtotals.base > 0) {
@@ -559,18 +563,6 @@ export function generateCustomerLineItems(calculation: CalculationResult): Array
       sort_order: sortOrder++,
     });
   });
-  
-  // General labor items not already accounted for (prep labor)
-  const prepLabor = calculation.labor.find(l => l.name.includes('Surface Preparation'));
-  if (prepLabor && prepLabor.total > 0 && calculation.subtotals.condition === 0) {
-    // Only add if we didn't already include it above
-    items[0] = {
-      description: 'Surface Preparation',
-      details: 'Professional surface preparation and cleaning',
-      total: prepLabor.total * profitMultiplier,
-      sort_order: 0,
-    };
-  }
   
   return items;
 }
