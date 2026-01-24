@@ -307,6 +307,21 @@ function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[], ha
           </td>
         </tr>
         
+        <!-- Financing Available Banner -->
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <div style="background: linear-gradient(135deg, #059669 0%, #0891b2 100%); border-radius: 8px; padding: 20px; text-align: center;">
+              <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Financing Available</h3>
+              <p style="color: #d1fae5; margin: 0; font-size: 14px;">
+                Pay over 3-12 months with Affirm or Klarna when you're ready to proceed
+              </p>
+              <p style="color: #a7f3d0; margin: 8px 0 0 0; font-size: 12px;">
+                Flexible payment options available at checkout
+              </p>
+            </div>
+          </td>
+        </tr>
+        
         ${
           estimate.notes
             ? `

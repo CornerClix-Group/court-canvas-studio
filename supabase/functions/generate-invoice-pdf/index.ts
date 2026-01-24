@@ -162,6 +162,16 @@ function generatePdfContent(invoice: InvoiceData): Uint8Array {
     lines.push("BALANCE DUE:".padStart(47) + formatCurrency(0).padStart(20));
   }
   
+  // Financing Available badge for unpaid invoices
+  if (!isPaid) {
+    lines.push("");
+    lines.push("*".repeat(67));
+    lines.push("*" + " ".repeat(15) + "FINANCING AVAILABLE" + " ".repeat(31) + "*");
+    lines.push("*" + " ".repeat(10) + "Pay over time with Affirm or Klarna" + " ".repeat(20) + "*");
+    lines.push("*" + " ".repeat(8) + "Visit your payment link for flexible options" + " ".repeat(13) + "*");
+    lines.push("*".repeat(67));
+  }
+  
   lines.push("");
   
   // Notes

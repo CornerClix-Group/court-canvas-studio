@@ -192,6 +192,17 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl
               </div>
             </div>
           </div>
+          
+          <!-- Financing Available Banner -->
+          <div style="margin-top: 24px; background: linear-gradient(135deg, #059669 0%, #0891b2 100%); padding: 20px; border-radius: 12px; text-align: center;">
+            <h3 style="margin: 0 0 8px 0; color: white; font-size: 18px; font-weight: bold;">💳 Financing Available</h3>
+            <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 14px;">
+              Pay over 3-12 months with Affirm or Klarna
+            </p>
+            <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
+              Flexible payment options available when you pay online
+            </p>
+          </div>
 
           ${invoice.notes ? `
           <!-- Notes -->
