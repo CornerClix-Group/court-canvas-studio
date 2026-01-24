@@ -14,6 +14,16 @@ export interface SurfaceCondition {
   primeSeal: boolean;
 }
 
+export interface ConstructionOptions {
+  newConstruction: boolean;
+  constructionType: 'asphalt' | 'post_tension' | null;
+  fencingRequired: boolean;
+  fencingLinearFeet: number;
+  lightingRequired: boolean;
+  lightPoleCount: number;
+  playgroundInterest: boolean;
+}
+
 export interface CourtConfig {
   projectType: string;
   totalSqFt: number;
@@ -23,6 +33,7 @@ export interface CourtConfig {
   crackRepairLf: number;
   addons: Array<{ id: string; quantity: number; unitPrice: number; name: string }>;
   surfaceCondition?: SurfaceCondition;
+  constructionOptions?: ConstructionOptions;
   profitMargin?: number;
   innerColor?: string;
   outerColor?: string;
@@ -45,6 +56,7 @@ export interface CalculationResult {
   labor: MaterialLine[];
   addons: MaterialLine[];
   conditionWork: MaterialLine[];
+  constructionItems: MaterialLine[];
   subtotals: {
     materials: number;
     labor: number;
@@ -52,8 +64,9 @@ export interface CalculationResult {
     base: number;
     condition: number;
     mobilization: number;
+    construction: number;
   };
-  // Job Cost = What you pay (Materials + Labor + Mobilization)
+  // Job Cost = What you pay (Materials + Labor + Mobilization + Construction)
   jobCost: number;
   // Profit calculated from margin
   profitAmount: number;
@@ -63,6 +76,8 @@ export interface CalculationResult {
   costTotal: number;
   grandTotal: number;
   profitMargin: number;
+  // Flags
+  requiresConsultation: boolean;
   summary: {
     totalSqFt: number;
     totalSqYds: number;
@@ -273,6 +288,69 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     });
   });
   
+  // ========== CONSTRUCTION & LIGHTING ==========
+  const constructionItems: MaterialLine[] = [];
+  let requiresConsultation = false;
+  
+  if (config.constructionOptions) {
+    const opts = config.constructionOptions;
+    
+    // New court construction (asphalt or post-tension)
+    if (opts.newConstruction && opts.constructionType) {
+      const pricePerSf = opts.constructionType === 'asphalt' 
+        ? PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF 
+        : PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF;
+      const constructionName = opts.constructionType === 'asphalt' 
+        ? 'Asphalt Paving (1.5" Overlay)' 
+        : 'Post-Tension Concrete Slab';
+      constructionItems.push({
+        name: constructionName,
+        quantity: config.totalSqFt,
+        unit: 'sq ft',
+        unitPrice: pricePerSf,
+        total: config.totalSqFt * pricePerSf,
+        category: 'addon',
+      });
+    }
+    
+    // Fencing
+    if (opts.fencingRequired && opts.fencingLinearFeet > 0) {
+      constructionItems.push({
+        name: '10\' Black Vinyl Chain Link Fence',
+        quantity: opts.fencingLinearFeet,
+        unit: 'linear ft',
+        unitPrice: PRICING.CONSTRUCTION.FENCING_10FT_PER_LF,
+        total: opts.fencingLinearFeet * PRICING.CONSTRUCTION.FENCING_10FT_PER_LF,
+        category: 'addon',
+      });
+    }
+    
+    // Lighting
+    if (opts.lightingRequired && opts.lightPoleCount > 0) {
+      constructionItems.push({
+        name: 'LED Court Light Pole (w/ electrical)',
+        quantity: opts.lightPoleCount,
+        unit: 'pole',
+        unitPrice: PRICING.CONSTRUCTION.LIGHT_POLE_UNIT,
+        total: opts.lightPoleCount * PRICING.CONSTRUCTION.LIGHT_POLE_UNIT,
+        category: 'addon',
+      });
+    }
+    
+    // Playground Interest
+    if (opts.playgroundInterest) {
+      constructionItems.push({
+        name: 'Playground Allowance (Consultation Required)',
+        quantity: 1,
+        unit: 'allowance',
+        unitPrice: PRICING.CONSTRUCTION.PLAYGROUND_BUDGET,
+        total: PRICING.CONSTRUCTION.PLAYGROUND_BUDGET,
+        category: 'addon',
+      });
+      requiresConsultation = true;
+    }
+  }
+  
   // ========== BASE COSTS ==========
   const baseCost = config.totalSqFt * baseOption.pricePerSqFt;
   
@@ -281,10 +359,11 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
   const laborSubtotal = labor.reduce((sum, l) => sum + l.total, 0);
   const addonsSubtotal = addons.reduce((sum, a) => sum + a.total, 0);
   const conditionSubtotal = conditionWork.reduce((sum, c) => sum + c.total, 0);
+  const constructionSubtotal = constructionItems.reduce((sum, c) => sum + c.total, 0);
   const mobilizationCost = PRICING.LABOR.MOBILIZATION;
   
-  // Job Cost = Materials + Labor + Condition + Addons + Base + Mobilization
-  const jobCost = materialsSubtotal + laborSubtotal + addonsSubtotal + baseCost + conditionSubtotal + mobilizationCost;
+  // Job Cost = Materials + Labor + Condition + Addons + Base + Construction + Mobilization
+  const jobCost = materialsSubtotal + laborSubtotal + addonsSubtotal + baseCost + conditionSubtotal + constructionSubtotal + mobilizationCost;
   
   // Client Price = Job Cost × Margin
   const clientPrice = jobCost * profitMargin;
@@ -303,6 +382,7 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     labor,
     addons,
     conditionWork,
+    constructionItems,
     subtotals: {
       materials: materialsSubtotal,
       labor: laborSubtotal,
@@ -310,6 +390,7 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
       base: baseCost,
       condition: conditionSubtotal,
       mobilization: mobilizationCost,
+      construction: constructionSubtotal,
     },
     // New naming
     jobCost,
@@ -319,6 +400,8 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
     costTotal: jobCost,
     grandTotal: clientPrice,
     profitMargin,
+    // Flags
+    requiresConsultation,
     summary: {
       totalSqFt: config.totalSqFt,
       totalSqYds: sqYards,
