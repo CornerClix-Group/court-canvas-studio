@@ -324,8 +324,61 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's token to validate auth
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Verify user has admin/staff role using service client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: roles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+
+    if (rolesError) {
+      console.error('Error checking roles:', rolesError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify permissions' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const hasAccess = roles?.some(r => 
+      ['owner', 'admin', 'staff', 'accounting', 'sales', 'project_manager'].includes(r.role)
+    );
+
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - Insufficient permissions' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { invoiceId } = await req.json();
 
@@ -333,7 +386,7 @@ serve(async (req) => {
       throw new Error("Invoice ID is required");
     }
 
-    console.log(`Generating PDF for invoice: ${invoiceId}`);
+    console.log(`Generating PDF for invoice: ${invoiceId} by user: ${userId}`);
 
     // Fetch invoice with customer and items
     const { data: invoice, error: fetchError } = await supabase
