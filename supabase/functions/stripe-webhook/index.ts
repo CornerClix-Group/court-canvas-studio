@@ -141,6 +141,33 @@ serve(async (req) => {
         } else {
           logStep("Invoice updated", { newAmountPaid, newStatus });
         }
+
+        // Automatically send receipt email
+        try {
+          logStep("Sending receipt email", { paymentId: payment.id });
+          
+          const receiptResponse = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-receipt-email`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({ paymentId: payment.id }),
+            }
+          );
+
+          if (receiptResponse.ok) {
+            logStep("Receipt email sent successfully");
+          } else {
+            const errorText = await receiptResponse.text();
+            logStep("Failed to send receipt email", { status: receiptResponse.status, error: errorText });
+          }
+        } catch (emailError) {
+          // Don't fail the webhook if email fails - payment is already recorded
+          logStep("Error sending receipt email", { error: emailError instanceof Error ? emailError.message : String(emailError) });
+        }
       }
     }
 
