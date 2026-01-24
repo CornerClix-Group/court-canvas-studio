@@ -389,12 +389,45 @@ export type Database = {
           },
         ]
       }
+      estimate_scope_bullets: {
+        Row: {
+          bullet_text: string
+          created_at: string | null
+          estimate_id: string
+          id: string
+          sort_order: number | null
+        }
+        Insert: {
+          bullet_text: string
+          created_at?: string | null
+          estimate_id: string
+          id?: string
+          sort_order?: number | null
+        }
+        Update: {
+          bullet_text?: string
+          created_at?: string | null
+          estimate_id?: string
+          id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_scope_bullets_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimates: {
         Row: {
           approved_at: string | null
           created_at: string
           created_by: string | null
           customer_id: string | null
+          display_format: string | null
           estimate_number: string
           id: string
           lead_id: string | null
@@ -413,6 +446,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          display_format?: string | null
           estimate_number: string
           id?: string
           lead_id?: string | null
@@ -431,6 +465,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          display_format?: string | null
           estimate_number?: string
           id?: string
           lead_id?: string | null
