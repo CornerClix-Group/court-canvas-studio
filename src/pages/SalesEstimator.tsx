@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { usePricingConfig } from "@/hooks/usePricingConfig";
 import { 
   PRICING,
   PROJECT_TYPES, 
@@ -55,6 +56,7 @@ const projectTypeIcons: Record<string, React.ElementType> = {
 
 export default function SalesEstimator() {
   const { toast } = useToast();
+  const { data: pricingConfig } = usePricingConfig();
   const [currentStep, setCurrentStep] = useState(1);
   const [copied, setCopied] = useState(false);
 
@@ -159,10 +161,10 @@ export default function SalesEstimator() {
 
   const calculation = useMemo(() => {
     if (totalSqFt > 0) {
-      return calculateMaterials(courtConfig);
+      return calculateMaterials(courtConfig, pricingConfig);
     }
     return null;
-  }, [courtConfig, totalSqFt]);
+  }, [courtConfig, totalSqFt, pricingConfig]);
 
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);

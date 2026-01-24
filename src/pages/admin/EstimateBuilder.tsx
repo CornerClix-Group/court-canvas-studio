@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { usePricingConfig } from "@/hooks/usePricingConfig";
 import { EstimateWizardSteps } from "@/components/admin/EstimateWizardSteps";
 import { JobTemplates, type JobTemplate } from "@/components/admin/JobTemplates";
 import { SystemSelector } from "@/components/admin/SystemSelector";
@@ -91,6 +92,7 @@ export default function EstimateBuilder() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
+  const { data: pricingConfig } = usePricingConfig();
   const isEditing = !!id;
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -155,10 +157,10 @@ export default function EstimateBuilder() {
   // Calculate estimate
   const calculation = useMemo(() => {
     if (totalSqFt > 0) {
-      return calculateMaterials(courtConfig);
+      return calculateMaterials(courtConfig, pricingConfig);
     }
     return null;
-  }, [courtConfig, totalSqFt]);
+  }, [courtConfig, totalSqFt, pricingConfig]);
 
   // Calculate totals including custom items
   const customItemsTotal = useMemo(() => {
