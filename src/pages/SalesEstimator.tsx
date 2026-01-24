@@ -20,7 +20,7 @@ import {
   COAT_SYSTEMS,
   LAYKOLD_COLORS,
 } from "@/lib/pricingConstants";
-import { calculateMaterials, generateQuoteText, type CourtConfig, type SurfaceCondition } from "@/lib/courtCalculator";
+import { calculateMaterials, generateQuoteText, type CourtConfig, type SurfaceCondition, type ConstructionOptions } from "@/lib/courtCalculator";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -31,14 +31,19 @@ import {
   Wrench,
   CircleDot,
   TruckIcon,
+  Fence,
+  Lightbulb,
+  TreePine,
+  HardHat,
 } from "lucide-react";
 
 const WIZARD_STEPS = [
   { id: 1, name: "Client" },
   { id: 2, name: "Dimensions" },
   { id: 3, name: "Condition" },
-  { id: 4, name: "System" },
-  { id: 5, name: "Quote" },
+  { id: 4, name: "Construction" },
+  { id: 5, name: "System" },
+  { id: 6, name: "Quote" },
 ];
 
 const projectTypeIcons: Record<string, React.ElementType> = {
@@ -69,24 +74,48 @@ export default function SalesEstimator() {
   const [birdbathSqFt, setBirdbathSqFt] = useState(0);
   const [primeSeal, setPrimeSeal] = useState(false);
 
+  // Step 4: Construction & Lighting
+  const [newConstruction, setNewConstruction] = useState(false);
+  const [constructionType, setConstructionType] = useState<'asphalt' | 'post_tension' | null>(null);
+  const [fencingRequired, setFencingRequired] = useState(false);
+  const [fencingLinearFeet, setFencingLinearFeet] = useState(0);
+  const [lightingRequired, setLightingRequired] = useState(false);
+  const [lightPoleCount, setLightPoleCount] = useState(4);
+  const [playgroundInterest, setPlaygroundInterest] = useState(false);
+
   // Step 4: System Specs
   const [coatSystem, setCoatSystem] = useState("three_coat");
   const [innerColor, setInnerColor] = useState("dark_green");
   const [outerColor, setOuterColor] = useState("terra_cotta");
   const [stripingType, setStripingType] = useState<'pickleball' | 'tennis'>('pickleball');
 
-  // Step 5: Pricing
+  // Step 6: Pricing
   const [profitMargin, setProfitMargin] = useState(PRICING.DEFAULT_MARGIN);
 
   // Calculations
   const totalSqFt = courtLength * courtWidth;
   const totalSqYds = Math.round(totalSqFt / 9);
+  
+  // Calculate perimeter for fencing default
+  const courtPerimeter = useMemo(() => {
+    return 2 * (courtLength + courtWidth);
+  }, [courtLength, courtWidth]);
 
   const surfaceCondition: SurfaceCondition = {
     pressureWash,
     birdbathSqFt,
     primeSeal,
   };
+
+  const constructionOptions: ConstructionOptions = useMemo(() => ({
+    newConstruction,
+    constructionType: newConstruction ? constructionType : null,
+    fencingRequired,
+    fencingLinearFeet: fencingRequired ? fencingLinearFeet : 0,
+    lightingRequired,
+    lightPoleCount: lightingRequired ? lightPoleCount : 0,
+    playgroundInterest,
+  }), [newConstruction, constructionType, fencingRequired, fencingLinearFeet, lightingRequired, lightPoleCount, playgroundInterest]);
 
   // Map coat system to surfacing system
   const getSystemId = () => {
@@ -105,15 +134,18 @@ export default function SalesEstimator() {
     totalSqFt,
     numberOfCourts,
     systemId: getSystemId(),
-    baseType: 'EXISTING_ASPHALT',
+    baseType: newConstruction && constructionType 
+      ? (constructionType === 'asphalt' ? 'NEW_ASPHALT' : 'POST_TENSION_CONCRETE')
+      : 'EXISTING_ASPHALT',
     crackRepairLf,
     addons: [],
     surfaceCondition,
+    constructionOptions,
     profitMargin,
     innerColor,
     outerColor,
     stripingType,
-  }), [projectType, totalSqFt, numberOfCourts, crackRepairLf, surfaceCondition, profitMargin, coatSystem, innerColor, outerColor, stripingType]);
+  }), [projectType, totalSqFt, numberOfCourts, crackRepairLf, surfaceCondition, constructionOptions, profitMargin, coatSystem, innerColor, outerColor, stripingType, newConstruction, constructionType]);
 
   const calculation = useMemo(() => {
     if (totalSqFt > 0) {
@@ -185,8 +217,11 @@ export default function SalesEstimator() {
       case 3:
         return true;
       case 4:
-        return !!coatSystem;
+        // Construction step - valid if not doing new construction, or if construction type is selected
+        return !newConstruction || !!constructionType;
       case 5:
+        return !!coatSystem;
+      case 6:
         return !!calculation;
       default:
         return false;
@@ -430,6 +465,183 @@ export default function SalesEstimator() {
       case 4:
         return (
           <div className="space-y-6">
+            {/* New Court Construction Toggle */}
+            <Card className={`cursor-pointer transition-all ${newConstruction ? 'ring-2 ring-primary border-primary' : ''}`}
+                  onClick={() => {
+                    setNewConstruction(!newConstruction);
+                    if (!newConstruction) {
+                      setFencingLinearFeet(courtPerimeter);
+                    }
+                  }}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Checkbox checked={newConstruction} className="h-6 w-6" />
+                    <div>
+                      <p className="font-semibold text-lg flex items-center gap-2">
+                        <HardHat className="w-5 h-5 text-primary" />
+                        New Court Construction?
+                      </p>
+                      <p className="text-muted-foreground">Building a new court from scratch</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Construction Type Selection */}
+            {newConstruction && (
+              <div className="pl-4 border-l-4 border-primary/30 space-y-4">
+                <Label className="text-lg block">Base Type</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <Card
+                    className={`cursor-pointer transition-all hover:shadow-lg ${
+                      constructionType === 'asphalt' ? "ring-2 ring-primary border-primary" : ""
+                    }`}
+                    onClick={() => setConstructionType('asphalt')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <p className="font-semibold text-lg">Asphalt</p>
+                      <p className="text-muted-foreground text-sm">1.5" Overlay</p>
+                      <p className="text-primary font-bold mt-1">${PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF.toFixed(2)}/sf</p>
+                    </CardContent>
+                  </Card>
+                  <Card
+                    className={`cursor-pointer transition-all hover:shadow-lg ${
+                      constructionType === 'post_tension' ? "ring-2 ring-primary border-primary" : ""
+                    }`}
+                    onClick={() => setConstructionType('post_tension')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <p className="font-semibold text-lg">Post-Tension</p>
+                      <p className="text-muted-foreground text-sm">Concrete Slab</p>
+                      <p className="text-primary font-bold mt-1">${PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF.toFixed(2)}/sf</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                {constructionType && (
+                  <Badge variant="secondary" className="text-lg px-4 py-2">
+                    Base Cost: {formatCurrency(totalSqFt * (constructionType === 'asphalt' ? PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF : PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF))}
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Fencing Toggle */}
+            <Card className={`cursor-pointer transition-all ${fencingRequired ? 'ring-2 ring-primary border-primary' : ''}`}
+                  onClick={() => {
+                    const newVal = !fencingRequired;
+                    setFencingRequired(newVal);
+                    if (newVal && fencingLinearFeet === 0) {
+                      setFencingLinearFeet(courtPerimeter);
+                    }
+                  }}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Checkbox checked={fencingRequired} className="h-6 w-6" />
+                    <div>
+                      <p className="font-semibold text-lg flex items-center gap-2">
+                        <Fence className="w-5 h-5 text-primary" />
+                        Fencing Required?
+                      </p>
+                      <p className="text-muted-foreground">10' Black Vinyl Chain Link @ ${PRICING.CONSTRUCTION.FENCING_10FT_PER_LF}/lf</p>
+                    </div>
+                  </div>
+                  {fencingRequired && fencingLinearFeet > 0 && (
+                    <Badge variant="secondary" className="text-lg px-4 py-2">
+                      {formatCurrency(fencingLinearFeet * PRICING.CONSTRUCTION.FENCING_10FT_PER_LF)}
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {fencingRequired && (
+              <div className="pl-4 border-l-4 border-primary/30">
+                <Label className="text-base mb-2 block">Linear Feet of Fencing</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={fencingLinearFeet || ''}
+                  onChange={(e) => setFencingLinearFeet(parseInt(e.target.value) || 0)}
+                  placeholder={`Court perimeter: ${courtPerimeter} ft`}
+                  className="h-14 text-lg bg-background"
+                />
+              </div>
+            )}
+
+            {/* Lighting Toggle */}
+            <Card className={`cursor-pointer transition-all ${lightingRequired ? 'ring-2 ring-primary border-primary' : ''}`}
+                  onClick={() => setLightingRequired(!lightingRequired)}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Checkbox checked={lightingRequired} className="h-6 w-6" />
+                    <div>
+                      <p className="font-semibold text-lg flex items-center gap-2">
+                        <Lightbulb className="w-5 h-5 text-primary" />
+                        Lighting?
+                      </p>
+                      <p className="text-muted-foreground">LED Light Poles @ ${PRICING.CONSTRUCTION.LIGHT_POLE_UNIT.toLocaleString()}/pole (w/ electrical)</p>
+                    </div>
+                  </div>
+                  {lightingRequired && lightPoleCount > 0 && (
+                    <Badge variant="secondary" className="text-lg px-4 py-2">
+                      {formatCurrency(lightPoleCount * PRICING.CONSTRUCTION.LIGHT_POLE_UNIT)}
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {lightingRequired && (
+              <div className="pl-4 border-l-4 border-primary/30">
+                <Label className="text-base mb-2 block">Number of Light Poles</Label>
+                <div className="grid grid-cols-4 gap-3">
+                  {[2, 4, 6, 8].map((count) => (
+                    <Button
+                      key={count}
+                      variant={lightPoleCount === count ? "default" : "outline"}
+                      className="h-14 text-lg"
+                      onClick={() => setLightPoleCount(count)}
+                    >
+                      {count}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Playground Interest Toggle */}
+            <Card className={`cursor-pointer transition-all ${playgroundInterest ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-50 dark:bg-amber-950/20' : ''}`}
+                  onClick={() => setPlaygroundInterest(!playgroundInterest)}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Checkbox checked={playgroundInterest} className="h-6 w-6" />
+                    <div>
+                      <p className="font-semibold text-lg flex items-center gap-2">
+                        <TreePine className="w-5 h-5 text-amber-600" />
+                        Playground Interest?
+                      </p>
+                      <p className="text-muted-foreground">Adds allowance + flags for consultation</p>
+                    </div>
+                  </div>
+                  {playgroundInterest && (
+                    <Badge variant="outline" className="text-lg px-4 py-2 border-amber-500 text-amber-600">
+                      {formatCurrency(PRICING.CONSTRUCTION.PLAYGROUND_BUDGET)} allowance
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
             <div>
               <Label className="text-lg mb-4 block">Coat System</Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -517,7 +729,7 @@ export default function SalesEstimator() {
           </div>
         );
 
-      case 5:
+      case 6:
         return calculation ? (
           <div className="space-y-6">
             {/* Profit Margin Slider */}
@@ -547,6 +759,21 @@ export default function SalesEstimator() {
               </CardContent>
             </Card>
 
+            {/* Consultation Required Alert */}
+            {calculation.requiresConsultation && (
+              <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-3 text-amber-700 dark:text-amber-400">
+                    <TreePine className="w-6 h-6" />
+                    <div>
+                      <p className="font-semibold">Consultation Required</p>
+                      <p className="text-sm">Playground allowance included - final pricing requires site visit</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Estimated Job Cost (Internal) */}
             <Card className="border-dashed">
               <CardHeader className="pb-3">
@@ -565,6 +792,15 @@ export default function SalesEstimator() {
                   <div className="flex justify-between">
                     <span>Prep Work</span>
                     <span className="font-medium">{formatCurrency(calculation.subtotals.condition)}</span>
+                  </div>
+                )}
+                {calculation.subtotals.construction > 0 && (
+                  <div className="flex justify-between">
+                    <span className="flex items-center gap-1">
+                      <HardHat className="w-4 h-4" />
+                      Construction & Add-Ons
+                    </span>
+                    <span className="font-medium">{formatCurrency(calculation.subtotals.construction)}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center">
@@ -588,7 +824,7 @@ export default function SalesEstimator() {
                   <span>Job Cost</span>
                   <span className="font-semibold">{formatCurrency(calculation.jobCost)}</span>
                 </div>
-                <div className="flex justify-between text-lg text-green-600 mt-2">
+                <div className="flex justify-between text-lg text-green-600 dark:text-green-400 mt-2">
                   <span>Profit ({Math.round((profitMargin - 1) * 100)}%)</span>
                   <span className="font-semibold">+{formatCurrency(calculation.profitAmount)}</span>
                 </div>

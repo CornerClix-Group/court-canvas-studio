@@ -28,12 +28,13 @@ export const PRICING = {
     CORE_DRILL_PER_HOLE: 250.00,      // Post installation
   },
 
-  // --- CONSTRUCTION (New Builds) ---
+  // --- CONSTRUCTION & ADD-ONS ---
   CONSTRUCTION: {
     ASPHALT_PAVING_PER_SF: 4.50,      // 1.5" Overlay installed
     CONCRETE_PT_PER_SF: 9.00,         // Post-Tension Slab
-    FENCING_10FT_PER_LF: 28.00,       // Black Vinyl Chain Link
-    LIGHT_POLE_UNIT: 3500.00,         // Per pole installed
+    FENCING_10FT_PER_LF: 32.00,       // Black Vinyl Chain Link (bumped for safety)
+    LIGHT_POLE_UNIT: 5500.00,         // Per pole w/ base + electrical
+    PLAYGROUND_BUDGET: 25000.00,      // Starting price for small playground
   },
 
   // --- COVERAGE RATES ---
