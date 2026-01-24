@@ -35,6 +35,7 @@ import {
   Lightbulb,
   TreePine,
   HardHat,
+  PlusCircle,
 } from "lucide-react";
 
 const WIZARD_STEPS = [
@@ -82,6 +83,11 @@ export default function SalesEstimator() {
   const [lightingRequired, setLightingRequired] = useState(false);
   const [lightPoleCount, setLightPoleCount] = useState(4);
   const [playgroundInterest, setPlaygroundInterest] = useState(false);
+  // Equipment add-ons
+  const [netPostSets, setNetPostSets] = useState(0);
+  const [benchCount, setBenchCount] = useState(0);
+  const [windscreenLinearFeet, setWindscreenLinearFeet] = useState(0);
+  const [ballContainmentLinearFeet, setBallContainmentLinearFeet] = useState(0);
 
   // Step 4: System Specs
   const [coatSystem, setCoatSystem] = useState("three_coat");
@@ -115,7 +121,11 @@ export default function SalesEstimator() {
     lightingRequired,
     lightPoleCount: lightingRequired ? lightPoleCount : 0,
     playgroundInterest,
-  }), [newConstruction, constructionType, fencingRequired, fencingLinearFeet, lightingRequired, lightPoleCount, playgroundInterest]);
+    netPostSets,
+    benchCount,
+    windscreenLinearFeet,
+    ballContainmentLinearFeet,
+  }), [newConstruction, constructionType, fencingRequired, fencingLinearFeet, lightingRequired, lightPoleCount, playgroundInterest, netPostSets, benchCount, windscreenLinearFeet, ballContainmentLinearFeet]);
 
   // Map coat system to surfacing system
   const getSystemId = () => {
@@ -636,6 +646,125 @@ export default function SalesEstimator() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Equipment Add-ons Section */}
+            <div className="border-t pt-6">
+              <Label className="text-lg mb-4 block flex items-center gap-2">
+                <PlusCircle className="w-5 h-5" />
+                Equipment Add-ons
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Net Post Sets */}
+                <Card className={netPostSets > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold">Net Post Sets</p>
+                        <p className="text-sm text-muted-foreground">Pair of posts with sleeves</p>
+                        <p className="text-sm font-medium text-primary">{formatCurrency(PRICING.EQUIPMENT.NET_POST_SET)}/set</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setNetPostSets(Math.max(0, netPostSets - 1))}
+                        disabled={netPostSets === 0}
+                      >-</Button>
+                      <span className="w-8 text-center font-bold">{netPostSets}</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setNetPostSets(netPostSets + 1)}
+                      >+</Button>
+                      {netPostSets > 0 && (
+                        <span className="ml-auto font-semibold">{formatCurrency(netPostSets * PRICING.EQUIPMENT.NET_POST_SET)}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Player Benches */}
+                <Card className={benchCount > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold">Player Benches (6ft)</p>
+                        <p className="text-sm text-muted-foreground">Aluminum courtside bench</p>
+                        <p className="text-sm font-medium text-primary">{formatCurrency(PRICING.EQUIPMENT.PLAYER_BENCH_6FT)}/bench</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setBenchCount(Math.max(0, benchCount - 1))}
+                        disabled={benchCount === 0}
+                      >-</Button>
+                      <span className="w-8 text-center font-bold">{benchCount}</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setBenchCount(benchCount + 1)}
+                      >+</Button>
+                      {benchCount > 0 && (
+                        <span className="ml-auto font-semibold">{formatCurrency(benchCount * PRICING.EQUIPMENT.PLAYER_BENCH_6FT)}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Windscreen */}
+                <Card className={windscreenLinearFeet > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="mb-3">
+                      <p className="font-semibold">Windscreen</p>
+                      <p className="text-sm text-muted-foreground">Privacy/wind mesh</p>
+                      <p className="text-sm font-medium text-primary">{formatCurrency(PRICING.EQUIPMENT.WINDSCREEN_PER_LF)}/linear ft</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={windscreenLinearFeet || ''}
+                        onChange={(e) => setWindscreenLinearFeet(parseInt(e.target.value) || 0)}
+                        placeholder="Linear feet"
+                        className="w-32"
+                      />
+                      <span className="text-sm text-muted-foreground">LF</span>
+                      {windscreenLinearFeet > 0 && (
+                        <span className="ml-auto font-semibold">{formatCurrency(windscreenLinearFeet * PRICING.EQUIPMENT.WINDSCREEN_PER_LF)}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Ball Containment */}
+                <Card className={ballContainmentLinearFeet > 0 ? "ring-2 ring-primary" : ""}>
+                  <CardContent className="p-4">
+                    <div className="mb-3">
+                      <p className="font-semibold">Ball Containment</p>
+                      <p className="text-sm text-muted-foreground">Overhead netting system</p>
+                      <p className="text-sm font-medium text-primary">{formatCurrency(PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF)}/linear ft</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={ballContainmentLinearFeet || ''}
+                        onChange={(e) => setBallContainmentLinearFeet(parseInt(e.target.value) || 0)}
+                        placeholder="Linear feet"
+                        className="w-32"
+                      />
+                      <span className="text-sm text-muted-foreground">LF</span>
+                      {ballContainmentLinearFeet > 0 && (
+                        <span className="ml-auto font-semibold">{formatCurrency(ballContainmentLinearFeet * PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF)}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         );
 

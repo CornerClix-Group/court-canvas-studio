@@ -22,6 +22,11 @@ export interface ConstructionOptions {
   lightingRequired: boolean;
   lightPoleCount: number;
   playgroundInterest: boolean;
+  // Equipment add-ons
+  netPostSets: number;
+  benchCount: number;
+  windscreenLinearFeet: number;
+  ballContainmentLinearFeet: number;
 }
 
 export interface CourtConfig {
@@ -348,6 +353,55 @@ export function calculateMaterials(config: CourtConfig): CalculationResult {
         category: 'addon',
       });
       requiresConsultation = true;
+    }
+    
+    // ========== EQUIPMENT ADD-ONS ==========
+    // Net Post Sets
+    if (opts.netPostSets > 0) {
+      constructionItems.push({
+        name: 'Net Post Set (pair with sleeves)',
+        quantity: opts.netPostSets,
+        unit: 'set',
+        unitPrice: PRICING.EQUIPMENT.NET_POST_SET,
+        total: opts.netPostSets * PRICING.EQUIPMENT.NET_POST_SET,
+        category: 'addon',
+      });
+    }
+    
+    // Player Benches
+    if (opts.benchCount > 0) {
+      constructionItems.push({
+        name: '6\' Aluminum Player Bench',
+        quantity: opts.benchCount,
+        unit: 'bench',
+        unitPrice: PRICING.EQUIPMENT.PLAYER_BENCH_6FT,
+        total: opts.benchCount * PRICING.EQUIPMENT.PLAYER_BENCH_6FT,
+        category: 'addon',
+      });
+    }
+    
+    // Windscreen
+    if (opts.windscreenLinearFeet > 0) {
+      constructionItems.push({
+        name: 'Windscreen Privacy Mesh',
+        quantity: opts.windscreenLinearFeet,
+        unit: 'linear ft',
+        unitPrice: PRICING.EQUIPMENT.WINDSCREEN_PER_LF,
+        total: opts.windscreenLinearFeet * PRICING.EQUIPMENT.WINDSCREEN_PER_LF,
+        category: 'addon',
+      });
+    }
+    
+    // Ball Containment
+    if (opts.ballContainmentLinearFeet > 0) {
+      constructionItems.push({
+        name: 'Ball Containment Netting',
+        quantity: opts.ballContainmentLinearFeet,
+        unit: 'linear ft',
+        unitPrice: PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF,
+        total: opts.ballContainmentLinearFeet * PRICING.EQUIPMENT.BALL_CONTAINMENT_PER_LF,
+        category: 'addon',
+      });
     }
   }
   

@@ -37,6 +37,14 @@ export const PRICING = {
     PLAYGROUND_BUDGET: 25000.00,      // Starting price for small playground
   },
 
+  // --- EQUIPMENT ADD-ONS ---
+  EQUIPMENT: {
+    NET_POST_SET: 850.00,             // Pair of posts with sleeves
+    PLAYER_BENCH_6FT: 450.00,         // 6ft aluminum bench
+    WINDSCREEN_PER_LF: 8.50,          // Privacy/wind mesh per linear foot
+    BALL_CONTAINMENT_PER_LF: 12.00,   // Netting system per linear foot
+  },
+
   // --- COVERAGE RATES ---
   COVERAGE: {
     ACRYLIC_GAL_PER_SY: 0.05,         // Industry standard per coat
