@@ -23,6 +23,7 @@ import { SystemTierComparison } from "@/components/admin/SystemTierComparison";
 import { MaterialBreakdown } from "@/components/admin/MaterialBreakdown";
 import { CustomerSelect } from "@/components/admin/CustomerSelect";
 import { SitePhotosUploader, type SitePhoto } from "@/components/admin/SitePhotosUploader";
+import { CustomItemsEditor, type CustomItem } from "@/components/admin/CustomItemsEditor";
 import { 
   PROJECT_TYPES, 
   COURT_PRESETS, 
@@ -106,6 +107,7 @@ export default function EstimateBuilder() {
   });
   const [profitMargin, setProfitMargin] = useState<number>(DEFAULT_PROFIT_MARGIN);
   const [showCostView, setShowCostView] = useState<boolean>(false);
+  const [customItems, setCustomItems] = useState<CustomItem[]>([]);
 
   // Calculate total sq ft
   const totalSqFt = useMemo(() => {
@@ -134,6 +136,15 @@ export default function EstimateBuilder() {
     }
     return null;
   }, [courtConfig, totalSqFt]);
+
+  // Calculate totals including custom items
+  const customItemsTotal = useMemo(() => {
+    return customItems.reduce((sum, item) => sum + item.customerPrice, 0);
+  }, [customItems]);
+
+  const grandTotalWithCustomItems = useMemo(() => {
+    return (calculation?.grandTotal || 0) + customItemsTotal;
+  }, [calculation?.grandTotal, customItemsTotal]);
 
   // Fetch customer data when selected
   useEffect(() => {
@@ -190,8 +201,8 @@ export default function EstimateBuilder() {
         .insert({
           estimate_number: estimateNumber,
           customer_id: customerId,
-          subtotal: calculation.grandTotal,
-          total: calculation.grandTotal,
+          subtotal: grandTotalWithCustomItems,
+          total: grandTotalWithCustomItems,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
         })
@@ -207,6 +218,23 @@ export default function EstimateBuilder() {
       }));
 
       await supabase.from("estimate_items").insert(itemsToInsert);
+
+      // Save custom items
+      if (customItems.length > 0) {
+        const customItemsToInsert = customItems.map((item, index) => ({
+          estimate_id: estimate.id,
+          description: item.description,
+          vendor_name: item.vendorName || null,
+          vendor_cost: item.vendorCost || null,
+          markup_percent: item.markupPercent,
+          customer_price: item.customerPrice,
+          notes: item.notes || null,
+          pricing_mode: item.pricingMode,
+          sort_order: index,
+        }));
+
+        await supabase.from("estimate_custom_items").insert(customItemsToInsert);
+      }
 
       // Save site photos attachments
       if (sitePhotos.length > 0) {
@@ -293,8 +321,8 @@ export default function EstimateBuilder() {
         .insert({
           estimate_number: estimateNumber,
           customer_id: customerId,
-          subtotal: calculation.grandTotal,
-          total: calculation.grandTotal,
+          subtotal: grandTotalWithCustomItems,
+          total: grandTotalWithCustomItems,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
         })
@@ -310,6 +338,23 @@ export default function EstimateBuilder() {
       }));
 
       await supabase.from("estimate_items").insert(itemsToInsert);
+
+      // Save custom items
+      if (customItems.length > 0) {
+        const customItemsToInsert = customItems.map((item, index) => ({
+          estimate_id: estimate.id,
+          description: item.description,
+          vendor_name: item.vendorName || null,
+          vendor_cost: item.vendorCost || null,
+          markup_percent: item.markupPercent,
+          customer_price: item.customerPrice,
+          notes: item.notes || null,
+          pricing_mode: item.pricingMode,
+          sort_order: index,
+        }));
+
+        await supabase.from("estimate_custom_items").insert(customItemsToInsert);
+      }
 
       // Save site photos attachments
       if (sitePhotos.length > 0) {
@@ -419,14 +464,14 @@ export default function EstimateBuilder() {
       const timestamp = Date.now().toString(36).toUpperCase();
       const estimateNumber = `EST-${timestamp}`;
       
-      // Create estimate
+      // Create estimate with custom items included in total
       const { data: estimate, error: estimateError } = await supabase
         .from("estimates")
         .insert({
           estimate_number: estimateNumber,
           customer_id: customerId,
-          subtotal: calculation.grandTotal,
-          total: calculation.grandTotal,
+          subtotal: grandTotalWithCustomItems,
+          total: grandTotalWithCustomItems,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
         })
@@ -447,6 +492,29 @@ export default function EstimateBuilder() {
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
+
+      // Save custom items
+      if (customItems.length > 0) {
+        const customItemsToInsert = customItems.map((item, index) => ({
+          estimate_id: estimate.id,
+          description: item.description,
+          vendor_name: item.vendorName || null,
+          vendor_cost: item.vendorCost || null,
+          markup_percent: item.markupPercent,
+          customer_price: item.customerPrice,
+          notes: item.notes || null,
+          pricing_mode: item.pricingMode,
+          sort_order: index,
+        }));
+
+        const { error: customItemsError } = await supabase
+          .from("estimate_custom_items")
+          .insert(customItemsToInsert);
+
+        if (customItemsError) {
+          console.error("Failed to save custom items:", customItemsError);
+        }
+      }
 
       // Save site photos attachments
       if (sitePhotos.length > 0) {
@@ -839,6 +907,15 @@ export default function EstimateBuilder() {
                 </div>
               </div>
             )}
+
+            {/* Custom Items Section */}
+            <div className="border-t pt-6">
+              <CustomItemsEditor
+                items={customItems}
+                onChange={setCustomItems}
+                showCostView={showCostView}
+              />
+            </div>
           </div>
         );
 
@@ -927,24 +1004,43 @@ export default function EstimateBuilder() {
                             <span className="font-medium">{formatCurrency(calculation.subtotals.addons)}</span>
                           </div>
                         )}
+                        {customItemsTotal > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Custom Items:</span>
+                            <span className="font-medium">{formatCurrency(customItemsTotal)}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-2 border-l pl-4">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total Cost:</span>
+                          <span className="text-muted-foreground">Surfacing Cost:</span>
                           <span className="font-medium">{formatCurrency(calculation.costTotal)}</span>
                         </div>
                         <div className="flex justify-between text-primary">
                           <span>Markup ({marginPercent}%):</span>
                           <span className="font-medium">+{formatCurrency(calculation.profitAmount)}</span>
                         </div>
+                        {customItemsTotal > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Custom Items:</span>
+                            <span className="font-medium">+{formatCurrency(customItemsTotal)}</span>
+                          </div>
+                        )}
                         <div className="border-t pt-2 flex justify-between">
-                          <span className="font-semibold">Customer Price:</span>
-                          <span className="font-bold text-lg">{formatCurrency(calculation.grandTotal)}</span>
+                          <span className="font-semibold">Customer Total:</span>
+                          <span className="font-bold text-lg">{formatCurrency(grandTotalWithCustomItems)}</span>
                         </div>
-                        <div className="flex justify-between text-green-600">
-                          <span>Gross Profit:</span>
-                          <span className="font-semibold">{formatCurrency(calculation.profitAmount)}</span>
-                        </div>
+                        {showCostView && (
+                          <div className="flex justify-between text-emerald-600">
+                            <span>Total Profit:</span>
+                            <span className="font-semibold">
+                              {formatCurrency(
+                                calculation.profitAmount + 
+                                customItems.reduce((sum, item) => sum + item.customerPrice - (item.vendorCost || item.customerPrice), 0)
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

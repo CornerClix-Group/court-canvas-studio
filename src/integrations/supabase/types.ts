@@ -292,6 +292,59 @@ export type Database = {
           },
         ]
       }
+      estimate_custom_items: {
+        Row: {
+          created_at: string
+          customer_price: number
+          description: string
+          estimate_id: string | null
+          id: string
+          markup_percent: number | null
+          notes: string | null
+          pricing_mode: string
+          sort_order: number | null
+          updated_at: string
+          vendor_cost: number | null
+          vendor_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_price: number
+          description: string
+          estimate_id?: string | null
+          id?: string
+          markup_percent?: number | null
+          notes?: string | null
+          pricing_mode?: string
+          sort_order?: number | null
+          updated_at?: string
+          vendor_cost?: number | null
+          vendor_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_price?: number
+          description?: string
+          estimate_id?: string | null
+          id?: string
+          markup_percent?: number | null
+          notes?: string | null
+          pricing_mode?: string
+          sort_order?: number | null
+          updated_at?: string
+          vendor_cost?: number | null
+          vendor_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_custom_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_items: {
         Row: {
           created_at: string
