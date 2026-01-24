@@ -26,6 +26,7 @@ import AdminInvoices from "./pages/admin/Invoices";
 import AdminPayments from "./pages/admin/Payments";
 import InvoiceBuilder from "./pages/admin/InvoiceBuilder";
 import EstimateBuilder from "./pages/admin/EstimateBuilder";
+import EstimateDetailView from "./pages/admin/EstimateDetailView";
 import AdminProjects from "./pages/admin/Projects";
 import ProjectDetail from "./pages/admin/ProjectDetail";
 import AdminTeam from "./pages/admin/Team";
@@ -64,7 +65,7 @@ const App = () => (
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="estimates" element={<AdminEstimates />} />
             <Route path="estimates/new" element={<EstimateBuilder />} />
-            <Route path="estimates/:id" element={<EstimateBuilder />} />
+            <Route path="estimates/:id" element={<EstimateDetailView />} />
             <Route path="invoices" element={<AdminInvoices />} />
             <Route path="invoices/new" element={<InvoiceBuilder />} />
             <Route path="invoices/:id" element={<InvoiceBuilder />} />
