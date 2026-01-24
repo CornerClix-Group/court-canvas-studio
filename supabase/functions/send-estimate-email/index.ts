@@ -30,6 +30,15 @@ interface LineItem {
   total: number;
 }
 
+interface EstimateAttachment {
+  id: string;
+  file_path: string;
+  file_name: string;
+  file_type: string;
+  caption: string | null;
+  sort_order: number;
+}
+
 // Customer-friendly grouped item for email display
 interface CustomerLineItem {
   description: string;
@@ -153,7 +162,7 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[]): string {
+function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[], hasAttachments: boolean): string {
   const customerName = estimate.customer?.contact_name || "Valued Customer";
   const validUntil = estimate.valid_until ? formatDate(estimate.valid_until) : "30 days from receipt";
 
@@ -173,6 +182,20 @@ function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[]): s
     `
     )
     .join("");
+
+  const siteDocumentationNote = hasAttachments ? `
+        <!-- Site Documentation Notice -->
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px;">
+              <h4 style="color: #166534; margin: 0 0 8px 0; font-size: 14px;">📍 Site Documentation Included</h4>
+              <p style="color: #15803d; margin: 0; font-size: 14px; line-height: 1.5;">
+                GIS aerial imagery and site photos have been included in the attached PDF for your reference.
+              </p>
+            </div>
+          </td>
+        </tr>
+  ` : '';
 
   return `
     <!DOCTYPE html>
@@ -201,6 +224,8 @@ function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[]): s
             </p>
           </td>
         </tr>
+        
+        ${siteDocumentationNote}
         
         <!-- Estimate Summary Box -->
         <tr>
@@ -344,12 +369,13 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch estimate with customer
+    // Fetch estimate with customer and attachments
     const { data: estimate, error: estimateError } = await supabase
       .from("estimates")
       .select(`
         *,
-        customer:customers(*)
+        customer:customers(*),
+        estimate_attachments(*)
       `)
       .eq("id", estimateId)
       .single();
@@ -376,6 +402,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Customer email is required to send estimate");
     }
 
+    const hasAttachments = estimate.estimate_attachments && estimate.estimate_attachments.length > 0;
+
     // Generate PDF by calling the generate-estimate-pdf function
     console.log("Generating PDF...");
     const pdfResponse = await fetch(`${supabaseUrl}/functions/v1/generate-estimate-pdf`, {
@@ -396,22 +424,56 @@ const handler = async (req: Request): Promise<Response> => {
     const pdfData = await pdfResponse.json();
     console.log("PDF generated successfully");
 
-    // Generate email HTML
-    const emailHtml = generateEstimateEmailHTML(estimate as Estimate, lineItems || []);
+    // Build email attachments array
+    const emailAttachments: Array<{ filename: string; content: string }> = [
+      {
+        filename: `Estimate-${estimate.estimate_number}.pdf`,
+        content: pdfData.pdf,
+      },
+    ];
 
-    // Send email with PDF attachment
+    // Attach site photos to the email (limited to first 4 to manage size)
+    if (hasAttachments) {
+      const attachmentsToInclude = estimate.estimate_attachments.slice(0, 4);
+      
+      for (const attachment of attachmentsToInclude) {
+        try {
+          // Get the file from storage
+          const { data: fileData, error: fileError } = await supabase.storage
+            .from('estimate-attachments')
+            .download(attachment.file_path);
+          
+          if (fileError) {
+            console.error(`Failed to download attachment ${attachment.file_name}:`, fileError);
+            continue;
+          }
+          
+          // Convert to base64
+          const arrayBuffer = await fileData.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          const base64 = btoa(String.fromCharCode(...uint8Array));
+          
+          emailAttachments.push({
+            filename: attachment.caption ? `${attachment.caption}.${attachment.file_name.split('.').pop()}` : attachment.file_name,
+            content: base64,
+          });
+        } catch (err) {
+          console.error(`Error processing attachment ${attachment.file_name}:`, err);
+        }
+      }
+    }
+
+    // Generate email HTML
+    const emailHtml = generateEstimateEmailHTML(estimate as Estimate, lineItems || [], hasAttachments);
+
+    // Send email with PDF and site photo attachments
     const emailResponse = await resend.emails.send({
       from: `CourtPro Augusta <${COMPANY_INFO.email}>`,
       to: [customerEmail],
       cc: [COMPANY_INFO.email],
       subject: `Estimate ${estimate.estimate_number} from CourtPro Augusta`,
       html: emailHtml,
-      attachments: [
-        {
-          filename: `Estimate-${estimate.estimate_number}.pdf`,
-          content: pdfData.pdf,
-        },
-      ],
+      attachments: emailAttachments,
     });
 
     console.log("Email sent successfully:", emailResponse);
@@ -448,6 +510,7 @@ const handler = async (req: Request): Promise<Response> => {
         success: true,
         message: "Estimate sent successfully",
         emailId: emailResponse.data?.id,
+        attachmentsIncluded: emailAttachments.length,
       }),
       {
         status: 200,

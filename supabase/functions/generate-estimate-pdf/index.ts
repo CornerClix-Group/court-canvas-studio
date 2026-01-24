@@ -32,6 +32,14 @@ interface EstimateItem {
   unit: string | null;
 }
 
+interface EstimateAttachment {
+  id: string;
+  file_path: string;
+  file_name: string;
+  caption: string | null;
+  sort_order: number;
+}
+
 // Customer-friendly grouped items for PDF output
 interface CustomerLineItem {
   description: string;
@@ -40,6 +48,7 @@ interface CustomerLineItem {
 }
 
 interface EstimateData {
+  id: string;
   estimate_number: string;
   created_at: string;
   valid_until: string | null;
@@ -60,6 +69,7 @@ interface EstimateData {
     phone: string | null;
   } | null;
   estimate_items: EstimateItem[];
+  estimate_attachments?: EstimateAttachment[];
 }
 
 // Group detailed line items into customer-friendly categories
@@ -156,7 +166,7 @@ const formatDate = (dateStr: string): string => {
 };
 
 // Generate PDF content
-function generatePdfContent(estimate: EstimateData): Uint8Array {
+function generatePdfContent(estimate: EstimateData, hasAttachments: boolean): Uint8Array {
   const customer = estimate.customers;
   const isApproved = estimate.status === "approved";
   
@@ -248,6 +258,22 @@ function generatePdfContent(estimate: EstimateData): Uint8Array {
     lines.push("-".repeat(60));
     lines.push("PROJECT NOTES:");
     lines.push(estimate.notes);
+  }
+  
+  // Site Documentation Reference
+  if (hasAttachments) {
+    lines.push("");
+    lines.push("-".repeat(60));
+    lines.push("");
+    lines.push("SITE DOCUMENTATION:");
+    lines.push("");
+    lines.push("GIS aerial imagery and site photos have been included with");
+    lines.push("this estimate for your reference. These images show the");
+    lines.push("project area and current site conditions.");
+    const attachments = estimate.estimate_attachments || [];
+    attachments.forEach((attachment, index) => {
+      lines.push(`  ${index + 1}. ${attachment.caption || attachment.file_name}`);
+    });
   }
   
   lines.push("");
@@ -394,7 +420,7 @@ serve(async (req) => {
 
     console.log(`Generating PDF for estimate: ${estimateId}`);
 
-    // Fetch estimate with customer and items
+    // Fetch estimate with customer, items, and attachments
     const { data: estimate, error: fetchError } = await supabase
       .from("estimates")
       .select(`
@@ -416,6 +442,13 @@ serve(async (req) => {
           total,
           unit,
           sort_order
+        ),
+        estimate_attachments (
+          id,
+          file_path,
+          file_name,
+          caption,
+          sort_order
         )
       `)
       .eq("id", estimateId)
@@ -432,9 +465,16 @@ serve(async (req) => {
 
     // Sort items by sort_order
     estimate.estimate_items.sort((a: any, b: any) => a.sort_order - b.sort_order);
+    
+    // Sort attachments by sort_order if present
+    if (estimate.estimate_attachments) {
+      estimate.estimate_attachments.sort((a: any, b: any) => a.sort_order - b.sort_order);
+    }
+
+    const hasAttachments = estimate.estimate_attachments && estimate.estimate_attachments.length > 0;
 
     // Generate PDF
-    const pdfBytes = generatePdfContent(estimate as EstimateData);
+    const pdfBytes = generatePdfContent(estimate as EstimateData, hasAttachments);
     
     // Return PDF directly as base64 (estimates don't need storage)
     const base64Pdf = btoa(String.fromCharCode(...pdfBytes));
@@ -446,6 +486,7 @@ serve(async (req) => {
         success: true,
         pdf: base64Pdf,
         fileName: `${estimate.estimate_number}.pdf`,
+        hasAttachments,
       }),
       {
         status: 200,

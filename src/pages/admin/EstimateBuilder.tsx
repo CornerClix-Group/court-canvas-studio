@@ -22,6 +22,7 @@ import { SystemSelector } from "@/components/admin/SystemSelector";
 import { SystemTierComparison } from "@/components/admin/SystemTierComparison";
 import { MaterialBreakdown } from "@/components/admin/MaterialBreakdown";
 import { CustomerSelect } from "@/components/admin/CustomerSelect";
+import { SitePhotosUploader, type SitePhoto } from "@/components/admin/SitePhotosUploader";
 import { 
   PROJECT_TYPES, 
   COURT_PRESETS, 
@@ -97,6 +98,7 @@ export default function EstimateBuilder() {
   const [selectedSystem, setSelectedSystem] = useState<string>("PRO_PLUS_STANDARD");
   const [selectedAddons, setSelectedAddons] = useState<AddonSelection[]>([]);
   const [notes, setNotes] = useState<string>("");
+  const [sitePhotos, setSitePhotos] = useState<SitePhoto[]>([]);
   const [surfaceCondition, setSurfaceCondition] = useState<SurfaceCondition>({
     pressureWash: false,
     birdbathSqFt: 0,
@@ -206,6 +208,31 @@ export default function EstimateBuilder() {
 
       await supabase.from("estimate_items").insert(itemsToInsert);
 
+      // Save site photos attachments
+      if (sitePhotos.length > 0) {
+        const attachmentsToInsert = sitePhotos.map((photo, index) => ({
+          estimate_id: estimate.id,
+          file_path: photo.file_path,
+          file_name: photo.file_name,
+          file_type: photo.file_type,
+          file_size: photo.file_size,
+          caption: photo.caption || null,
+          sort_order: index,
+        }));
+
+        await supabase.from("estimate_attachments").insert(attachmentsToInsert);
+
+        // Move files from temp folder to estimate folder
+        for (const photo of sitePhotos) {
+          if (photo.file_path.startsWith('temp/')) {
+            const newPath = photo.file_path.replace('temp/', `${estimate.id}/`);
+            await supabase.storage
+              .from('estimate-attachments')
+              .move(photo.file_path, newPath);
+          }
+        }
+      }
+
       // Generate PDF
       const { data, error } = await supabase.functions.invoke("generate-estimate-pdf", {
         body: { estimateId: estimate.id },
@@ -283,6 +310,31 @@ export default function EstimateBuilder() {
       }));
 
       await supabase.from("estimate_items").insert(itemsToInsert);
+
+      // Save site photos attachments
+      if (sitePhotos.length > 0) {
+        const attachmentsToInsert = sitePhotos.map((photo, index) => ({
+          estimate_id: estimate.id,
+          file_path: photo.file_path,
+          file_name: photo.file_name,
+          file_type: photo.file_type,
+          file_size: photo.file_size,
+          caption: photo.caption || null,
+          sort_order: index,
+        }));
+
+        await supabase.from("estimate_attachments").insert(attachmentsToInsert);
+
+        // Move files from temp folder to estimate folder
+        for (const photo of sitePhotos) {
+          if (photo.file_path.startsWith('temp/')) {
+            const newPath = photo.file_path.replace('temp/', `${estimate.id}/`);
+            await supabase.storage
+              .from('estimate-attachments')
+              .move(photo.file_path, newPath);
+          }
+        }
+      }
 
       // Send email
       const { error } = await supabase.functions.invoke("send-estimate-email", {
@@ -395,6 +447,37 @@ export default function EstimateBuilder() {
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
+
+      // Save site photos attachments
+      if (sitePhotos.length > 0) {
+        const attachmentsToInsert = sitePhotos.map((photo, index) => ({
+          estimate_id: estimate.id,
+          file_path: photo.file_path,
+          file_name: photo.file_name,
+          file_type: photo.file_type,
+          file_size: photo.file_size,
+          caption: photo.caption || null,
+          sort_order: index,
+        }));
+
+        const { error: attachmentsError } = await supabase
+          .from("estimate_attachments")
+          .insert(attachmentsToInsert);
+
+        if (attachmentsError) {
+          console.error("Failed to save attachments:", attachmentsError);
+        }
+
+        // Move files from temp folder to estimate folder
+        for (const photo of sitePhotos) {
+          if (photo.file_path.startsWith('temp/')) {
+            const newPath = photo.file_path.replace('temp/', `${estimate.id}/`);
+            await supabase.storage
+              .from('estimate-attachments')
+              .move(photo.file_path, newPath);
+          }
+        }
+      }
 
       toast({
         title: "Estimate Created",
@@ -886,6 +969,12 @@ export default function EstimateBuilder() {
             />
 
             {calculation && <MaterialBreakdown calculation={calculation} showCosts={showCostView} />}
+            
+            {/* Site Documentation */}
+            <SitePhotosUploader
+              photos={sitePhotos}
+              onChange={setSitePhotos}
+            />
             
             <Card>
               <CardHeader>
