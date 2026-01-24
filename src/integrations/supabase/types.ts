@@ -775,6 +775,48 @@ export type Database = {
           },
         ]
       }
+      pricing_config: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          key: string
+          label: string
+          sort_order: number | null
+          unit: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          key: string
+          label: string
+          sort_order?: number | null
+          unit?: string | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          key?: string
+          label?: string
+          sort_order?: number | null
+          unit?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

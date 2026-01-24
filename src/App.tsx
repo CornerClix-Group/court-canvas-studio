@@ -30,6 +30,7 @@ import EstimateDetailView from "./pages/admin/EstimateDetailView";
 import AdminProjects from "./pages/admin/Projects";
 import ProjectDetail from "./pages/admin/ProjectDetail";
 import AdminTeam from "./pages/admin/Team";
+import PricingConfig from "./pages/admin/PricingConfig";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="projects" element={<AdminProjects />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="team" element={<AdminTeam />} />
+            <Route path="pricing" element={<PricingConfig />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
