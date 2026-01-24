@@ -12,7 +12,10 @@ export type ActivityAction =
   | "record_payment"
   | "invite_member"
   | "reset_password"
-  | "change_password";
+  | "change_password"
+  | "status_changed"
+  | "converted_to_project"
+  | "converted_to_invoice";
 
 export type EntityType = 
   | "customer" 

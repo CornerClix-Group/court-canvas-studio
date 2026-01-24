@@ -252,7 +252,11 @@ export default function AdminEstimates() {
                             Convert to Invoice
                           </Button>
                         )}
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/admin/estimates/${estimate.id}`)}
+                        >
                           View
                         </Button>
                       </TableCell>
