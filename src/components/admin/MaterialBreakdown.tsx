@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Wrench, PlusCircle, Calculator, Droplets } from "lucide-react";
+import { Package, Wrench, PlusCircle, Calculator, Droplets, FileText } from "lucide-react";
 import type { CalculationResult } from "@/lib/courtCalculator";
+import { generateCustomerLineItems } from "@/lib/courtCalculator";
 
 export interface MaterialBreakdownProps {
   calculation: CalculationResult;
-  showCosts?: boolean;
+  showCosts?: boolean; // true = Internal view (cost before markup), false = Customer view
 }
 
 export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBreakdownProps) {
@@ -16,6 +17,85 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
     }).format(amount);
   };
 
+  // Customer view shows grouped categories without per-unit pricing
+  if (!showCosts) {
+    const customerItems = generateCustomerLineItems(calculation);
+    const customerTotal = customerItems.reduce((sum, item) => sum + item.total, 0);
+    
+    return (
+      <div className="space-y-6">
+        {/* Summary Card */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Calculator className="w-5 h-5" />
+              Project Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Area</p>
+                <p className="text-lg font-semibold">{calculation.summary.totalSqFt.toLocaleString()} sq ft</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">System</p>
+                <p className="text-lg font-semibold">{calculation.summary.system.shortName}</p>
+                <Badge variant="outline" className="text-xs mt-1">
+                  {calculation.summary.system.forceReduction} force reduction
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Estimate Total</p>
+                <p className="text-2xl font-bold text-primary">
+                  {formatCurrency(calculation.grandTotal)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Customer-Friendly Scope of Work */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="w-5 h-5" />
+              Scope of Work
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {customerItems.map((item, idx) => (
+                <div key={idx} className="flex items-start justify-between py-3 border-b last:border-0">
+                  <div className="flex-1 pr-4">
+                    <p className="font-semibold text-foreground">{item.description}</p>
+                    {item.details && (
+                      <p className="text-sm text-muted-foreground mt-1">{item.details}</p>
+                    )}
+                  </div>
+                  <p className="font-semibold text-lg whitespace-nowrap">{formatCurrency(item.total)}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Grand Total */}
+        <Card className="bg-primary text-primary-foreground">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-medium">Estimate Total</span>
+              <span className="text-3xl font-bold">
+                {formatCurrency(calculation.grandTotal)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Internal view shows full granular breakdown
   return (
     <div className="space-y-6">
       {/* Summary Card */}
@@ -23,7 +103,7 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Calculator className="w-5 h-5" />
-            Project Summary
+            Project Summary (Internal)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -45,11 +125,9 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
               <p className="text-lg font-semibold">{calculation.summary.system.cushionLayers || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">
-                {showCosts ? "Total Cost" : "Grand Total"}
-              </p>
+              <p className="text-sm text-muted-foreground">Total Cost (Before Markup)</p>
               <p className="text-2xl font-bold text-primary">
-                {formatCurrency(showCosts ? calculation.costTotal : calculation.grandTotal)}
+                {formatCurrency(calculation.costTotal)}
               </p>
             </div>
           </div>
@@ -60,9 +138,9 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
       {(calculation.summary.drumCounts.granule55Gal > 0 || 
         calculation.summary.drumCounts.powder55Gal > 0 ||
         calculation.summary.drumCounts.colorCoat30Gal > 0) && (
-        <Card className="border-orange-200 bg-orange-50/50">
+        <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg text-orange-800">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Package className="w-5 h-5" />
               Material Order Summary
             </CardTitle>
@@ -70,8 +148,8 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
           <CardContent>
             <div className="flex flex-wrap gap-4">
               {calculation.summary.drumCounts.granule55Gal > 0 && (
-                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow-sm">
-                  <span className="text-2xl font-bold text-orange-600">
+                <div className="flex items-center gap-2 bg-background rounded-lg px-4 py-2 shadow-sm border">
+                  <span className="text-2xl font-bold text-primary">
                     {calculation.summary.drumCounts.granule55Gal}
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -80,8 +158,8 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
                 </div>
               )}
               {calculation.summary.drumCounts.powder55Gal > 0 && (
-                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow-sm">
-                  <span className="text-2xl font-bold text-blue-600">
+                <div className="flex items-center gap-2 bg-background rounded-lg px-4 py-2 shadow-sm border">
+                  <span className="text-2xl font-bold text-primary">
                     {calculation.summary.drumCounts.powder55Gal}
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -90,8 +168,8 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
                 </div>
               )}
               {calculation.summary.drumCounts.colorCoat30Gal > 0 && (
-                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow-sm">
-                  <span className="text-2xl font-bold text-green-600">
+                <div className="flex items-center gap-2 bg-background rounded-lg px-4 py-2 shadow-sm border">
+                  <span className="text-2xl font-bold text-primary">
                     {calculation.summary.drumCounts.colorCoat30Gal}
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -100,8 +178,8 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
                 </div>
               )}
               {calculation.summary.drumCounts.resurfacer55Gal > 0 && (
-                <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow-sm">
-                  <span className="text-2xl font-bold text-gray-600">
+                <div className="flex items-center gap-2 bg-background rounded-lg px-4 py-2 shadow-sm border">
+                  <span className="text-2xl font-bold text-primary">
                     {calculation.summary.drumCounts.resurfacer55Gal}
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -257,15 +335,29 @@ export function MaterialBreakdown({ calculation, showCosts = false }: MaterialBr
         </Card>
       )}
 
+      {/* Totals Summary */}
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Cost Before Markup</span>
+              <span>{formatCurrency(calculation.costTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Profit ({Math.round((calculation.profitMargin - 1) * 100)}%)</span>
+              <span className="text-primary">+{formatCurrency(calculation.profitAmount)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Grand Total */}
       <Card className="bg-primary text-primary-foreground">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
-            <span className="text-lg font-medium">
-              {showCosts ? "Total Cost (Before Markup)" : "Grand Total"}
-            </span>
+            <span className="text-lg font-medium">Customer Price</span>
             <span className="text-3xl font-bold">
-              {formatCurrency(showCosts ? calculation.costTotal : calculation.grandTotal)}
+              {formatCurrency(calculation.grandTotal)}
             </span>
           </div>
         </CardContent>

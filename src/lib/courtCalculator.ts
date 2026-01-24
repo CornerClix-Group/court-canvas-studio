@@ -462,3 +462,123 @@ export function generateLineItems(calculation: CalculationResult): Array<{
   
   return items;
 }
+
+// Generate customer-friendly grouped line items (hides per-unit costs)
+export function generateCustomerLineItems(calculation: CalculationResult): Array<{
+  description: string;
+  details: string;
+  total: number;
+  sort_order: number;
+}> {
+  const items: Array<{
+    description: string;
+    details: string;
+    total: number;
+    sort_order: number;
+  }> = [];
+  
+  let sortOrder = 0;
+  const profitMultiplier = calculation.profitMargin;
+  
+  // Surface Preparation (grouped)
+  if (calculation.subtotals.condition > 0 || calculation.labor.some(l => l.name.includes('Crack'))) {
+    const prepItems: string[] = [];
+    
+    calculation.conditionWork.forEach(item => {
+      if (item.name.includes('Pressure')) prepItems.push('Power washing');
+      if (item.name.includes('Birdbath')) prepItems.push('Low spot repair');
+      if (item.name.includes('PrimeSeal')) prepItems.push('Surface priming');
+    });
+    
+    // Check if crack repair is in labor
+    const crackRepair = calculation.labor.find(l => l.name.includes('Crack'));
+    if (crackRepair && crackRepair.total > 0) {
+      prepItems.push('Crack repair');
+    }
+    
+    const prepTotal = calculation.subtotals.condition + (crackRepair?.total || 0);
+    
+    if (prepTotal > 0) {
+      items.push({
+        description: 'Surface Preparation',
+        details: prepItems.length > 0 
+          ? `Professional surface preparation including ${prepItems.join(', ').toLowerCase()}`
+          : 'Professional surface preparation and cleaning',
+        total: prepTotal * profitMultiplier,
+        sort_order: sortOrder++,
+      });
+    }
+  }
+  
+  // Court Surfacing System (grouped materials + surfacing labor)
+  const surfacingLabor = calculation.labor.find(l => 
+    l.name.includes('Application') || l.name.includes('Surfacing')
+  );
+  const surfacingTotal = calculation.subtotals.materials + (surfacingLabor?.total || 0);
+  
+  items.push({
+    description: `${calculation.summary.system.name} Surfacing System`,
+    details: calculation.summary.system.cushionLayers > 0
+      ? `Premium ${calculation.summary.system.forceReduction} force reduction system with ${calculation.summary.system.cushionLayers} cushion layer(s) and ${calculation.summary.system.coats.colorCoat} color coats`
+      : `Professional ${calculation.summary.system.forceReduction} force reduction system with ${calculation.summary.system.coats.colorCoat} color coats`,
+    total: surfacingTotal * profitMultiplier,
+    sort_order: sortOrder++,
+  });
+  
+  // Line Striping (keeps per-court pricing as this is customer-visible)
+  const stripingLabor = calculation.labor.find(l => l.name.includes('Striping'));
+  const linePaint = calculation.materials.find(m => m.name.includes('Line Paint'));
+  const stripingTotal = (stripingLabor?.total || 0) + (linePaint?.total || 0);
+  
+  if (stripingTotal > 0) {
+    const courtCount = stripingLabor?.quantity || linePaint?.quantity || 1;
+    items.push({
+      description: 'Professional Court Striping',
+      details: `Complete line marking for ${courtCount} court${courtCount > 1 ? 's' : ''}`,
+      total: stripingTotal * profitMultiplier,
+      sort_order: sortOrder++,
+    });
+  }
+  
+  // Base/Substrate Work
+  if (calculation.subtotals.base > 0) {
+    items.push({
+      description: 'Site Preparation & Base Work',
+      details: 'Substrate preparation and base installation',
+      total: calculation.subtotals.base * profitMultiplier,
+      sort_order: sortOrder++,
+    });
+  }
+  
+  // Add-ons (show individually as customers choose these)
+  calculation.addons.forEach(addon => {
+    items.push({
+      description: addon.name,
+      details: addon.quantity > 1 ? `Quantity: ${addon.quantity}` : '',
+      total: addon.total * profitMultiplier,
+      sort_order: sortOrder++,
+    });
+  });
+  
+  // General labor items not already accounted for (prep labor)
+  const prepLabor = calculation.labor.find(l => l.name.includes('Surface Preparation'));
+  if (prepLabor && prepLabor.total > 0 && calculation.subtotals.condition === 0) {
+    // Only add if we didn't already include it above
+    items[0] = {
+      description: 'Surface Preparation',
+      details: 'Professional surface preparation and cleaning',
+      total: prepLabor.total * profitMultiplier,
+      sort_order: 0,
+    };
+  }
+  
+  return items;
+}
+
+// Helper interface for customer line items
+export interface CustomerLineItem {
+  description: string;
+  details: string;
+  total: number;
+  sort_order: number;
+}
