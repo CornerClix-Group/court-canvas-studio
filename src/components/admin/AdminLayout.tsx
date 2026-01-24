@@ -23,6 +23,7 @@ import {
   FolderKanban,
   Shield,
   Key,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ const navItems = [
   { href: "/admin/invoices", label: "Invoices", icon: Receipt },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
   { href: "/admin/team", label: "Team", icon: Shield },
+  { href: "/admin/pricing", label: "Pricing", icon: DollarSign },
 ];
 
 export default function AdminLayout() {

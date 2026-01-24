@@ -32,9 +32,12 @@ import {
   DEFAULT_PROFIT_MARGIN,
   MIN_PROFIT_MARGIN,
   MAX_PROFIT_MARGIN,
+  PRICING,
 } from "@/lib/pricingConstants";
 import { Slider } from "@/components/ui/slider";
-import { calculateMaterials, generateLineItems, generateQuoteText, type CourtConfig, type SurfaceCondition } from "@/lib/courtCalculator";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { calculateMaterials, generateLineItems, generateQuoteText, type CourtConfig, type SurfaceCondition, type ConstructionOptions } from "@/lib/courtCalculator";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -52,7 +55,12 @@ import {
   Copy,
   Download,
   Mail,
-  Loader2
+  Loader2,
+  Building2,
+  Fence,
+  Lightbulb,
+  Trees,
+  AlertCircle
 } from "lucide-react";
 
 const projectIcons: Record<string, LucideIcon> = {
@@ -66,9 +74,10 @@ const WIZARD_STEPS = [
   { id: 1, name: "Project" },
   { id: 2, name: "Court Size" },
   { id: 3, name: "Base" },
-  { id: 4, name: "System" },
-  { id: 5, name: "Add-ons" },
-  { id: 6, name: "Review" },
+  { id: 4, name: "Construction" },
+  { id: 5, name: "System" },
+  { id: 6, name: "Add-ons" },
+  { id: 7, name: "Review" },
 ];
 
 interface AddonSelection {
@@ -105,6 +114,15 @@ export default function EstimateBuilder() {
     birdbathSqFt: 0,
     primeSeal: false,
   });
+  const [constructionOptions, setConstructionOptions] = useState<ConstructionOptions>({
+    newConstruction: false,
+    constructionType: 'asphalt',
+    fencingRequired: false,
+    fencingLinearFeet: 0,
+    lightingRequired: false,
+    lightPoleCount: 4,
+    playgroundInterest: false,
+  });
   const [profitMargin, setProfitMargin] = useState<number>(DEFAULT_PROFIT_MARGIN);
   const [showCostView, setShowCostView] = useState<boolean>(false);
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
@@ -126,8 +144,9 @@ export default function EstimateBuilder() {
     crackRepairLf,
     addons: selectedAddons,
     surfaceCondition,
+    constructionOptions,
     profitMargin,
-  }), [projectType, totalSqFt, numberOfCourts, selectedSystem, baseType, crackRepairLf, selectedAddons, surfaceCondition, profitMargin]);
+  }), [projectType, totalSqFt, numberOfCourts, selectedSystem, baseType, crackRepairLf, selectedAddons, surfaceCondition, constructionOptions, profitMargin]);
 
   // Calculate estimate
   const calculation = useMemo(() => {
@@ -574,10 +593,13 @@ export default function EstimateBuilder() {
       case 3:
         return !!baseType;
       case 4:
-        return !!selectedSystem;
+        // Construction step - always can proceed (options are optional)
+        return true;
       case 5:
-        return true; // Add-ons are optional
+        return !!selectedSystem;
       case 6:
+        return true; // Add-ons are optional
+      case 7:
         return !!calculation;
       default:
         return false;
@@ -820,6 +842,214 @@ export default function EstimateBuilder() {
         );
 
       case 4:
+        // Calculate default fencing perimeter based on court dimensions
+        const presetData = COURT_PRESETS[courtPreset as keyof typeof COURT_PRESETS];
+        const defaultPerimeter = presetData ? Math.round(Math.sqrt(presetData.sqFt) * 4) : Math.round(Math.sqrt(totalSqFt) * 4);
+        
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label className="text-base font-semibold mb-4 block">Construction & Infrastructure</Label>
+              <p className="text-muted-foreground mb-6">
+                Configure construction options for new builds or court enhancements
+              </p>
+            </div>
+
+            {/* New Construction Toggle */}
+            <Card className={constructionOptions.newConstruction ? "ring-2 ring-primary" : ""}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-6 h-6 text-muted-foreground" />
+                    <div>
+                      <Label className="font-medium">New Court Construction?</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Building a new court from the ground up
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={constructionOptions.newConstruction}
+                    onCheckedChange={(checked) =>
+                      setConstructionOptions(prev => ({ ...prev, newConstruction: checked }))
+                    }
+                  />
+                </div>
+
+                {constructionOptions.newConstruction && (
+                  <div className="mt-4 pt-4 border-t space-y-3">
+                    <Label className="text-sm font-medium">Select Base Type</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div
+                        className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                          constructionOptions.constructionType === 'asphalt' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'
+                        }`}
+                        onClick={() => setConstructionOptions(prev => ({ ...prev, constructionType: 'asphalt' }))}
+                      >
+                        <p className="font-medium">Asphalt Paving</p>
+                        <p className="text-sm text-muted-foreground">1.5" Overlay</p>
+                        <p className="text-sm font-medium text-primary mt-1">
+                          ${PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF.toFixed(2)}/sq ft
+                        </p>
+                      </div>
+                      <div
+                        className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                          constructionOptions.constructionType === 'post_tension' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'
+                        }`}
+                        onClick={() => setConstructionOptions(prev => ({ ...prev, constructionType: 'post_tension' }))}
+                      >
+                        <p className="font-medium">Post-Tension Concrete</p>
+                        <p className="text-sm text-muted-foreground">Premium slab</p>
+                        <p className="text-sm font-medium text-primary mt-1">
+                          ${PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF.toFixed(2)}/sq ft
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Fencing Toggle */}
+            <Card className={constructionOptions.fencingRequired ? "ring-2 ring-primary" : ""}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Fence className="w-6 h-6 text-muted-foreground" />
+                    <div>
+                      <Label className="font-medium">Fencing Required?</Label>
+                      <p className="text-sm text-muted-foreground">
+                        10ft Black Vinyl Chain Link
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={constructionOptions.fencingRequired}
+                    onCheckedChange={(checked) =>
+                      setConstructionOptions(prev => ({
+                        ...prev,
+                        fencingRequired: checked,
+                        fencingLinearFeet: checked && prev.fencingLinearFeet === 0 ? defaultPerimeter : prev.fencingLinearFeet,
+                      }))
+                    }
+                  />
+                </div>
+
+                {constructionOptions.fencingRequired && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Label htmlFor="fencingLf">Linear Feet of Fencing</Label>
+                        <Input
+                          id="fencingLf"
+                          type="number"
+                          min={0}
+                          value={constructionOptions.fencingLinearFeet || ''}
+                          onChange={(e) =>
+                            setConstructionOptions(prev => ({
+                              ...prev,
+                              fencingLinearFeet: parseInt(e.target.value) || 0,
+                            }))
+                          }
+                          placeholder={`Default: ${defaultPerimeter} LF (perimeter)`}
+                        />
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Estimated Cost</p>
+                        <p className="text-lg font-bold">
+                          ${(constructionOptions.fencingLinearFeet * PRICING.CONSTRUCTION.FENCING_10FT_PER_LF).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Lighting Toggle */}
+            <Card className={constructionOptions.lightingRequired ? "ring-2 ring-primary" : ""}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Lightbulb className="w-6 h-6 text-muted-foreground" />
+                    <div>
+                      <Label className="font-medium">Lighting?</Label>
+                      <p className="text-sm text-muted-foreground">
+                        LED Light Poles with electrical
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={constructionOptions.lightingRequired}
+                    onCheckedChange={(checked) =>
+                      setConstructionOptions(prev => ({ ...prev, lightingRequired: checked }))
+                    }
+                  />
+                </div>
+
+                {constructionOptions.lightingRequired && (
+                  <div className="mt-4 pt-4 border-t">
+                    <Label className="text-sm font-medium mb-3 block">Number of Poles</Label>
+                    <div className="grid grid-cols-4 gap-3">
+                      {[2, 4, 6, 8].map((count) => (
+                        <div
+                          key={count}
+                          className={`p-3 border rounded-lg cursor-pointer text-center transition-all ${
+                            constructionOptions.lightPoleCount === count ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'
+                          }`}
+                          onClick={() => setConstructionOptions(prev => ({ ...prev, lightPoleCount: count }))}
+                        >
+                          <p className="text-lg font-bold">{count}</p>
+                          <p className="text-xs text-muted-foreground">poles</p>
+                          <p className="text-sm font-medium text-primary mt-1">
+                            ${(count * PRICING.CONSTRUCTION.LIGHT_POLE_UNIT).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Playground Interest Toggle */}
+            <Card className={constructionOptions.playgroundInterest ? "ring-2 ring-amber-500 border-amber-500" : ""}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Trees className="w-6 h-6 text-muted-foreground" />
+                    <div>
+                      <Label className="font-medium">Playground Interest?</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add playground equipment allowance
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={constructionOptions.playgroundInterest}
+                    onCheckedChange={(checked) =>
+                      setConstructionOptions(prev => ({ ...prev, playgroundInterest: checked }))
+                    }
+                  />
+                </div>
+
+                {constructionOptions.playgroundInterest && (
+                  <div className="mt-4 pt-4 border-t">
+                    <Alert className="border-amber-500 bg-amber-500/10">
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                      <AlertDescription className="text-amber-700">
+                        <strong>Consultation Required</strong> - A ${PRICING.CONSTRUCTION.PLAYGROUND_BUDGET.toLocaleString()} 
+                        {' '}allowance will be added. Final pricing requires a site consultation.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 5:
         return (
           <div className="space-y-6">
             <div>
@@ -836,7 +1066,7 @@ export default function EstimateBuilder() {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-6">
             <div>
@@ -919,7 +1149,7 @@ export default function EstimateBuilder() {
           </div>
         );
 
-      case 6:
+      case 7:
         const marginPercent = Math.round((profitMargin - 1) * 100);
         const formatCurrency = (val: number) => 
           new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
@@ -1002,6 +1232,18 @@ export default function EstimateBuilder() {
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Add-ons:</span>
                             <span className="font-medium">{formatCurrency(calculation.subtotals.addons)}</span>
+                          </div>
+                        )}
+                        {calculation.subtotals.construction > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Construction:</span>
+                            <span className="font-medium">{formatCurrency(calculation.subtotals.construction)}</span>
+                          </div>
+                        )}
+                        {calculation.subtotals.mobilization > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Mobilization:</span>
+                            <span className="font-medium">{formatCurrency(calculation.subtotals.mobilization)}</span>
                           </div>
                         )}
                         {customItemsTotal > 0 && (
