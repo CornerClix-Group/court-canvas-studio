@@ -26,11 +26,12 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
-    const { invoiceId, token } = await req.json();
+    const { invoiceId, token, paymentMethod } = await req.json();
     if (!invoiceId && !token) {
       throw new Error("Either invoiceId or token is required");
     }
-    logStep("Request parsed", { invoiceId, token });
+    const isACH = paymentMethod === "ach";
+    logStep("Request parsed", { invoiceId, token, paymentMethod, isACH });
 
     // Initialize Supabase with service role to bypass RLS
     const supabaseClient = createClient(
@@ -97,13 +98,13 @@ serve(async (req) => {
       amountPaid: invoice.amount_paid 
     });
 
-    // Calculate amount due and convenience fee
+    // Calculate amount due and convenience fee (ACH payments have no fee)
     const amountDue = Number(invoice.total) - Number(invoice.amount_paid || 0);
     if (amountDue <= 0) {
       throw new Error("Invoice is already fully paid");
     }
 
-    const convenienceFee = Math.round(amountDue * CONVENIENCE_FEE_PERCENT * 100) / 100;
+    const convenienceFee = isACH ? 0 : Math.round(amountDue * CONVENIENCE_FEE_PERCENT * 100) / 100;
     const totalWithFee = amountDue + convenienceFee;
     const totalInCents = Math.round(totalWithFee * 100);
 
@@ -111,7 +112,8 @@ serve(async (req) => {
       amountDue, 
       convenienceFee, 
       totalWithFee, 
-      totalInCents 
+      totalInCents,
+      isACH
     });
 
     // Initialize Stripe
@@ -142,32 +144,39 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://courtproaugusta.lovable.app";
     const paymentToken = token || invoice.payment_link_token;
     
+    // Build line items based on payment method
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `Invoice ${invoice.invoice_number}`,
+            description: `Payment for Invoice ${invoice.invoice_number} - CourtHaus Construction`,
+          },
+          unit_amount: Math.round(amountDue * 100),
+        },
+        quantity: 1,
+      },
+    ];
+
+    // Add convenience fee only for non-ACH payments
+    if (!isACH && convenienceFee > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "Convenience Fee (3%)",
+            description: "Processing fee for online card payments",
+          },
+          unit_amount: Math.round(convenienceFee * 100),
+        },
+        quantity: 1,
+      });
+    }
+
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-      payment_method_types: ["card", "klarna", "cashapp", "amazon_pay", "link"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Invoice ${invoice.invoice_number}`,
-              description: `Payment for Invoice ${invoice.invoice_number} - CourtHaus Construction`,
-            },
-            unit_amount: Math.round(amountDue * 100),
-          },
-          quantity: 1,
-        },
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Convenience Fee (3%)",
-              description: "Processing fee for online card payments",
-            },
-            unit_amount: Math.round(convenienceFee * 100),
-          },
-          quantity: 1,
-        },
-      ],
+      payment_method_types: isACH ? ["us_bank_account"] : ["card", "klarna", "cashapp", "amazon_pay", "link"],
+      line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/pay/${paymentToken}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/pay/${paymentToken}`,
@@ -176,6 +185,7 @@ serve(async (req) => {
         invoice_number: invoice.invoice_number,
         convenience_fee: convenienceFee.toString(),
         original_amount: amountDue.toString(),
+        payment_method_type: isACH ? "ach" : "card",
       },
     };
 

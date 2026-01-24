@@ -167,8 +167,8 @@ function generatePdfContent(invoice: InvoiceData): Uint8Array {
     lines.push("");
     lines.push("*".repeat(67));
     lines.push("*" + " ".repeat(13) + "FLEXIBLE PAYMENT OPTIONS" + " ".repeat(28) + "*");
-    lines.push("*" + " ".repeat(7) + "Finance with Klarna - Pay in 4 or over time" + " ".repeat(15) + "*");
-    lines.push("*" + " ".repeat(5) + "Apple Pay | Cash App | Amazon Pay | Cards" + " ".repeat(17) + "*");
+    lines.push("*" + " ".repeat(5) + "Klarna | Apple Pay | Cash App | Amazon Pay | Cards" + " ".repeat(9) + "*");
+    lines.push("*" + " ".repeat(10) + "Bank Transfer (ACH) - NO FEE!" + " ".repeat(26) + "*");
     lines.push("*".repeat(67));
   }
   
