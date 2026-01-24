@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, CreditCard, FileText, Building, CheckCircle, Calendar } from "lucide-react";
+import { Loader2, CreditCard, FileText, Building, CheckCircle, Calendar, Landmark } from "lucide-react";
 import { toast } from "sonner";
 
 interface Invoice {
@@ -35,7 +35,7 @@ export default function Pay() {
   const { token } = useParams<{ token: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const [processingPayment, setProcessingPayment] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState<"card" | "ach" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,13 +101,13 @@ export default function Pay() {
     });
   };
 
-  const handlePayOnline = async () => {
+  const handlePayOnline = async (paymentMethod: "card" | "ach" = "card") => {
     if (!token) return;
 
-    setProcessingPayment(true);
+    setProcessingPayment(paymentMethod);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-        body: { token },
+        body: { token, paymentMethod },
       });
 
       if (error) throw error;
@@ -121,7 +121,7 @@ export default function Pay() {
       console.error("Payment error:", err);
       toast.error("Failed to initiate payment. Please try again.");
     } finally {
-      setProcessingPayment(false);
+      setProcessingPayment(null);
     }
   };
 
@@ -254,14 +254,14 @@ export default function Pay() {
             </CardContent>
           </Card>
 
-          {/* Pay Online */}
+          {/* Pay Online - Card/Wallet */}
           <Card className="border-primary">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Pay Online</CardTitle>
+                <CardTitle className="text-lg">Pay with Card or Wallet</CardTitle>
               </div>
-              <CardDescription>Credit card or financing options</CardDescription>
+              <CardDescription>Credit card, Apple Pay, Cash App, Klarna</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm mb-4">
@@ -281,12 +281,12 @@ export default function Pay() {
               </div>
 
               <Button 
-                onClick={handlePayOnline} 
-                disabled={processingPayment}
+                onClick={() => handlePayOnline("card")} 
+                disabled={processingPayment !== null}
                 className="w-full mb-4"
                 size="lg"
               >
-                {processingPayment ? (
+                {processingPayment === "card" ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
@@ -300,10 +300,60 @@ export default function Pay() {
               </Button>
 
               <div className="text-xs text-muted-foreground text-center space-y-1">
-                <p className="font-medium">Payment options at checkout:</p>
-                <p>💳 Credit/Debit Card (Visa, Mastercard, Amex)</p>
-                <p>📱 Apple Pay, Cash App, Amazon Pay</p>
+                <p>💳 Cards • 📱 Apple Pay, Cash App, Amazon Pay</p>
                 <p>📅 Klarna - Pay in 4 or finance over time</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pay Online - ACH Bank Transfer (No Fee) */}
+          <Card className="border-green-500 bg-green-50">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Landmark className="h-5 w-5 text-green-600" />
+                <CardTitle className="text-lg text-green-800">Pay with Bank Transfer</CardTitle>
+              </div>
+              <CardDescription className="text-green-700">ACH Direct Debit - No convenience fee!</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm mb-4">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Invoice Amount:</span>
+                  <span>{formatCurrency(amountDue)}</span>
+                </div>
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Convenience Fee:</span>
+                  <span>$0.00 ✓</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold text-green-800">
+                  <span>Total:</span>
+                  <span>{formatCurrency(amountDue)}</span>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handlePayOnline("ach")} 
+                disabled={processingPayment !== null}
+                className="w-full mb-4 bg-green-600 hover:bg-green-700"
+                size="lg"
+              >
+                {processingPayment === "ach" ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Landmark className="mr-2 h-4 w-4" />
+                    Pay {formatCurrency(amountDue)} - No Fee
+                  </>
+                )}
+              </Button>
+
+              <div className="text-xs text-green-700 text-center space-y-1">
+                <p className="font-medium">🏦 Connect your bank account securely</p>
+                <p>Funds are debited directly - no processing fee</p>
               </div>
             </CardContent>
           </Card>

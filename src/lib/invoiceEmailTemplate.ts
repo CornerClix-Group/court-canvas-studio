@@ -144,7 +144,7 @@ export function generateInvoiceEmailHTML(invoice: InvoiceForEmail, lineItems: Li
         Finance with Klarna - Pay in 4 or spread over time
       </p>
       <p style="color: #a7f3d0; margin: 8px 0 0 0; font-size: 12px;">
-        Also accepting Apple Pay, Cash App, Amazon Pay & cards
+        Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
       </p>
     </div>
 

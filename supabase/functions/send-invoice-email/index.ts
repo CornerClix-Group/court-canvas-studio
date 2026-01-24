@@ -200,7 +200,7 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl
               Finance with Klarna - Pay in 4 or spread over time
             </p>
             <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
-              Also accepting Apple Pay, Cash App, Amazon Pay & cards
+              Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
             </p>
           </div>
 
@@ -216,13 +216,13 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl
           <div style="margin-top: 40px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 32px; border-radius: 12px; text-align: center;">
             <h3 style="margin: 0 0 8px 0; color: white; font-size: 20px; font-weight: bold;">Pay Online</h3>
             <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 14px;">
-              Quick and secure payment with credit card or financing options
+              Quick and secure payment with multiple options
             </p>
             <a href="${paymentUrl}" style="display: inline-block; background: white; color: #059669; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-              💳 Pay ${formatCurrency(totalWithFee)} Now
+              💳 View Payment Options
             </a>
             <p style="margin: 16px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
-              Includes 3% convenience fee (${formatCurrency(convenienceFee)}) • Finance with Klarna or pay with Apple Pay, Cash App & more
+              Cards & wallets include 3% fee • 🏦 <strong>Bank transfer has NO fee!</strong>
             </p>
           </div>
 
