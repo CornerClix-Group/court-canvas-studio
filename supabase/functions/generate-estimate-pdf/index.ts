@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb, StandardFonts, degrees } from "https://esm.sh/pdf-lib@1.17.1";
 
 const COMPANY_INFO = {
   displayName: "CourtHaus Construction, LLC dba CourtPro Augusta",
@@ -54,7 +54,7 @@ async function generatePdfWithImages(estimate: any, supabase: any): Promise<Uint
   const leftMargin = 50;
 
   if (estimate.status === "approved") {
-    page.drawText("APPROVED", { x: 150, y: 400, size: 72, font: helveticaBold, color: rgb(0, 0.5, 0), opacity: 0.2, rotate: { type: 'degrees' as const, angle: 45 } });
+    page.drawText("APPROVED", { x: 150, y: 400, size: 72, font: helveticaBold, color: rgb(0, 0.5, 0), opacity: 0.2, rotate: degrees(45) });
   }
 
   page.drawText(COMPANY_INFO.displayName, { x: leftMargin, y, size: 12, font: helveticaBold }); y -= 14;
