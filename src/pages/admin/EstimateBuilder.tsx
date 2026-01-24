@@ -38,7 +38,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { calculateMaterials, generateLineItems, generateQuoteText, type CourtConfig, type SurfaceCondition, type ConstructionOptions } from "@/lib/courtCalculator";
+import { calculateMaterials, generateLineItems, generateQuoteText, generateScopeBullets, type CourtConfig, type SurfaceCondition, type ConstructionOptions, type EstimateDisplayFormat } from "@/lib/courtCalculator";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -61,7 +61,10 @@ import {
   Fence,
   Lightbulb,
   Trees,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  List,
+  Check
 } from "lucide-react";
 
 const projectIcons: Record<string, LucideIcon> = {
@@ -132,6 +135,8 @@ export default function EstimateBuilder() {
   const [profitMargin, setProfitMargin] = useState<number>(DEFAULT_PROFIT_MARGIN);
   const [showCostView, setShowCostView] = useState<boolean>(false);
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
+  const [displayFormat, setDisplayFormat] = useState<EstimateDisplayFormat>('lump_sum');
+  const [scopeBullets, setScopeBullets] = useState<string[]>([]);
 
   // Calculate total sq ft
   const totalSqFt = useMemo(() => {
@@ -170,6 +175,14 @@ export default function EstimateBuilder() {
   const grandTotalWithCustomItems = useMemo(() => {
     return (calculation?.grandTotal || 0) + customItemsTotal;
   }, [calculation?.grandTotal, customItemsTotal]);
+
+  // Generate scope bullets when calculation changes
+  useEffect(() => {
+    if (calculation) {
+      const bullets = generateScopeBullets(calculation);
+      setScopeBullets(bullets);
+    }
+  }, [calculation]);
 
   // Fetch customer data when selected
   useEffect(() => {
@@ -230,11 +243,23 @@ export default function EstimateBuilder() {
           total: grandTotalWithCustomItems,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
+          display_format: displayFormat,
         })
         .select()
         .single();
 
       if (estimateError) throw estimateError;
+
+      // Save scope bullets
+      if (scopeBullets.length > 0) {
+        const bulletsToInsert = scopeBullets.map((bullet, index) => ({
+          estimate_id: estimate.id,
+          bullet_text: bullet,
+          sort_order: index,
+        }));
+
+        await supabase.from("estimate_scope_bullets").insert(bulletsToInsert);
+      }
 
       const lineItems = generateLineItems(calculation);
       const itemsToInsert = lineItems.map(item => ({
@@ -350,11 +375,23 @@ export default function EstimateBuilder() {
           total: grandTotalWithCustomItems,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
+          display_format: displayFormat,
         })
         .select()
         .single();
 
       if (estimateError) throw estimateError;
+
+      // Save scope bullets
+      if (scopeBullets.length > 0) {
+        const bulletsToInsert = scopeBullets.map((bullet, index) => ({
+          estimate_id: estimate.id,
+          bullet_text: bullet,
+          sort_order: index,
+        }));
+
+        await supabase.from("estimate_scope_bullets").insert(bulletsToInsert);
+      }
 
       const lineItems = generateLineItems(calculation);
       const itemsToInsert = lineItems.map(item => ({
@@ -499,11 +536,23 @@ export default function EstimateBuilder() {
           total: grandTotalWithCustomItems,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
+          display_format: displayFormat,
         })
         .select()
         .single();
 
       if (estimateError) throw estimateError;
+
+      // Save scope bullets
+      if (scopeBullets.length > 0) {
+        const bulletsToInsert = scopeBullets.map((bullet, index) => ({
+          estimate_id: estimate.id,
+          bullet_text: bullet,
+          sort_order: index,
+        }));
+
+        await supabase.from("estimate_scope_bullets").insert(bulletsToInsert);
+      }
 
       // Generate and insert line items
       const lineItems = generateLineItems(calculation);
@@ -1453,6 +1502,112 @@ export default function EstimateBuilder() {
                   onChange={(e) => setNotes(e.target.value)}
                   rows={4}
                 />
+              </CardContent>
+            </Card>
+
+            {/* Customer Display Format */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="w-5 h-5" />
+                  Customer Display Format
+                </CardTitle>
+                <CardDescription>
+                  Choose how the estimate will appear to your customer
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Lump Sum Option */}
+                  <div
+                    className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      displayFormat === 'lump_sum' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-muted-foreground'
+                    }`}
+                    onClick={() => setDisplayFormat('lump_sum')}
+                  >
+                    {displayFormat === 'lump_sum' && (
+                      <div className="absolute top-2 right-2">
+                        <Check className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Lump Sum</p>
+                        <p className="text-xs text-muted-foreground">Recommended</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Clean, marketing-focused format with bullet points and a single total price.
+                    </p>
+                    <div className="text-xs space-y-1 p-2 bg-muted/50 rounded">
+                      <p className="font-medium">Preview:</p>
+                      <ul className="list-disc list-inside text-muted-foreground">
+                        {scopeBullets.slice(0, 3).map((bullet, i) => (
+                          <li key={i} className="truncate">{bullet}</li>
+                        ))}
+                        {scopeBullets.length > 3 && <li>...</li>}
+                      </ul>
+                      <p className="font-semibold mt-2">
+                        Project Investment: {formatCurrency(grandTotalWithCustomItems)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Detailed Scope Option */}
+                  <div
+                    className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      displayFormat === 'detailed_scope' 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-muted-foreground'
+                    }`}
+                    onClick={() => setDisplayFormat('detailed_scope')}
+                  >
+                    {displayFormat === 'detailed_scope' && (
+                      <div className="absolute top-2 right-2">
+                        <Check className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-full bg-muted">
+                        <List className="w-5 h-5 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Detailed Scope</p>
+                        <p className="text-xs text-muted-foreground">On Request</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Grouped categories with subtotals. Shows more detail without exposing unit costs.
+                    </p>
+                    <div className="text-xs space-y-1 p-2 bg-muted/50 rounded">
+                      <p className="font-medium">Preview:</p>
+                      <div className="space-y-1 text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Surface Preparation</span>
+                          <span>{formatCurrency(calculation?.subtotals.condition || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Surfacing System</span>
+                          <span>{formatCurrency((calculation?.subtotals.materials || 0) + (calculation?.subtotals.labor || 0))}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-foreground pt-1 border-t">
+                          <span>Total</span>
+                          <span>{formatCurrency(grandTotalWithCustomItems)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  <strong>Note:</strong> The Admin View with full cost breakdown is always available to you. 
+                  This selection only affects what the customer sees in emails and PDFs.
+                </p>
               </CardContent>
             </Card>
 

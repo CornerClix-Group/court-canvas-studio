@@ -724,3 +724,94 @@ export interface CustomerLineItem {
   total: number;
   sort_order: number;
 }
+
+// Generate marketing-friendly scope bullets for lump sum format
+export function generateScopeBullets(calculation: CalculationResult): string[] {
+  const bullets: string[] = [];
+  
+  // Surface preparation bullets
+  if (calculation.subtotals.condition > 0) {
+    const prepTasks: string[] = [];
+    
+    calculation.conditionWork.forEach(item => {
+      if (item.name.toLowerCase().includes('pressure') || item.name.toLowerCase().includes('wash')) {
+        prepTasks.push('complete pressure washing');
+      }
+      if (item.name.toLowerCase().includes('crack')) {
+        prepTasks.push('professional crack repair');
+      }
+      if (item.name.toLowerCase().includes('birdbath') || item.name.toLowerCase().includes('low spot')) {
+        prepTasks.push('low spot leveling');
+      }
+      if (item.name.toLowerCase().includes('prime') || item.name.toLowerCase().includes('seal')) {
+        prepTasks.push('surface priming');
+      }
+    });
+    
+    if (prepTasks.length > 0) {
+      const uniqueTasks = [...new Set(prepTasks)];
+      if (uniqueTasks.length === 1) {
+        bullets.push(`Professional ${uniqueTasks[0]} and surface preparation`);
+      } else {
+        bullets.push(`Complete surface preparation including ${uniqueTasks.slice(0, -1).join(', ')}${uniqueTasks.length > 1 ? ' and ' + uniqueTasks[uniqueTasks.length - 1] : ''}`);
+      }
+    }
+  }
+  
+  // Surfacing system bullet
+  const system = calculation.summary.system;
+  if (system.cushionLayers > 0) {
+    bullets.push(`${system.name} premium cushioned surfacing system (${system.forceReduction} force reduction)`);
+  } else if (system.isGelSystem) {
+    bullets.push(`${system.name} gel cushion surfacing system for maximum player comfort`);
+  } else {
+    bullets.push(`${system.name} acrylic surfacing system with ${system.coats.colorCoat} color coats`);
+  }
+  
+  // Color coats bullet
+  if (system.coats.colorCoat > 0) {
+    bullets.push(`Professional color application with premium UV-resistant coatings`);
+  }
+  
+  // Line striping bullet
+  const stripingLabor = calculation.labor.find(l => l.name.toLowerCase().includes('striping'));
+  if (stripingLabor && stripingLabor.quantity > 0) {
+    const courtCount = stripingLabor.quantity;
+    bullets.push(`Regulation court line striping for ${courtCount} court${courtCount > 1 ? 's' : ''}`);
+  }
+  
+  // Construction items
+  calculation.constructionItems.forEach(item => {
+    if (item.name.toLowerCase().includes('fence')) {
+      bullets.push('10\' black vinyl coated chain link perimeter fencing');
+    }
+    if (item.name.toLowerCase().includes('light')) {
+      bullets.push('LED court lighting system with professional installation');
+    }
+    if (item.name.toLowerCase().includes('asphalt')) {
+      bullets.push('New asphalt paving with proper drainage slope');
+    }
+    if (item.name.toLowerCase().includes('concrete') || item.name.toLowerCase().includes('post-tension')) {
+      bullets.push('Premium post-tension concrete slab construction');
+    }
+    if (item.name.toLowerCase().includes('net post')) {
+      bullets.push('Net post system with ground sleeves');
+    }
+    if (item.name.toLowerCase().includes('bench')) {
+      bullets.push('Courtside player benches');
+    }
+    if (item.name.toLowerCase().includes('windscreen')) {
+      bullets.push('Privacy windscreen installation');
+    }
+  });
+  
+  // Add-ons
+  calculation.addons.forEach(addon => {
+    bullets.push(addon.name);
+  });
+  
+  return bullets;
+}
+
+// Display format type for customer-facing estimates
+export type EstimateDisplayFormat = 'lump_sum' | 'detailed_scope';

@@ -57,7 +57,11 @@ import {
   X,
   Plus,
   Trash2,
+  Eye,
+  LayoutList,
 } from "lucide-react";
+
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Estimate {
   id: string;
@@ -71,6 +75,7 @@ interface Estimate {
   sent_at: string | null;
   approved_at: string | null;
   created_at: string;
+  display_format: string | null;
   customers: {
     id: string;
     contact_name: string;
@@ -82,6 +87,12 @@ interface Estimate {
     state: string | null;
     zip: string | null;
   } | null;
+}
+
+interface ScopeBullet {
+  id: string;
+  bullet_text: string;
+  sort_order: number;
 }
 
 interface EstimateItem {
@@ -128,9 +139,11 @@ export default function EstimateDetailView() {
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
+  const [scopeBullets, setScopeBullets] = useState<ScopeBullet[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'admin' | 'customer'>('admin');
   
   // Edit mode state
   const [editNotes, setEditNotes] = useState("");
@@ -161,7 +174,7 @@ export default function EstimateDetailView() {
 
   const fetchEstimate = async () => {
     try {
-      const [estimateResult, itemsResult, customItemsResult] = await Promise.all([
+      const [estimateResult, itemsResult, customItemsResult, bulletsResult] = await Promise.all([
         supabase
           .from("estimates")
           .select(`
@@ -190,6 +203,11 @@ export default function EstimateDetailView() {
           .select("id, description, customer_price, sort_order")
           .eq("estimate_id", id!)
           .order("sort_order"),
+        supabase
+          .from("estimate_scope_bullets")
+          .select("id, bullet_text, sort_order")
+          .eq("estimate_id", id!)
+          .order("sort_order"),
       ]);
 
       if (estimateResult.error) throw estimateResult.error;
@@ -197,6 +215,7 @@ export default function EstimateDetailView() {
       setEstimate(estimateResult.data);
       setItems(itemsResult.data || []);
       setCustomItems(customItemsResult.data || []);
+      setScopeBullets(bulletsResult.data || []);
     } catch (error) {
       console.error("Error fetching estimate:", error);
       toast({
@@ -706,10 +725,32 @@ export default function EstimateDetailView() {
           {/* Line Items */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Line Items
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  {viewMode === 'admin' ? 'Line Items' : 'Scope of Work'}
+                </CardTitle>
+                {!isEditMode && (
+                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'admin' | 'customer')}>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="customer" className="text-xs px-3 h-7">
+                        <Eye className="w-3 h-3 mr-1" />
+                        Customer View
+                      </TabsTrigger>
+                      <TabsTrigger value="admin" className="text-xs px-3 h-7">
+                        <LayoutList className="w-3 h-3 mr-1" />
+                        Admin View
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                )}
+              </div>
+              {viewMode === 'customer' && !isEditMode && (
+                <CardDescription>
+                  This is how the customer will see the estimate
+                  {estimate?.display_format === 'lump_sum' ? ' (Lump Sum format)' : estimate?.display_format === 'detailed_scope' ? ' (Detailed Scope format)' : ''}
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               {isEditMode ? (
@@ -815,7 +856,111 @@ export default function EstimateDetailView() {
                     </div>
                   </div>
                 </div>
+              ) : viewMode === 'customer' ? (
+                // Customer View - Lump Sum or Detailed Scope
+                <div className="space-y-6">
+                  {estimate.display_format === 'lump_sum' && scopeBullets.length > 0 ? (
+                    // Lump Sum Format with Bullets
+                    <div className="space-y-4">
+                      <p className="text-muted-foreground">
+                        Our team will professionally complete your court project with:
+                      </p>
+                      <ul className="space-y-2">
+                        {scopeBullets.map((bullet) => (
+                          <li key={bullet.id} className="flex items-start gap-3">
+                            <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{bullet.bullet_text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      
+                      {customItems.length > 0 && (
+                        <div className="pt-4 border-t">
+                          <p className="font-medium mb-2">Additional Work Included:</p>
+                          <ul className="space-y-2">
+                            {customItems.map((item) => (
+                              <li key={item.id} className="flex items-start gap-3">
+                                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                <span>{item.description}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <Separator className="my-4" />
+                      
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 text-center">
+                        <p className="text-sm text-muted-foreground mb-1">Project Investment</p>
+                        <p className="text-3xl font-bold text-primary">
+                          {formatCurrency(estimate.total)}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    // Detailed Scope Format (grouped categories) or fallback
+                    <div className="space-y-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Service</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {/* Group items by category */}
+                          {(() => {
+                            // Simple grouping logic for customer view
+                            const groups: Record<string, number> = {};
+                            items.forEach(item => {
+                              let category = 'Other Services';
+                              const desc = item.description.toLowerCase();
+                              if (desc.includes('pressure') || desc.includes('wash') || desc.includes('crack') || desc.includes('birdbath') || desc.includes('prime') || desc.includes('seal')) {
+                                category = 'Surface Preparation';
+                              } else if (desc.includes('laykold') || desc.includes('resurfacer') || desc.includes('color') || desc.includes('cushion') || desc.includes('installation') || desc.includes('gel')) {
+                                category = 'Court Surfacing System';
+                              } else if (desc.includes('striping') || desc.includes('line')) {
+                                category = 'Professional Court Striping';
+                              } else if (desc.includes('mobilization') || desc.includes('setup')) {
+                                category = 'Mobilization & Project Setup';
+                              } else if (desc.includes('fence') || desc.includes('light') || desc.includes('asphalt') || desc.includes('concrete')) {
+                                category = 'Construction & Infrastructure';
+                              }
+                              groups[category] = (groups[category] || 0) + item.total;
+                            });
+                            
+                            return Object.entries(groups).map(([category, total]) => (
+                              <TableRow key={category}>
+                                <TableCell className="font-medium">{category}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(total)}</TableCell>
+                              </TableRow>
+                            ));
+                          })()}
+                          
+                          {customItems.length > 0 && customItems.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.description}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(item.customer_price)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      
+                      <Separator className="my-4" />
+                      
+                      <div className="flex justify-end">
+                        <div className="w-64 space-y-2">
+                          <div className="flex justify-between font-bold text-lg">
+                            <span>Project Total</span>
+                            <span>{formatCurrency(estimate.total)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
+                // Admin View - Full Detail
                 <>
                   <Table>
                     <TableHeader>
