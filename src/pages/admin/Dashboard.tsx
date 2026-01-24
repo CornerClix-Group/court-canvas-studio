@@ -14,6 +14,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { MercuryBalanceCard } from "@/components/admin/MercuryBalanceCard";
+import { EstimatePipelineWidget } from "@/components/admin/EstimatePipelineWidget";
 
 interface DashboardStats {
   leads: number;
@@ -159,8 +160,9 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      {/* Mercury Bank Balance */}
+      {/* Sales Pipeline & Bank Balance */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <EstimatePipelineWidget />
         <MercuryBalanceCard />
       </div>
 
