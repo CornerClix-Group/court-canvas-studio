@@ -100,11 +100,11 @@ async function generatePdfWithImages(estimate: any, supabase: any): Promise<Uint
   y -= 10;
   page.drawText(`TOTAL: ${formatCurrency(estimate.total)}`, { x: 400, y, size: 14, font: helveticaBold });
   
-  // Financing Available badge
+  // Flexible Payment Options badge
   y -= 35;
-  page.drawRectangle({ x: leftMargin, y: y - 5, width: 280, height: 40, color: rgb(0.02, 0.36, 0.29) });
-  page.drawText("FINANCING AVAILABLE", { x: leftMargin + 12, y: y + 18, size: 12, font: helveticaBold, color: rgb(1, 1, 1) });
-  page.drawText("Pay over time with Affirm or Klarna at checkout", { x: leftMargin + 12, y: y + 4, size: 9, font: helvetica, color: rgb(0.82, 0.95, 0.85) });
+  page.drawRectangle({ x: leftMargin, y: y - 5, width: 320, height: 40, color: rgb(0.02, 0.36, 0.29) });
+  page.drawText("FLEXIBLE PAYMENT OPTIONS", { x: leftMargin + 12, y: y + 18, size: 12, font: helveticaBold, color: rgb(1, 1, 1) });
+  page.drawText("Finance with Klarna • Apple Pay • Cash App • Cards", { x: leftMargin + 12, y: y + 4, size: 9, font: helvetica, color: rgb(0.82, 0.95, 0.85) });
   
   y -= 50;
   page.drawText("Thank you for considering CourtPro Augusta!", { x: leftMargin, y, size: 10, font: helvetica });

@@ -143,7 +143,7 @@ serve(async (req) => {
     const paymentToken = token || invoice.payment_link_token;
     
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-      payment_method_types: ["card", "affirm", "klarna"],
+      payment_method_types: ["card", "klarna", "cashapp", "amazon_pay", "link"],
       line_items: [
         {
           price_data: {
