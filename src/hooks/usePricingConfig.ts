@@ -22,6 +22,8 @@ export interface DynamicPricing {
     LINE_PAINT_PER_GAL: number;
     PRIMESEAL_PER_GAL: number;
     CRACK_FILLER_UNIT: number;
+    CUSHION_GRANULE_PER_GAL: number;
+    CUSHION_POWDER_PER_GAL: number;
   };
   LABOR: {
     WASH_PER_SF: number;
@@ -66,6 +68,8 @@ const keyMapping: Record<string, { category: keyof DynamicPricing | 'margins'; s
   line_paint_per_gal: { category: 'MATERIALS', subKey: 'LINE_PAINT_PER_GAL' },
   primeseal_per_gal: { category: 'MATERIALS', subKey: 'PRIMESEAL_PER_GAL' },
   crack_filler_unit: { category: 'MATERIALS', subKey: 'CRACK_FILLER_UNIT' },
+  cushion_granule_per_gal: { category: 'MATERIALS', subKey: 'CUSHION_GRANULE_PER_GAL' },
+  cushion_powder_per_gal: { category: 'MATERIALS', subKey: 'CUSHION_POWDER_PER_GAL' },
   
   // Labor
   wash_per_sf: { category: 'LABOR', subKey: 'WASH_PER_SF' },
