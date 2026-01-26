@@ -53,6 +53,7 @@ export interface DynamicPricing {
     CUSHION_GRANULE_GAL_PER_SY: number;
     CUSHION_POWDER_GAL_PER_SY: number;
     COLOR_COAT_GAL_PER_SY: number;
+    PRIMESEAL_GAL_PER_SY: number;
   };
   DEFAULT_MARGIN: number;
   MIN_MARGIN: number;
@@ -99,6 +100,7 @@ const keyMapping: Record<string, { category: keyof DynamicPricing | 'margins'; s
   cushion_granule_gal_per_sy: { category: 'COVERAGE', subKey: 'CUSHION_GRANULE_GAL_PER_SY' },
   cushion_powder_gal_per_sy: { category: 'COVERAGE', subKey: 'CUSHION_POWDER_GAL_PER_SY' },
   color_coat_gal_per_sy: { category: 'COVERAGE', subKey: 'COLOR_COAT_GAL_PER_SY' },
+  primeseal_gal_per_sy: { category: 'COVERAGE', subKey: 'PRIMESEAL_GAL_PER_SY' },
   
   // Margins
   default_margin: { category: 'margins', subKey: 'DEFAULT_MARGIN' },

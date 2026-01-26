@@ -14,7 +14,7 @@ export const PRICING = {
     COLOR_CONCENTRATE_PER_GAL: 14.81, // $444.30 / 30gal drum (Advantage std)
     PREMIUM_COLOR_ADD_ON: 8.33,       // Extra for US Open Blue ($23.14 - $14.81)
     LINE_PAINT_PER_GAL: 30.01,        // $150.05 / 5gal pail (White)
-    PRIMESEAL_PER_GAL: 45.00,         // For new concrete
+    PRIMESEAL_PER_GAL: 45.65,         // $228.25 / 5gal pail - For new concrete/moisture mitigation
     CRACK_FILLER_UNIT: 20.58,         // $247 / 12-pack sausages
     CUSHION_GRANULE_PER_GAL: 8.00,    // $440 / 55gal drum
     CUSHION_POWDER_PER_GAL: 8.00,     // $440 / 55gal drum
@@ -55,6 +55,7 @@ export const PRICING = {
     CUSHION_GRANULE_GAL_PER_SY: 0.20, // Laykold Pro Plus Guide
     CUSHION_POWDER_GAL_PER_SY: 0.12,  // Laykold Pro Plus Guide
     COLOR_COAT_GAL_PER_SY: 0.065,     // Color coat coverage
+    PRIMESEAL_GAL_PER_SY: 0.05,       // Same as acrylic resurfacer
   },
 
   // --- MARGIN SETTINGS ---

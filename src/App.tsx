@@ -32,6 +32,7 @@ import ProjectDetail from "./pages/admin/ProjectDetail";
 import AdminTeam from "./pages/admin/Team";
 import PricingConfig from "./pages/admin/PricingConfig";
 import Inventory from "./pages/admin/Inventory";
+import MaterialCalculator from "./pages/admin/MaterialCalculator";
 import ContractorPortal from "./pages/admin/ContractorPortal";
 import ContractorJobDetail from "./pages/admin/ContractorJobDetail";
 
@@ -80,6 +81,8 @@ const App = () => (
             <Route path="team" element={<AdminTeam />} />
             <Route path="pricing" element={<PricingConfig />} />
             <Route path="inventory" element={<Inventory />} />
+            <Route path="calculator" element={<MaterialCalculator />} />
+            <Route path="portal" element={<ContractorPortal />} />
             <Route path="portal" element={<ContractorPortal />} />
             <Route path="portal/:id" element={<ContractorJobDetail />} />
           </Route>
