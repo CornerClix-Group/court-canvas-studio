@@ -1,115 +1,71 @@
 
 
-# Plan: Complete the Three-Tier Estimate Display System
+# Plan: Add Standard Concrete Base Option
 
 ## Problem Summary
 
-The display format selection (Lump Sum vs Detailed Scope) works in the admin UI preview, but when you actually send an estimate or download a PDF, it ignores your selection. Both PDFs and emails always use the "Detailed Scope" grouped category format.
+The estimator currently only offers **Post-Tension Concrete** at $9.00/sf for new concrete construction. Users need a more affordable **Standard Concrete** option at $7.25/sf for projects that don't require the crack-resistance of post-tension slabs.
 
 ---
 
-## Current vs Target State
+## Current Base Options
 
-| Component | Current Behavior | Target Behavior |
-|-----------|------------------|-----------------|
-| EstimateBuilder UI | Lets you pick Lump Sum or Detailed Scope | No change needed |
-| EstimateDetailView | Shows correct preview based on format | No change needed |
-| PDF Generation | Always shows grouped categories | Should respect display_format setting |
-| Email Template | Always shows grouped categories | Should respect display_format setting |
+| Option | Description | Price |
+|--------|-------------|-------|
+| Existing Asphalt | Resurface existing asphalt | $0/sf |
+| Existing Concrete | Resurface existing concrete | $0/sf |
+| New Asphalt | 1.5" asphalt overlay | $4.50/sf |
+| Post-Tension Concrete | Premium crack-resistant slab | $9.00/sf |
+
+## Target Base Options
+
+| Option | Description | Price |
+|--------|-------------|-------|
+| Existing Asphalt | Resurface existing asphalt | $0/sf |
+| Existing Concrete | Resurface existing concrete | $0/sf |
+| New Asphalt | 1.5" asphalt overlay | $4.50/sf |
+| **Standard Concrete** | **Standard 4" concrete slab** | **$7.25/sf** |
+| Post-Tension Concrete | Premium crack-resistant slab | $9.00/sf |
 
 ---
 
 ## Implementation Plan
 
-### 1. Update PDF Generation Edge Function
+### 1. Update Pricing Constants
 
-**File:** `supabase/functions/generate-estimate-pdf/index.ts`
+**File:** `src/lib/pricingConstants.ts`
 
-**Changes:**
-- Fetch `display_format` and `estimate_scope_bullets` from the database alongside the estimate
-- Add conditional rendering logic based on display format
-- Create Lump Sum PDF layout with bullet points and single total
-- Keep Detailed Scope layout (current grouped categories) as the alternative
-
-**Lump Sum PDF Layout:**
-```
-PROJECT SCOPE:
-✓ Complete surface preparation including pressure washing and crack repair
-✓ Pro Plus Premium cushioned surfacing system (28% force reduction)
-✓ Professional color application with premium UV-resistant coatings
-✓ Regulation court line striping for 2 courts
-
-────────────────────────────────
-PROJECT INVESTMENT: $8,386.99
-────────────────────────────────
+Add to `PRICING.CONSTRUCTION`:
+```typescript
+CONSTRUCTION: {
+  ASPHALT_PAVING_PER_SF: 4.50,
+  CONCRETE_STANDARD_PER_SF: 7.25,    // NEW: Standard 4" concrete
+  CONCRETE_PT_PER_SF: 9.00,
+  // ... rest unchanged
+}
 ```
 
-**Detailed Scope PDF Layout:** (Current grouped format - no changes needed)
-
----
-
-### 2. Update Email Template Edge Function
-
-**File:** `supabase/functions/send-estimate-email/index.ts`
-
-**Changes:**
-- Fetch `display_format` and `estimate_scope_bullets` from the database
-- Create `generateLumpSumEmailHTML()` function with marketing-focused layout
-- Modify main handler to select template based on display format
-
-**Lump Sum Email Layout:**
-```html
-<h3>Your Court Project Includes:</h3>
-<ul>
-  <li>✓ Complete surface preparation...</li>
-  <li>✓ Premium surfacing system...</li>
-  <li>✓ Regulation court striping...</li>
-</ul>
-
-<div class="investment-box">
-  <p>Project Investment</p>
-  <h2>$8,386.99</h2>
-</div>
+Add to `BASE_OPTIONS`:
+```typescript
+STANDARD_CONCRETE: {
+  id: 'standard_concrete',
+  name: 'Standard Concrete',
+  description: 'Standard 4" concrete slab installation',
+  pricePerSqFt: PRICING.CONSTRUCTION.CONCRETE_STANDARD_PER_SF,
+},
 ```
 
----
+### 2. Update Job Templates (if needed)
 
-## Technical Details
+**File:** `src/components/admin/JobTemplates.tsx`
 
-### Database Query Updates
+The template referencing `NEW_CONCRETE` should be updated to use either `STANDARD_CONCRETE` or `POST_TENSION_CONCRETE` as appropriate.
 
-Both edge functions need to fetch additional data:
-```sql
-SELECT 
-  estimates.*,
-  customers(*),
-  estimate_items(*),
-  estimate_attachments(*),
-  estimate_custom_items(*),
-  estimate_scope_bullets(*)  -- ADD THIS
-FROM estimates
-WHERE id = :estimateId
-```
+### 3. Update Sales Estimator Base Type Logic
 
-### PDF Function Logic Flow
+**File:** `src/pages/SalesEstimator.tsx`
 
-```
-┌──────────────────────────────┐
-│  Fetch estimate + bullets    │
-└──────────────┬───────────────┘
-               │
-       ┌───────▼───────┐
-       │ display_format │
-       └───────┬───────┘
-               │
-    ┌──────────┴──────────┐
-    │                     │
-    ▼                     ▼
-┌─────────┐         ┌─────────────┐
-│Lump Sum │         │Detailed     │
-│  PDF    │         │Scope PDF    │
-└─────────┘         └─────────────┘
-```
+If the public estimator offers concrete as a construction type, update the mapping to distinguish between standard and post-tension concrete options.
 
 ---
 
@@ -117,69 +73,45 @@ WHERE id = :estimateId
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/generate-estimate-pdf/index.ts` | Add Lump Sum layout, conditional rendering |
-| `supabase/functions/send-estimate-email/index.ts` | Add Lump Sum email template, conditional rendering |
+| `src/lib/pricingConstants.ts` | Add `CONCRETE_STANDARD_PER_SF` and `STANDARD_CONCRETE` base option |
+| `src/components/admin/JobTemplates.tsx` | Update template reference from `NEW_CONCRETE` |
+| `src/pages/SalesEstimator.tsx` | (Optional) Add concrete type selection if public estimator needs it |
 
 ---
 
-## What You'll Get After This
+## Result
 
-1. **Lump Sum Format** - Marketing-focused estimates with:
-   - Professional bullet points describing the work
-   - Single "Project Investment" total
-   - No line item breakdown visible to customer
-   - Clean, simple presentation for quick decisions
+After this update, the EstimateBuilder's base selection step will show:
 
-2. **Detailed Scope Format** - Category-level breakdown with:
-   - Grouped services (Surface Prep, Surfacing System, Striping, etc.)
-   - Category subtotals (but no unit prices)
-   - Professional itemized look for customers wanting more detail
+```
+┌─────────────────────────┐  ┌─────────────────────────┐
+│ Existing Asphalt        │  │ Existing Concrete       │
+│ Resurface existing      │  │ Resurface existing      │
+│ $0/sf                   │  │ $0/sf                   │
+└─────────────────────────┘  └─────────────────────────┘
 
-3. **Admin View** - Always available with:
-   - Full line item detail
-   - Quantities and unit prices
-   - Internal cost analysis
+┌─────────────────────────┐  ┌─────────────────────────┐
+│ New Asphalt Base        │  │ Standard Concrete       │
+│ 1.5" asphalt overlay    │  │ Standard 4" slab        │
+│ $4.50/sf                │  │ $7.25/sf                │
+└─────────────────────────┘  └─────────────────────────┘
+
+┌─────────────────────────┐
+│ Post-Tension Concrete   │
+│ Premium crack-resistant │
+│ $9.00/sf                │
+└─────────────────────────┘
+```
 
 ---
 
-## Existing Estimator Options Summary
+## Note on PDF/Email Functions
 
-For reference, here's everything currently captured in the estimators:
+The PDF generation and email template functions were already updated in the previous implementation to support both **Lump Sum** and **Detailed Scope** formats. They:
 
-**Project Configuration:**
-- Project type (Pickleball, Tennis, Basketball, Multi-sport)
-- Court size (presets or custom square footage)
-- Number of courts
-- Base type (existing asphalt, new concrete, overlays)
+- Fetch `display_format` and `estimate_scope_bullets` from the database
+- Render Lump Sum format with bullet points and single total
+- Render Detailed Scope format with grouped categories
 
-**Surface Condition:**
-- Pressure washing
-- Crack repair (linear feet)
-- Birdbath/low spot repair (sq ft)
-- Prime seal application
-
-**Construction and Infrastructure:**
-- New paving (asphalt or post-tension concrete)
-- Fencing (linear feet)
-- LED lighting (pole count)
-- Playground interest flag
-
-**Equipment Add-ons:**
-- Net post sets
-- Player benches
-- Windscreen (linear feet)
-- Ball containment netting (linear feet)
-
-**Surfacing System:**
-- System tier (Standard, Premium, Elite, Gel)
-- Color selection (inner/outer)
-- Striping type
-
-**Custom Items:**
-- Free-form line items with vendor cost tracking
-- Direct Price or Cost + Markup modes
-
-**Pricing Controls:**
-- Profit margin slider (35% - 55%)
-- Internal cost vs customer price toggle
+No additional changes are needed for the edge functions unless you'd like me to verify their implementation.
 
