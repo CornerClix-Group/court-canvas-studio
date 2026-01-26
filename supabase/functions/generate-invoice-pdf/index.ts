@@ -743,37 +743,22 @@ function drawFooter(
   });
 }
 
-// Draw PAID watermark for paid invoices
+// Draw PAID watermark for paid invoices - positioned in bottom-right to avoid content overlap
 function drawPaidWatermark(
   page: PDFPage,
   fonts: { bold: PDFFont },
   width: number,
   height: number
 ): void {
-  // Draw diagonal PAID watermark with light green color for transparency effect
   const text = "PAID";
-  const fontSize = 100;
   
-  // Position in center of page, offset for rotation
-  const x = width / 2 - 100;
-  const y = height / 2;
-
-  // Use a light green color to simulate transparency
+  // Single subtle watermark in bottom-right corner (away from content)
   page.drawText(text, {
-    x: x,
-    y: y,
-    size: fontSize,
+    x: width - 180,
+    y: 100,
+    size: 72,
     font: fonts.bold,
-    color: rgb(0.85, 0.95, 0.85),
-  });
-  
-  // Draw a second slightly offset for depth effect
-  page.drawText(text, {
-    x: x + 2,
-    y: y - 2,
-    size: fontSize,
-    font: fonts.bold,
-    color: rgb(0.75, 0.92, 0.75),
+    color: rgb(0.90, 0.97, 0.90),
   });
 }
 
