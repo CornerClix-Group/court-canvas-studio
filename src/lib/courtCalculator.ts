@@ -16,7 +16,7 @@ export interface SurfaceCondition {
 
 export interface ConstructionOptions {
   newConstruction: boolean;
-  constructionType: 'asphalt' | 'post_tension' | null;
+  constructionType: 'asphalt' | 'standard_concrete' | 'post_tension' | null;
   fencingRequired: boolean;
   fencingLinearFeet: number;
   lightingRequired: boolean;
@@ -313,14 +313,29 @@ export function calculateMaterials(config: CourtConfig, dynamicPricing?: Dynamic
   if (config.constructionOptions) {
     const opts = config.constructionOptions;
     
-    // New court construction (asphalt or post-tension)
+    // New court construction (asphalt, standard concrete, or post-tension)
     if (opts.newConstruction && opts.constructionType) {
-      const pricePerSf = opts.constructionType === 'asphalt' 
-        ? pricing.CONSTRUCTION.ASPHALT_PAVING_PER_SF 
-        : pricing.CONSTRUCTION.CONCRETE_PT_PER_SF;
-      const constructionName = opts.constructionType === 'asphalt' 
-        ? 'Asphalt Paving (1.5" Overlay)' 
-        : 'Post-Tension Concrete Slab';
+      let pricePerSf: number;
+      let constructionName: string;
+      
+      switch (opts.constructionType) {
+        case 'asphalt':
+          pricePerSf = pricing.CONSTRUCTION.ASPHALT_PAVING_PER_SF;
+          constructionName = 'Asphalt Paving (1.5" Overlay)';
+          break;
+        case 'standard_concrete':
+          pricePerSf = pricing.CONSTRUCTION.CONCRETE_STANDARD_PER_SF;
+          constructionName = 'Standard Concrete Slab (4")';
+          break;
+        case 'post_tension':
+          pricePerSf = pricing.CONSTRUCTION.CONCRETE_PT_PER_SF;
+          constructionName = 'Post-Tension Concrete Slab';
+          break;
+        default:
+          pricePerSf = 0;
+          constructionName = 'Unknown Construction';
+      }
+      
       constructionItems.push({
         name: constructionName,
         quantity: config.totalSqFt,

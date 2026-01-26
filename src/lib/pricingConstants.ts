@@ -31,6 +31,7 @@ export const PRICING = {
   // --- CONSTRUCTION & ADD-ONS ---
   CONSTRUCTION: {
     ASPHALT_PAVING_PER_SF: 4.50,      // 1.5" Overlay installed
+    CONCRETE_STANDARD_PER_SF: 7.25,   // Standard 4" concrete slab
     CONCRETE_PT_PER_SF: 9.00,         // Post-Tension Slab
     FENCING_10FT_PER_LF: 32.00,       // Black Vinyl Chain Link (bumped for safety)
     LIGHT_POLE_UNIT: 5500.00,         // Per pole w/ base + electrical
@@ -404,6 +405,12 @@ export const BASE_OPTIONS = {
     name: 'New Asphalt Base',
     description: 'Install new 1.5" asphalt overlay',
     pricePerSqFt: PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF,
+  },
+  STANDARD_CONCRETE: {
+    id: 'standard_concrete',
+    name: 'Standard Concrete',
+    description: 'Standard 4" concrete slab installation',
+    pricePerSqFt: PRICING.CONSTRUCTION.CONCRETE_STANDARD_PER_SF,
   },
   POST_TENSION_CONCRETE: {
     id: 'post_tension_concrete',

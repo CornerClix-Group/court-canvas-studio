@@ -34,6 +34,7 @@ export interface DynamicPricing {
   };
   CONSTRUCTION: {
     ASPHALT_PAVING_PER_SF: number;
+    CONCRETE_STANDARD_PER_SF: number;
     CONCRETE_PT_PER_SF: number;
     FENCING_10FT_PER_LF: number;
     LIGHT_POLE_UNIT: number;
@@ -77,6 +78,7 @@ const keyMapping: Record<string, { category: keyof DynamicPricing | 'margins'; s
   
   // Construction
   asphalt_paving_per_sf: { category: 'CONSTRUCTION', subKey: 'ASPHALT_PAVING_PER_SF' },
+  concrete_standard_per_sf: { category: 'CONSTRUCTION', subKey: 'CONCRETE_STANDARD_PER_SF' },
   concrete_pt_per_sf: { category: 'CONSTRUCTION', subKey: 'CONCRETE_PT_PER_SF' },
   fencing_10ft_per_lf: { category: 'CONSTRUCTION', subKey: 'FENCING_10FT_PER_LF' },
   light_pole_unit: { category: 'CONSTRUCTION', subKey: 'LIGHT_POLE_UNIT' },
