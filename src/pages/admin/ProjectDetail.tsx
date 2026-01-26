@@ -29,10 +29,12 @@ import {
   Clock,
   Save,
   Award,
+  Package,
 } from "lucide-react";
 import { format } from "date-fns";
 import USTAApplicationForm from "@/components/admin/USTAApplicationForm";
 import { AssignContractorSelect } from "@/components/admin/AssignContractorSelect";
+import { ProjectMaterialsTable } from "@/components/admin/ProjectMaterialsTable";
 
 interface Project {
   id: string;
@@ -547,6 +549,11 @@ export default function ProjectDetail() {
                 />
               </CardContent>
             </Card>
+          )}
+
+          {/* Project Materials */}
+          {!isNew && id && (
+            <ProjectMaterialsTable projectId={id} />
           )}
         </div>
 

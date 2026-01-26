@@ -948,6 +948,75 @@ export type Database = {
         }
         Relationships: []
       }
+      project_materials: {
+        Row: {
+          allocated_at: string | null
+          consumed_at: string | null
+          container_size: number | null
+          containers_allocated: number | null
+          created_at: string | null
+          gallons_required: number
+          id: string
+          inventory_item_id: string | null
+          notes: string | null
+          product_name: string
+          product_type: string
+          project_id: string
+          status: string | null
+          total_cost: number | null
+          unit_cost: number | null
+        }
+        Insert: {
+          allocated_at?: string | null
+          consumed_at?: string | null
+          container_size?: number | null
+          containers_allocated?: number | null
+          created_at?: string | null
+          gallons_required: number
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          product_name: string
+          product_type: string
+          project_id: string
+          status?: string | null
+          total_cost?: number | null
+          unit_cost?: number | null
+        }
+        Update: {
+          allocated_at?: string | null
+          consumed_at?: string | null
+          container_size?: number | null
+          containers_allocated?: number | null
+          created_at?: string | null
+          gallons_required?: number
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          product_name?: string
+          product_type?: string
+          project_id?: string
+          status?: string | null
+          total_cost?: number | null
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_materials_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "material_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_materials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_milestones: {
         Row: {
           completed_by: string | null

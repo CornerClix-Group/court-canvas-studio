@@ -62,6 +62,13 @@ import {
 } from "lucide-react";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProjectSupplyModal } from "@/components/admin/ProjectSupplyModal";
+import { useInventoryContainers, CreateProjectMaterialInput } from "@/hooks/useProjectMaterials";
+import {
+  parseEstimateItemsForMaterials,
+  optimizeAllSupplies,
+  SupplyRecommendation,
+} from "@/lib/supplyOptimizer";
 
 interface Estimate {
   id: string;
@@ -155,6 +162,11 @@ export default function EstimateDetailView() {
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [showConvertToProjectDialog, setShowConvertToProjectDialog] = useState(false);
+  
+  // Supply modal state
+  const [showSupplyModal, setShowSupplyModal] = useState(false);
+  const [supplyRecommendations, setSupplyRecommendations] = useState<SupplyRecommendation[]>([]);
+  const { data: inventoryContainers } = useInventoryContainers();
 
   useEffect(() => {
     if (id) {
@@ -351,7 +363,21 @@ export default function EstimateDetailView() {
     setDeclineReason("");
   };
 
-  const handleConvertToProject = async () => {
+  const handleOpenSupplyModal = () => {
+    if (!estimate || !inventoryContainers) return;
+    
+    // Parse estimate items to find material requirements
+    const requirements = parseEstimateItemsForMaterials(items);
+    
+    // Optimize supply orders for each requirement
+    const recommendations = optimizeAllSupplies(requirements, inventoryContainers);
+    
+    setSupplyRecommendations(recommendations);
+    setShowSupplyModal(true);
+    setShowConvertToProjectDialog(false);
+  };
+
+  const handleConvertToProject = async (selectedRecommendations?: SupplyRecommendation[]) => {
     if (!estimate) return;
 
     setActionLoading("project");
@@ -375,6 +401,64 @@ export default function EstimateDetailView() {
 
       if (error) throw error;
 
+      // Allocate materials if we have recommendations
+      if (selectedRecommendations && selectedRecommendations.length > 0) {
+        const materialsToAllocate: CreateProjectMaterialInput[] = [];
+        
+        for (const rec of selectedRecommendations) {
+          if (rec.selectedOption) {
+            for (const alloc of rec.selectedOption.containers) {
+              materialsToAllocate.push({
+                project_id: project.id,
+                inventory_item_id: alloc.item.inventoryItemId,
+                product_name: alloc.item.productName,
+                product_type: alloc.item.productType,
+                gallons_required: rec.gallonsRequired,
+                containers_allocated: alloc.count,
+                container_size: alloc.item.containerSize,
+                unit_cost: alloc.item.costPerContainer,
+                total_cost: alloc.totalCost,
+              });
+            }
+          }
+        }
+
+        if (materialsToAllocate.length > 0) {
+          // Insert project materials
+          const { error: materialsError } = await supabase
+            .from("project_materials")
+            .insert(materialsToAllocate.map(m => ({
+              ...m,
+              status: 'allocated',
+              allocated_at: new Date().toISOString(),
+            })));
+
+          if (materialsError) {
+            console.error("Error allocating materials:", materialsError);
+            // Don't fail the whole operation, just log it
+          } else {
+            // Deduct from inventory
+            for (const material of materialsToAllocate) {
+              if (material.inventory_item_id) {
+                const { data: inventory } = await supabase
+                  .from('material_inventory')
+                  .select('quantity_on_hand')
+                  .eq('id', material.inventory_item_id)
+                  .single();
+
+                if (inventory) {
+                  const newQuantity = Math.max(0, (inventory.quantity_on_hand || 0) - material.containers_allocated);
+                  await supabase
+                    .from('material_inventory')
+                    .update({ quantity_on_hand: newQuantity })
+                    .eq('id', material.inventory_item_id);
+                }
+              }
+            }
+          }
+        }
+      }
+
       await logActivity({
         action: "converted_to_project",
         entityType: "estimate",
@@ -389,6 +473,7 @@ export default function EstimateDetailView() {
       });
 
       setShowConvertToProjectDialog(false);
+      setShowSupplyModal(false);
       navigate(`/admin/projects/${project.id}`);
     } catch (error) {
       console.error("Error creating project:", error);
@@ -1249,19 +1334,34 @@ export default function EstimateDetailView() {
             <AlertDialogTitle>Create Project from Estimate?</AlertDialogTitle>
             <AlertDialogDescription>
               This will create a new project linked to this estimate with the customer and contract value pre-filled.
+              You'll be able to review and allocate materials before creating.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConvertToProject} disabled={actionLoading === "project"}>
+            <AlertDialogAction onClick={handleOpenSupplyModal} disabled={actionLoading === "project"}>
               {actionLoading === "project" ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
-              Create Project
+              Continue
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Supply Modal */}
+      <ProjectSupplyModal
+        open={showSupplyModal}
+        onOpenChange={setShowSupplyModal}
+        projectName={
+          estimate?.customers?.company_name ||
+          estimate?.customers?.contact_name ||
+          `Project from ${estimate?.estimate_number}`
+        }
+        recommendations={supplyRecommendations}
+        onConfirm={(selectedRecs) => handleConvertToProject(selectedRecs)}
+        isLoading={actionLoading === "project"}
+      />
     </div>
   );
 }
