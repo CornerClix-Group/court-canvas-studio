@@ -63,6 +63,7 @@ import {
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectSupplyModal } from "@/components/admin/ProjectSupplyModal";
+import { EstimateEmailPreview } from "@/components/admin/EstimateEmailPreview";
 import { useInventoryContainers, CreateProjectMaterialInput } from "@/hooks/useProjectMaterials";
 import {
   parseEstimateItemsForMaterials,
@@ -162,11 +163,15 @@ export default function EstimateDetailView() {
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [showConvertToProjectDialog, setShowConvertToProjectDialog] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
   
   // Supply modal state
   const [showSupplyModal, setShowSupplyModal] = useState(false);
   const [supplyRecommendations, setSupplyRecommendations] = useState<SupplyRecommendation[]>([]);
   const { data: inventoryContainers } = useInventoryContainers();
+  
+  // Attachments state for email preview
+  const [attachments, setAttachments] = useState<{ id: string }[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -186,7 +191,7 @@ export default function EstimateDetailView() {
 
   const fetchEstimate = async () => {
     try {
-      const [estimateResult, itemsResult, customItemsResult, bulletsResult] = await Promise.all([
+      const [estimateResult, itemsResult, customItemsResult, bulletsResult, attachmentsResult] = await Promise.all([
         supabase
           .from("estimates")
           .select(`
@@ -220,6 +225,10 @@ export default function EstimateDetailView() {
           .select("id, bullet_text, sort_order")
           .eq("estimate_id", id!)
           .order("sort_order"),
+        supabase
+          .from("estimate_attachments")
+          .select("id")
+          .eq("estimate_id", id!),
       ]);
 
       if (estimateResult.error) throw estimateResult.error;
@@ -228,6 +237,7 @@ export default function EstimateDetailView() {
       setItems(itemsResult.data || []);
       setCustomItems(customItemsResult.data || []);
       setScopeBullets(bulletsResult.data || []);
+      setAttachments(attachmentsResult.data || []);
     } catch (error) {
       console.error("Error fetching estimate:", error);
       toast({
@@ -284,6 +294,18 @@ export default function EstimateDetailView() {
     }
   };
 
+  const handleOpenEmailPreview = () => {
+    if (!estimate?.customers?.email) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "Customer does not have an email address.",
+      });
+      return;
+    }
+    setShowEmailPreview(true);
+  };
+
   const handleSendEstimate = async () => {
     if (!estimate?.customers?.email) {
       toast({
@@ -312,6 +334,7 @@ export default function EstimateDetailView() {
         description: `Estimate emailed to ${estimate.customers.email}`,
       });
 
+      setShowEmailPreview(false);
       fetchEstimate();
     } catch (error) {
       console.error("Error sending estimate:", error);
@@ -773,14 +796,10 @@ export default function EstimateDetailView() {
               
               {estimate.status === "draft" && (
                 <Button
-                  onClick={handleSendEstimate}
+                  onClick={handleOpenEmailPreview}
                   disabled={actionLoading !== null || !estimate.customers?.email}
                 >
-                  {actionLoading === "send" ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4 mr-2" />
-                  )}
+                  <Send className="w-4 h-4 mr-2" />
                   Send to Customer
                 </Button>
               )}
@@ -788,14 +807,10 @@ export default function EstimateDetailView() {
               {estimate.status === "sent" && (
                 <Button
                   variant="outline"
-                  onClick={handleSendEstimate}
+                  onClick={handleOpenEmailPreview}
                   disabled={actionLoading !== null || !estimate.customers?.email}
                 >
-                  {actionLoading === "send" ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Mail className="w-4 h-4 mr-2" />
-                  )}
+                  <Mail className="w-4 h-4 mr-2" />
                   Resend
                 </Button>
               )}
@@ -1362,6 +1377,42 @@ export default function EstimateDetailView() {
         onConfirm={(selectedRecs) => handleConvertToProject(selectedRecs)}
         isLoading={actionLoading === "project"}
       />
+
+      {/* Email Preview Modal */}
+      {estimate && (
+        <EstimateEmailPreview
+          open={showEmailPreview}
+          onOpenChange={setShowEmailPreview}
+          estimate={{
+            estimate_number: estimate.estimate_number,
+            total: estimate.total,
+            notes: estimate.notes,
+            valid_until: estimate.valid_until,
+            created_at: estimate.created_at,
+            display_format: estimate.display_format,
+            customer: estimate.customers ? {
+              contact_name: estimate.customers.contact_name,
+              email: estimate.customers.email,
+            } : null,
+          }}
+          scopeBullets={scopeBullets.map(b => ({
+            id: b.id,
+            bullet_text: b.bullet_text,
+            sort_order: b.sort_order,
+          }))}
+          lineItems={items.map(item => ({
+            description: item.description,
+            quantity: item.quantity,
+            unit: item.unit,
+            unit_price: item.unit_price,
+            total: item.total,
+          }))}
+          hasAttachments={attachments.length > 0}
+          recipientEmail={estimate.customers?.email || null}
+          onSendEmail={handleSendEstimate}
+          sending={actionLoading === "send"}
+        />
+      )}
     </div>
   );
 }

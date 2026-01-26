@@ -92,33 +92,36 @@ function drawBrandedHeader(page: PDFPage, fonts: { bold: PDFFont; regular: PDFFo
 
 // Draw marketing section
 function drawMarketingSection(page: PDFPage, y: number, fonts: { bold: PDFFont; regular: PDFFont }): number {
-  // Section header with green background
+  const headerHeight = 24;
+  
+  // Section header with green background - positioned so bottom edge is at y
   page.drawRectangle({
     x: 50,
-    y: y - 5,
+    y: y - headerHeight,
     width: 512,
-    height: 24,
+    height: headerHeight,
     color: COLORS.green,
   });
 
   page.drawText("WHY CHOOSE COURTPRO?", {
     x: 60,
-    y: y + 2,
+    y: y - headerHeight + 8,
     size: 12,
     font: fonts.bold,
     color: COLORS.white,
   });
 
-  y -= 30;
+  // Move y to bottom of header (content starts here)
+  y -= headerHeight;
 
   // Calculate dynamic height based on content
   const numPoints = MARKETING_POINTS.length;
-  const contentHeight = numPoints * 16 + 16; // 16px per line + padding
+  const contentHeight = numPoints * 16 + 12; // 16px per line + padding
 
-  // Light sage background for content
+  // Light sage background for content - connects seamlessly to header
   page.drawRectangle({
     x: 50,
-    y: y - contentHeight + 10,
+    y: y - contentHeight,
     width: 512,
     height: contentHeight,
     color: COLORS.lightSage,
@@ -127,17 +130,18 @@ function drawMarketingSection(page: PDFPage, y: number, fonts: { bold: PDFFont; 
   // Green accent line on left edge
   page.drawRectangle({
     x: 50,
-    y: y - contentHeight + 10,
+    y: y - contentHeight,
     width: 4,
     height: contentHeight,
     color: COLORS.green,
   });
 
-  // Trust points
+  // Trust points - start with top padding
+  y -= 6;
   for (const point of MARKETING_POINTS) {
     page.drawText("* " + point, {
       x: 62,
-      y,
+      y: y - 10,
       size: 10,
       font: fonts.regular,
       color: COLORS.black,
@@ -145,7 +149,7 @@ function drawMarketingSection(page: PDFPage, y: number, fonts: { bold: PDFFont; 
     y -= 16;
   }
 
-  y -= 8;
+  y -= 6; // Bottom padding
 
   return y;
 }

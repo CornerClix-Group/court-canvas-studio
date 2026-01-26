@@ -593,33 +593,36 @@ function drawMarketingSection(
   y: number,
   width: number
 ): number {
-  // Section header
+  const headerHeight = 22;
+  
+  // Section header - positioned so bottom edge is at y
   page.drawRectangle({
     x: 50,
-    y: y - 5,
+    y: y - headerHeight,
     width: width - 100,
-    height: 22,
+    height: headerHeight,
     color: COLORS.brandGreen,
   });
 
   page.drawText("WHY CHOOSE COURTPRO?", {
     x: 60,
-    y: y,
+    y: y - headerHeight + 6,
     size: 11,
     font: fonts.bold,
     color: COLORS.white,
   });
 
-  y -= 30;
+  // Move y to bottom of header (content starts here)
+  y -= headerHeight;
 
   // Calculate dynamic height based on content
   const numPoints = MARKETING_POINTS.length;
-  const contentHeight = numPoints * 16 + 16; // 16px per line + padding
+  const contentHeight = numPoints * 16 + 12; // 16px per line + padding
 
-  // Background for marketing points
+  // Background for marketing points - connects seamlessly to header
   page.drawRectangle({
     x: 50,
-    y: y - contentHeight + 10,
+    y: y - contentHeight,
     width: width - 100,
     height: contentHeight,
     color: COLORS.sage,
@@ -628,24 +631,25 @@ function drawMarketingSection(
   // Green accent line on left edge
   page.drawRectangle({
     x: 50,
-    y: y - contentHeight + 10,
+    y: y - contentHeight,
     width: 4,
     height: contentHeight,
     color: COLORS.brandGreen,
   });
 
-  // Marketing points
+  // Marketing points - start with top padding
+  y -= 6;
   MARKETING_POINTS.forEach((point, index) => {
     page.drawText(`* ${point}`, {
       x: 62,
-      y: y - (index * 16),
+      y: y - 10 - (index * 16),
       size: 9,
       font: fonts.regular,
       color: COLORS.darkText,
     });
   });
 
-  return y - contentHeight - 8;
+  return y - contentHeight - 6;
 }
 
 // Draw quality statement
