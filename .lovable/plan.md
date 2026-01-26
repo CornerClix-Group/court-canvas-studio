@@ -1,119 +1,139 @@
 
-# Plan: Update Estimate Email Footer & Redesign Invoice PDF
+# Plan: Fix PDF Styling Issues & Remove ASBA/2020 References
 
 ## Overview
 
-Align the estimate email footer and invoice PDF generator with the new CourtPro Augusta branding implemented in the estimate PDF generator.
+Fix the box alignment issues visible in the PDF, remove the ASBA certification and "since 2020" references, and create a more polished, professional appearance.
 
 ---
 
-## Part 1: Update Estimate Email Footer
+## Issues to Fix
 
-### Current State
-The estimate email footer shows:
-```
-CourtHaus Construction, LLC (large, white text)
-dba CourtPro Augusta (smaller, gray)
-500 Furys Ferry Rd. Suite 107
-Augusta, GA 30907
-```
+### Content Removal
 
-### Updated Design
-```
-CourtPro Augusta (large, white text)
-Professional Court Construction (smaller, light blue)
-500 Furys Ferry Rd. Suite 107, Augusta, GA 30907
-A CourtHaus Construction, LLC Company (small legal text)
-```
+| Current Text | Updated Text |
+|--------------|--------------|
+| "ASBA Certified - American Sports Builders Association member" | **REMOVE ENTIRELY** |
+| "Local Expertise - Serving Augusta & the CSRA since 2020" | "Local Expertise - Serving Augusta & the CSRA" |
 
-### Changes to `supabase/functions/send-estimate-email/index.ts`
+### Box Alignment Issues
 
-1. Update `COMPANY_INFO` object to use brand-focused structure:
+The current code sets fixed heights that don't match the content:
+
+| Element | Current | Issue |
+|---------|---------|-------|
+| Marketing section background | Height: 90px | Too tall for 3 items (was 4) |
+| Quality statement box | Height: 55px, Y offset: -50 | Text doesn't align properly within box |
+
+---
+
+## Part 1: Update Marketing Points
+
+### Files to Update
+- `supabase/functions/generate-estimate-pdf/index.ts`
+- `supabase/functions/generate-invoice-pdf/index.ts`
+
+### Updated MARKETING_POINTS Array
+
 ```typescript
-const COMPANY_INFO = {
-  brandName: "CourtPro Augusta",
-  tagline: "Professional Court Construction",
-  legalName: "A CourtHaus Construction, LLC Company",
-  address: "500 Furys Ferry Rd. Suite 107",
-  cityStateZip: "Augusta, GA 30907",
-  phone: "(706) 309-1993",
-  email: "estimates@courtproaugusta.com",
-};
-```
-
-2. Update footer HTML in both `generateLumpSumEmailHTML` and `generateDetailedScopeEmailHTML` functions:
-```html
-<!-- Footer -->
-<tr>
-  <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
-    <p style="color: #ffffff; margin: 0 0 5px 0; font-size: 18px; font-weight: 600;">CourtPro Augusta</p>
-    <p style="color: #93c5fd; margin: 0 0 12px 0; font-size: 12px;">Professional Court Construction</p>
-    <p style="color: #9ca3af; margin: 0; font-size: 12px;">
-      (706) 309-1993 | estimates@courtproaugusta.com
-    </p>
-    <p style="color: #6b7280; margin: 10px 0 0 0; font-size: 11px;">
-      500 Furys Ferry Rd. Suite 107, Augusta, GA 30907
-    </p>
-    <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 10px; font-style: italic;">
-      A CourtHaus Construction, LLC Company
-    </p>
-  </td>
-</tr>
+const MARKETING_POINTS = [
+  "200+ Courts Completed - Trusted by homeowners, schools & clubs",
+  "Premium Materials - Laykold surfaces used by US Open & ATP",
+  "Local Expertise - Serving Augusta & the CSRA",
+];
 ```
 
 ---
 
-## Part 2: Redesign Invoice PDF Generator
+## Part 2: Fix Marketing Section Box
 
-### Current State
-The invoice PDF uses a basic text-based approach with Courier font, showing:
-- Full legal name "CourtHaus Construction, LLC dba CourtPro Augusta"
-- Plain text layout with no colors or branding
+### Current (Broken)
+```typescript
+// Light sage background for content - WRONG HEIGHT
+page.drawRectangle({
+  x: 50,
+  y: y - 85,  // Wrong offset
+  width: 512,
+  height: 90, // Too tall for 3 items
+  color: COLORS.lightSage,
+});
+```
 
-### New Design Matching Estimate PDF
+### Fixed Version
+Calculate the box height dynamically based on number of marketing points:
+- 3 items × 16px line height = 48px
+- Add padding: 10px top + 10px bottom = 68px total
 
-| Element | Description |
-|---------|-------------|
-| **Header** | Navy bar with "CourtPro Augusta" in white, tagline in light blue |
-| **Invoice Info** | Clean layout with invoice number, date, due date |
-| **Bill To** | Professional customer information section |
-| **Line Items** | Table with alternating row colors |
-| **Totals** | Green-accented investment box |
-| **Payment Options** | Teal banner with Klarna, cards, bank transfer |
-| **Marketing** | "WHY CHOOSE COURTPRO?" trust signals section |
-| **Quality Quote** | Same inspirational message about Laykold materials |
-| **Footer** | Navy bar with legal entity in small text |
-| **PAID Stamp** | Green diagonal watermark when invoice is paid |
+```typescript
+const numPoints = MARKETING_POINTS.length;
+const contentHeight = numPoints * 16 + 20; // 16px per line + padding
 
-### Changes to `supabase/functions/generate-invoice-pdf/index.ts`
-
-Complete rewrite using pdf-lib with the same branded approach as estimates:
-
-1. **Import pdf-lib** for proper PDF generation (replacing text-based approach)
-2. **Add brand constants** (COMPANY_INFO, COLORS, MARKETING_POINTS)
-3. **Implement drawing functions**:
-   - `drawBrandedHeader()` - Navy header bar
-   - `drawInvoiceInfo()` - Invoice details section
-   - `drawBillTo()` - Customer info box
-   - `drawLineItems()` - Professional table
-   - `drawTotals()` - Subtotal, tax, total with green accent
-   - `drawPaymentOptions()` - Teal payment methods banner
-   - `drawMarketingSection()` - Trust signals (shared with estimates)
-   - `drawQualityStatement()` - Quote box
-   - `drawFooter()` - Navy footer with legal text
-   - `drawPaidWatermark()` - Diagonal green "PAID" stamp if applicable
+page.drawRectangle({
+  x: 50,
+  y: y - contentHeight,
+  width: 512,
+  height: contentHeight + 5,
+  color: COLORS.lightSage,
+});
+```
 
 ---
 
-## Color Scheme (Consistent with Estimate PDF)
+## Part 3: Fix Quality Statement Box
 
-| Element | Color | RGB Value |
-|---------|-------|-----------|
-| Header/Footer Background | Dark Navy | rgb(0.12, 0.23, 0.37) |
-| Primary Accent | Brand Green | rgb(0.02, 0.59, 0.41) |
-| Tagline Text | Light Blue | rgb(0.58, 0.77, 0.99) |
-| Investment Box Background | Light Gray | rgb(0.95, 0.97, 1.0) |
-| Marketing Section | Light Sage | rgb(0.94, 0.98, 0.94) |
+### Current Issue
+The box draws at y - 50 with height 55, but text draws at y - 15, y - 27, y - 39, causing the text to appear at the top edge of the box.
+
+### Fixed Version
+Adjust box position and size to properly contain the content:
+
+```typescript
+// Better proportioned box
+page.drawRectangle({
+  x: 50,
+  y: y - 55,
+  width: 512,
+  height: 60,
+  color: COLORS.lightGray,
+  borderColor: COLORS.green,
+  borderWidth: 1,
+});
+
+// Quote mark
+page.drawText('"', {
+  x: 60,
+  y: y - 10,
+  size: 24,
+  font: fonts.bold,
+  color: COLORS.green,
+});
+
+// Text lines with better spacing
+page.drawText(line1, { x: 75, y: y - 18, ... });
+page.drawText(line2, { x: 75, y: y - 32, ... });
+page.drawText(line3, { x: 75, y: y - 46, ... });
+```
+
+---
+
+## Part 4: Professional Styling Improvements
+
+### Add subtle design enhancements:
+
+1. **Green accent line** on marketing section left edge
+2. **Improved quote styling** with proper typography hierarchy
+3. **Better spacing** between sections
+
+```typescript
+// Green accent line on left of marketing section
+page.drawRectangle({
+  x: 50,
+  y: y - contentHeight,
+  width: 4,
+  height: contentHeight + 5,
+  color: COLORS.green,
+});
+```
 
 ---
 
@@ -121,15 +141,57 @@ Complete rewrite using pdf-lib with the same branded approach as estimates:
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/send-estimate-email/index.ts` | Update COMPANY_INFO and footer HTML in both email templates |
-| `supabase/functions/generate-invoice-pdf/index.ts` | Complete rewrite with pdf-lib and branded design |
+| `supabase/functions/generate-estimate-pdf/index.ts` | Update MARKETING_POINTS, fix drawMarketingSection, fix drawQualityStatement |
+| `supabase/functions/generate-invoice-pdf/index.ts` | Update MARKETING_POINTS, fix drawMarketingSection, fix drawQualityStatement |
+
+---
+
+## Visual Comparison
+
+### Before
+```text
++----------------------------------+
+| WHY CHOOSE COURTPRO?             |  (Green header)
++----------------------------------+
+                                      (Gap - box starts too low)
++----------------------------------+
+| * 200+ Courts Completed...       |
+| * ASBA Certified...              |  <- REMOVE
+| * Premium Materials...           |
+| * Local Expertise...since 2020   |  <- Remove "since 2020"
+|                                  |  (Extra space - box too tall)
++----------------------------------+
+
++----------------------------------+
+| "                                |  (Quote mark misaligned)
+|   Your court is more than...     |
+|   We use only premium...         |
+|   trusted by the US Open...      |
++----------------------------------+
+```
+
+### After
+```text
++----------------------------------+
+| WHY CHOOSE COURTPRO?             |  (Green header)
++==================================+
+| * 200+ Courts Completed...       |  (Box fits content perfectly)
+| * Premium Materials...           |
+| * Local Expertise...             |
++----------------------------------+
+
++----------------------------------+
+|  " Your court is more than...    |  (Quote integrated with text)
+|    We use only premium...        |
+|    trusted by the US Open...     |
++----------------------------------+
+```
 
 ---
 
 ## Technical Notes
 
-- Uses pdf-lib with StandardFonts (Helvetica, Helvetica-Bold)
-- All text uses WinAnsi-compatible characters only (no Unicode symbols)
-- Bullet points use asterisk (*) or hyphen (-) instead of checkmarks
-- Flexible Payment Options banner uses teal color scheme to distinguish from estimates
-- PAID watermark uses semi-transparent green diagonal text when invoice status is "paid"
+- Marketing points reduced from 4 to 3 items
+- Box heights calculated dynamically based on content
+- Consistent styling between estimate and invoice PDFs
+- All text uses WinAnsi-compatible characters (no unicode)
