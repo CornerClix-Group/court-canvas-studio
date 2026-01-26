@@ -30,9 +30,8 @@ const COLORS = {
 // Marketing content
 const MARKETING_POINTS = [
   "200+ Courts Completed - Trusted by homeowners, schools & clubs",
-  "ASBA Certified - American Sports Builders Association member",
   "Premium Materials - Laykold surfaces used by US Open & ATP",
-  "Local Expertise - Serving Augusta & the CSRA since 2020",
+  "Local Expertise - Serving Augusta & the CSRA",
 ];
 
 const QUALITY_STATEMENT = "Your court is more than pavement - it's where memories are made. We use only premium Laykold surfacing systems, the same materials trusted by the US Open and professional tournaments worldwide.";
@@ -110,21 +109,34 @@ function drawMarketingSection(page: PDFPage, y: number, fonts: { bold: PDFFont; 
     color: COLORS.white,
   });
 
-  y -= 35;
+  y -= 30;
+
+  // Calculate dynamic height based on content
+  const numPoints = MARKETING_POINTS.length;
+  const contentHeight = numPoints * 16 + 16; // 16px per line + padding
 
   // Light sage background for content
   page.drawRectangle({
     x: 50,
-    y: y - 85,
+    y: y - contentHeight + 10,
     width: 512,
-    height: 90,
+    height: contentHeight,
     color: COLORS.lightSage,
+  });
+
+  // Green accent line on left edge
+  page.drawRectangle({
+    x: 50,
+    y: y - contentHeight + 10,
+    width: 4,
+    height: contentHeight,
+    color: COLORS.green,
   });
 
   // Trust points
   for (const point of MARKETING_POINTS) {
     page.drawText("* " + point, {
-      x: 60,
+      x: 62,
       y,
       size: 10,
       font: fonts.regular,
@@ -133,42 +145,45 @@ function drawMarketingSection(page: PDFPage, y: number, fonts: { bold: PDFFont; 
     y -= 16;
   }
 
-  y -= 10;
+  y -= 8;
 
   return y;
 }
 
 // Draw quality statement
 function drawQualityStatement(page: PDFPage, y: number, fonts: { bold: PDFFont; regular: PDFFont }): number {
+  const boxHeight = 58;
+  
+  // Box background
   page.drawRectangle({
     x: 50,
-    y: y - 50,
+    y: y - boxHeight + 5,
     width: 512,
-    height: 55,
+    height: boxHeight,
     color: COLORS.lightGray,
-    borderColor: COLORS.navy,
+    borderColor: COLORS.green,
     borderWidth: 1,
   });
 
-  // Quote marks
+  // Quote mark integrated with first line
   page.drawText('"', {
-    x: 55,
-    y: y - 5,
-    size: 24,
+    x: 58,
+    y: y - 12,
+    size: 20,
     font: fonts.bold,
     color: COLORS.green,
   });
 
-  // Split statement into two lines
+  // Statement lines with proper spacing
   const line1 = "Your court is more than pavement - it's where memories are made.";
   const line2 = "We use only premium Laykold surfacing systems, the same materials";
   const line3 = "trusted by the US Open and professional tournaments worldwide.";
 
-  page.drawText(line1, { x: 70, y: y - 15, size: 9, font: fonts.regular, color: COLORS.gray });
-  page.drawText(line2, { x: 70, y: y - 27, size: 9, font: fonts.regular, color: COLORS.gray });
-  page.drawText(line3, { x: 70, y: y - 39, size: 9, font: fonts.regular, color: COLORS.gray });
+  page.drawText(line1, { x: 75, y: y - 16, size: 9, font: fonts.regular, color: COLORS.gray });
+  page.drawText(line2, { x: 75, y: y - 30, size: 9, font: fonts.regular, color: COLORS.gray });
+  page.drawText(line3, { x: 75, y: y - 44, size: 9, font: fonts.regular, color: COLORS.gray });
 
-  return y - 65;
+  return y - boxHeight - 8;
 }
 
 // Draw footer

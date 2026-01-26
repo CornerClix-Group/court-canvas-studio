@@ -31,7 +31,6 @@ const COLORS = {
 // Marketing trust points
 const MARKETING_POINTS = [
   "200+ Courts Completed - Trusted by homeowners, schools & clubs",
-  "ASBA Certified - American Sports Builders Association member",
   "Premium Materials - Laykold surfaces used by US Open & ATP",
   "Local Expertise - Serving Augusta & the CSRA",
 ];
@@ -611,21 +610,34 @@ function drawMarketingSection(
     color: COLORS.white,
   });
 
-  y -= 35;
+  y -= 30;
+
+  // Calculate dynamic height based on content
+  const numPoints = MARKETING_POINTS.length;
+  const contentHeight = numPoints * 16 + 16; // 16px per line + padding
 
   // Background for marketing points
   page.drawRectangle({
     x: 50,
-    y: y - 55,
+    y: y - contentHeight + 10,
     width: width - 100,
-    height: 70,
+    height: contentHeight,
     color: COLORS.sage,
+  });
+
+  // Green accent line on left edge
+  page.drawRectangle({
+    x: 50,
+    y: y - contentHeight + 10,
+    width: 4,
+    height: contentHeight,
+    color: COLORS.brandGreen,
   });
 
   // Marketing points
   MARKETING_POINTS.forEach((point, index) => {
     page.drawText(`* ${point}`, {
-      x: 60,
+      x: 62,
       y: y - (index * 16),
       size: 9,
       font: fonts.regular,
@@ -633,7 +645,7 @@ function drawMarketingSection(
     });
   });
 
-  return y - 75;
+  return y - contentHeight - 8;
 }
 
 // Draw quality statement
@@ -643,35 +655,48 @@ function drawQualityStatement(
   y: number,
   width: number
 ): number {
-  // Quote box background
+  const boxHeight = 55;
+
+  // Quote box background with green border
   page.drawRectangle({
     x: 50,
-    y: y - 50,
+    y: y - boxHeight + 5,
     width: width - 100,
-    height: 55,
+    height: boxHeight,
     color: COLORS.lightGray,
+    borderColor: COLORS.brandGreen,
+    borderWidth: 1,
   });
 
-  const quote = '"Your court is more than pavement - its where memories are made.';
-  const quote2 = 'We use only premium Laykold surfacing systems, trusted by the US Open."';
+  // Quote mark integrated with text
+  page.drawText('"', {
+    x: 58,
+    y: y - 12,
+    size: 18,
+    font: fonts.bold,
+    color: COLORS.brandGreen,
+  });
+
+  const quote = "Your court is more than pavement - it's where memories are made.";
+  const quote2 = "We use only premium Laykold surfacing systems, trusted by the US Open.";
 
   page.drawText(quote, {
-    x: 60,
-    y: y - 15,
+    x: 75,
+    y: y - 16,
     size: 9,
     font: fonts.regular,
     color: COLORS.grayText,
   });
 
   page.drawText(quote2, {
-    x: 60,
-    y: y - 30,
+    x: 75,
+    y: y - 32,
     size: 9,
     font: fonts.regular,
     color: COLORS.grayText,
   });
 
-  return y - 65;
+  return y - boxHeight - 8;
 }
 
 // Draw footer
