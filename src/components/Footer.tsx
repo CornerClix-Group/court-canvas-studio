@@ -1,6 +1,5 @@
 import { Facebook, Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
-import asbaLogo from "@/assets/asba-logo.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -37,19 +36,16 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Social & Certification */}
+          {/* Social */}
           <div>
             <h3 className="font-semibold text-foreground mb-3">Connect With Us</h3>
-            <div className="flex gap-4 mb-4">
+            <div className="flex gap-4">
               <a href="https://www.facebook.com/people/CourtPro-Augusta/61582961717793/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Facebook">
                 <Facebook className="w-6 h-6" />
               </a>
               <a href="https://www.instagram.com/courtpro_augusta/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
                 <Instagram className="w-6 h-6" />
               </a>
-            </div>
-            <div className="mt-4">
-              <img src={asbaLogo} alt="ASBA Member" className="h-16 w-auto" />
             </div>
           </div>
         </div>
