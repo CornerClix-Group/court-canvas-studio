@@ -190,32 +190,34 @@ export function calculateMaterials(config: CourtConfig, dynamicPricing?: Dynamic
       category: 'material',
     });
   } else {
-    // Granule coats (for cushion systems)
+    // Granule coats (for cushion systems) - Use dynamic pricing
     if (system.coats.granule > 0) {
       const granuleGallons = sqYards * pricing.COVERAGE.CUSHION_GRANULE_GAL_PER_SY * system.coats.granule;
       const granuleDrums = Math.ceil(granuleGallons / DRUM_SIZES.STANDARD_DRUM);
+      const granulePricePerGal = pricing.MATERIALS.CUSHION_GRANULE_PER_GAL ?? MATERIAL_PRICES.CUSHION_GRANULE_PER_GAL;
       materials.push({
         name: 'Laykold Cushion Plus Granule',
         quantity: Math.ceil(granuleGallons * 10) / 10,
         unit: 'gallon',
-        unitPrice: MATERIAL_PRICES.CUSHION_GRANULE_PER_GAL,
-        total: granuleGallons * MATERIAL_PRICES.CUSHION_GRANULE_PER_GAL,
+        unitPrice: granulePricePerGal,
+        total: granuleGallons * granulePricePerGal,
         drums: granuleDrums,
         drumSize: DRUM_SIZES.STANDARD_DRUM,
         category: 'material',
       });
     }
     
-    // Powder coats (for cushion systems)
+    // Powder coats (for cushion systems) - Use dynamic pricing
     if (system.coats.powder > 0) {
       const powderGallons = sqYards * pricing.COVERAGE.CUSHION_POWDER_GAL_PER_SY * system.coats.powder;
       const powderDrums = Math.ceil(powderGallons / DRUM_SIZES.STANDARD_DRUM);
+      const powderPricePerGal = pricing.MATERIALS.CUSHION_POWDER_PER_GAL ?? MATERIAL_PRICES.CUSHION_POWDER_PER_GAL;
       materials.push({
         name: 'Laykold Cushion Plus Powder',
         quantity: Math.ceil(powderGallons * 10) / 10,
         unit: 'gallon',
-        unitPrice: MATERIAL_PRICES.CUSHION_POWDER_PER_GAL,
-        total: powderGallons * MATERIAL_PRICES.CUSHION_POWDER_PER_GAL,
+        unitPrice: powderPricePerGal,
+        total: powderGallons * powderPricePerGal,
         drums: powderDrums,
         drumSize: DRUM_SIZES.STANDARD_DRUM,
         category: 'material',

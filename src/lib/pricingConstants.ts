@@ -1,20 +1,23 @@
 // =====================================================
-// CourtPro Augusta - 2026 Pricing Constants
-// Last Updated: January 2026
+// CourtPro Augusta - 2025 Pricing Constants
+// Last Updated: January 2026 (PA3D 2025 Price Sheet)
 // =====================================================
 
 // =====================================================
-// MAIN PRICING OBJECT - 2026 Market Rates
+// MAIN PRICING OBJECT - 2025 PA3D Market Rates
+// Primary Product Line: Advantage Resurfacer
 // =====================================================
 export const PRICING = {
-  // --- MATERIALS (Laykold 2026 Price Sheet) ---
+  // --- MATERIALS (PA3D 2025 Price Sheet - Advantage Line) ---
   MATERIALS: {
-    RESURFACER_PER_GAL: 11.73,        // $645.15 / 55gal drum
-    COLOR_CONCENTRATE_PER_GAL: 15.85, // $871.75 / 55gal drum
-    PREMIUM_COLOR_ADD_ON: 8.00,       // Extra for US Open Blue/Purple
-    LINE_PAINT_PER_GAL: 30.61,        // $153.05 / 5gal pail
+    RESURFACER_PER_GAL: 10.25,        // $307.50 / 30gal drum (Advantage)
+    COLOR_CONCENTRATE_PER_GAL: 14.81, // $444.30 / 30gal drum (Advantage std)
+    PREMIUM_COLOR_ADD_ON: 8.33,       // Extra for US Open Blue ($23.14 - $14.81)
+    LINE_PAINT_PER_GAL: 30.01,        // $150.05 / 5gal pail (White)
     PRIMESEAL_PER_GAL: 45.00,         // For new concrete
-    CRACK_FILLER_UNIT: 25.00,         // Per gallon/sausage estimate
+    CRACK_FILLER_UNIT: 20.58,         // $247 / 12-pack sausages
+    CUSHION_GRANULE_PER_GAL: 8.00,    // $440 / 55gal drum
+    CUSHION_POWDER_PER_GAL: 8.00,     // $440 / 55gal drum
   },
 
   // --- LABOR & SUBS (2025 GA Market Standards) ---
@@ -72,16 +75,18 @@ export const COVERAGE_RATES = {
 };
 
 export const MATERIAL_PRICES = {
-  // 2026 prices from PRICING object
+  // 2025 PA3D prices from PRICING object (Advantage line)
   COST_RESURFACER_PER_GAL: PRICING.MATERIALS.RESURFACER_PER_GAL,
   COST_COLOR_PER_GAL: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
   COST_LINE_PAINT_PER_GAL: PRICING.MATERIALS.LINE_PAINT_PER_GAL,
   COST_CRACK_FILLER_PER_UNIT: PRICING.MATERIALS.CRACK_FILLER_UNIT,
   COST_PRIME_SEAL_PER_GAL: PRICING.MATERIALS.PRIMESEAL_PER_GAL,
   
+  // Cushion materials - Now dynamic from database
+  CUSHION_GRANULE_PER_GAL: PRICING.MATERIALS.CUSHION_GRANULE_PER_GAL,
+  CUSHION_POWDER_PER_GAL: PRICING.MATERIALS.CUSHION_POWDER_PER_GAL,
+  
   // Legacy compatibility
-  CUSHION_GRANULE_PER_GAL: 45.00,
-  CUSHION_POWDER_PER_GAL: 35.00,
   ACRYLIC_RESURFACER_PER_GAL: PRICING.MATERIALS.RESURFACER_PER_GAL,
   COLOR_COAT_PER_GAL: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL,
   COLOR_PREMIUM_PER_GAL: PRICING.MATERIALS.COLOR_CONCENTRATE_PER_GAL + PRICING.MATERIALS.PREMIUM_COLOR_ADD_ON,

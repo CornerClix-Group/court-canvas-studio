@@ -25,6 +25,7 @@ import {
   Key,
   DollarSign,
   HardHat,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ const fullNavItems: NavItem[] = [
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
   { href: "/admin/team", label: "Team", icon: Shield },
   { href: "/admin/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/admin/inventory", label: "Inventory", icon: Package },
 ];
 
 const salesNavItems: NavItem[] = [

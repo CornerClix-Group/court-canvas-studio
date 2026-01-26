@@ -738,6 +738,78 @@ export type Database = {
         }
         Relationships: []
       }
+      material_inventory: {
+        Row: {
+          color_name: string | null
+          container_size: number
+          container_type: string
+          cost_per_container: number
+          cost_per_gallon: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_premium_color: boolean | null
+          is_primary: boolean | null
+          last_price_update: string | null
+          notes: string | null
+          product_code: string
+          product_line: string
+          product_name: string
+          product_type: string
+          quantity_on_hand: number | null
+          reorder_point: number | null
+          reorder_quantity: number | null
+          supplier: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color_name?: string | null
+          container_size: number
+          container_type: string
+          cost_per_container: number
+          cost_per_gallon: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium_color?: boolean | null
+          is_primary?: boolean | null
+          last_price_update?: string | null
+          notes?: string | null
+          product_code: string
+          product_line?: string
+          product_name: string
+          product_type: string
+          quantity_on_hand?: number | null
+          reorder_point?: number | null
+          reorder_quantity?: number | null
+          supplier?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color_name?: string | null
+          container_size?: number
+          container_type?: string
+          cost_per_container?: number
+          cost_per_gallon?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_premium_color?: boolean | null
+          is_primary?: boolean | null
+          last_price_update?: string | null
+          notes?: string | null
+          product_code?: string
+          product_line?: string
+          product_name?: string
+          product_type?: string
+          quantity_on_hand?: number | null
+          reorder_point?: number | null
+          reorder_quantity?: number | null
+          supplier?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
