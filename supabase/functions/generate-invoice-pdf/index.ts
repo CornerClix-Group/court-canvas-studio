@@ -550,10 +550,10 @@ function drawPaymentOptions(
   y: number,
   width: number
 ): number {
-  // Teal banner
+  // Teal banner - positioned below with proper gap
   page.drawRectangle({
     x: 50,
-    y: y - 5,
+    y: y - 50,
     width: width - 100,
     height: 50,
     color: COLORS.teal,
@@ -561,7 +561,7 @@ function drawPaymentOptions(
 
   page.drawText("FLEXIBLE PAYMENT OPTIONS", {
     x: 60,
-    y: y + 25,
+    y: y - 15,
     size: 12,
     font: fonts.bold,
     color: COLORS.white,
@@ -569,7 +569,7 @@ function drawPaymentOptions(
 
   page.drawText("Klarna - Pay in 4 or Finance | Apple Pay | Cash App | Amazon Pay | Cards", {
     x: 60,
-    y: y + 8,
+    y: y - 30,
     size: 9,
     font: fonts.regular,
     color: COLORS.white,
@@ -577,13 +577,13 @@ function drawPaymentOptions(
 
   page.drawText("Bank Transfer (ACH) - NO FEE!", {
     x: 60,
-    y: y - 7,
+    y: y - 43,
     size: 10,
     font: fonts.bold,
     color: rgb(0.8, 1, 0.8),
   });
 
-  return y - 65;
+  return y - 60;
 }
 
 // Draw marketing section
