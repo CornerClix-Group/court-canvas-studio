@@ -34,6 +34,7 @@ import { format } from "date-fns";
 
 interface Project {
   id: string;
+  project_number: string | null;
   project_name: string;
   status: string;
   sport_type: string | null;
@@ -74,6 +75,7 @@ export default function AdminProjects() {
         .from("projects")
         .select(`
           id,
+          project_number,
           project_name,
           status,
           sport_type,
@@ -197,7 +199,12 @@ export default function AdminProjects() {
                   {columnProjects.map((project) => (
                     <Link key={project.id} to={`/admin/projects/${project.id}`}>
                       <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                        <CardContent className="p-4 space-y-2">
+                                        <CardContent className="p-4 space-y-2">
+                          {project.project_number && (
+                            <p className="text-xs font-mono text-muted-foreground">
+                              {project.project_number}
+                            </p>
+                          )}
                           <h4 className="font-medium text-sm truncate">
                             {project.project_name}
                           </h4>
@@ -238,6 +245,7 @@ export default function AdminProjects() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Project #</TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Status</TableHead>
@@ -252,6 +260,9 @@ export default function AdminProjects() {
                 const statusConfig = STATUS_CONFIG[project.status];
                 return (
                   <TableRow key={project.id}>
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {project.project_number || "—"}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {project.project_name}
                     </TableCell>
@@ -288,7 +299,7 @@ export default function AdminProjects() {
               })}
               {filteredProjects.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No projects found
                   </TableCell>
                 </TableRow>

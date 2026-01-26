@@ -38,6 +38,7 @@ import { ProjectMaterialsTable } from "@/components/admin/ProjectMaterialsTable"
 
 interface Project {
   id: string;
+  project_number: string | null;
   project_name: string;
   status: string;
   sport_type: string | null;
@@ -146,13 +147,30 @@ export default function ProjectDetail() {
     }
   }
 
+  async function generateProjectNumber(): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    const { count, error } = await supabase
+      .from("projects")
+      .select("*", { count: "exact", head: true })
+      .like("project_number", `PRJ-${currentYear}-%`);
+
+    if (error) {
+      console.error("Error counting projects:", error);
+    }
+    const nextNumber = (count || 0) + 1;
+    return `PRJ-${currentYear}-${String(nextNumber).padStart(4, "0")}`;
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
       if (isNew) {
+        const projectNumber = await generateProjectNumber();
+        
         const { data, error } = await supabase
           .from("projects")
           .insert({
+            project_number: projectNumber,
             project_name: editedProject.project_name || "New Project",
             status: editedProject.status || "sold",
             site_address: editedProject.site_address,
@@ -275,9 +293,16 @@ export default function ProjectDetail() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            {isNew ? "New Project" : editedProject.project_name}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground">
+              {isNew ? "New Project" : editedProject.project_name}
+            </h1>
+            {project?.project_number && (
+              <Badge variant="outline" className="text-sm font-mono">
+                {project.project_number}
+              </Badge>
+            )}
+          </div>
           {project?.customer && (
             <p className="text-muted-foreground mt-1">
               {project.customer.contact_name}

@@ -1132,6 +1132,7 @@ export type Database = {
           location_id: string | null
           notes: string | null
           project_name: string
+          project_number: string | null
           scheduled_start_date: string | null
           site_address: string | null
           site_city: string | null
@@ -1158,6 +1159,7 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           project_name: string
+          project_number?: string | null
           scheduled_start_date?: string | null
           site_address?: string | null
           site_city?: string | null
@@ -1184,6 +1186,7 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           project_name?: string
+          project_number?: string | null
           scheduled_start_date?: string | null
           site_address?: string | null
           site_city?: string | null
