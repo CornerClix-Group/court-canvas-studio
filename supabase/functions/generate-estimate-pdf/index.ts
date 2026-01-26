@@ -565,37 +565,48 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
-
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const userId = claimsData.claims.sub;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: roles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    // Check if this is a service-to-service call using the service role key
+    const isServiceCall = token === supabaseServiceKey;
 
-    if (rolesError) {
-      console.error("Error checking roles:", rolesError);
-      return new Response(JSON.stringify({ error: "Failed to verify permissions" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    if (!isServiceCall) {
+      // Validate user JWT for direct API calls
+      const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
 
-    const hasAccess = roles?.some((r) => ["owner", "admin", "staff", "sales", "project_manager"].includes(r.role));
+      const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
 
-    if (!hasAccess) {
-      return new Response(JSON.stringify({ error: "Forbidden - Insufficient permissions" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const userId = claimsData.claims.sub;
+
+      const { data: roles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+
+      if (rolesError) {
+        console.error("Error checking roles:", rolesError);
+        return new Response(JSON.stringify({ error: "Failed to verify permissions" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const hasAccess = roles?.some((r) => ["owner", "admin", "staff", "sales", "project_manager"].includes(r.role));
+
+      if (!hasAccess) {
+        return new Response(JSON.stringify({ error: "Forbidden - Insufficient permissions" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      console.log(`Generating PDF by user: ${userId}`);
+    } else {
+      console.log("Generating PDF via service-to-service call");
     }
 
     const { estimateId } = await req.json();
     if (!estimateId) throw new Error("Estimate ID is required");
 
-    console.log(`Generating PDF for estimate: ${estimateId} by user: ${userId}`);
+    console.log(`Generating PDF for estimate: ${estimateId}`);
 
     const { data: estimate, error } = await supabase
       .from("estimates")
