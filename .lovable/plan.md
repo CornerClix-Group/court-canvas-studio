@@ -1,278 +1,289 @@
 
-
-# Plan: Contractor/Subcontractor Portal
+# Plan: Advantage Resurfacer Pricing Update + Inventory Management
 
 ## Overview
 
-Create a dedicated portal for contractors (crew leads and project managers) to view their assigned jobs, update milestone status, and upload progress photos - all from their mobile devices in the field.
+Transition the pricing system from Acrylic Resurfacer (AR) to **Advantage Resurfacer** as the primary product line, update all material costs to 2025 PA3D pricing, and implement an inventory management system to track material stock levels.
 
 ---
 
-## Current State
+## Part 1: Pricing Updates (Immediate)
 
-| Component | Status |
-|-----------|--------|
-| `crew_lead` role | Exists in database |
-| `project_manager` role | Exists in database |
-| `assigned_to` column on projects | Exists but not used in UI |
-| RLS policy for assigned users | Exists: "Assigned users can view their projects" |
-| Milestone/Photo RLS for contractors | Missing - only admin/staff can access |
+### Current vs. New Pricing (2025 PA3D Price Sheet)
 
----
+| Material | Current | New (2025) | Change |
+|----------|---------|------------|--------|
+| Resurfacer (Advantage) | $11.73/gal | $10.25/gal | -$1.48 |
+| Color Concentrate (Advantage std) | $15.85/gal | $14.81/gal | -$1.04 |
+| Premium Color Add-on | $8.00/gal | $8.33/gal | +$0.33 |
+| Line Paint (White) | $30.61/gal | $30.01/gal | -$0.60 |
+| Cushion Plus Granule | $45.00/gal | $8.00/gal | -$37.00 |
+| Cushion Plus Powder | $35.00/gal | $8.00/gal | -$27.00 |
+| Crack Filler (Qualicaulk) | $25.00/unit | $20.58/sausage | -$4.42 |
 
-## What We're Building
+### Premium Color Pricing (US Open, etc.)
 
-### 1. Contractor Portal Page (`/admin/portal`)
-
-A mobile-friendly view showing:
-- List of assigned projects (cards with key info)
-- Quick status indicators (on track, behind schedule)
-- Tap to view project details
-
-### 2. Contractor Project Detail View
-
-Limited view compared to admin, showing:
-- Project name, location, schedule
-- Milestone checklist (can toggle complete)
-- Photo upload section
-- Notes field for daily updates
-- NO access to: contract values, customer contact, financial data
-
-### 3. Assignment UI in Admin
-
-Add to existing ProjectDetail page:
-- Team member selector to assign contractor
-- Filter to show only crew_lead/project_manager users
+| Color Tier | Advantage Price/gal | Premium Add-on |
+|------------|---------------------|----------------|
+| Standard Colors | $14.81 | $0 |
+| Royal Purple | $19.92 | +$5.11 |
+| US Open Green | $19.61 | +$4.80 |
+| US Open Blue | $23.14 | +$8.33 |
+| Miami Open | $14.99 - $17.18 | +$0.18 - $2.37 |
 
 ---
 
-## Database Changes
+## Part 2: Product Hierarchy (Primary/Backup)
 
-### New RLS Policies
+### Surfacing Products
 
-**project_milestones table:**
+| Use Case | Primary Product | Backup Product |
+|----------|-----------------|----------------|
+| Filler/Resurfacer | Advantage Acrylic Resurfacer (30-gal) | Acrylic Resurfacer (55-gal) |
+| Color Coats | Advantage (30-gal) | ColorFlex (55-gal) |
+| Cushion Base | Cushion Plus Granule | No backup |
+| Cushion Topcoat | Cushion Plus Powder | No backup |
+
+### When to Use Backup Products
+
+- Advantage unavailable from supplier
+- Large commercial project where 55-gal drums are more efficient
+- Special color only available in ColorFlex line
+
+---
+
+## Part 3: Database Changes
+
+### A. Update pricing_config Table
+
+Update the existing material costs in the database:
+
 ```sql
--- Assigned users can view milestones for their projects
-CREATE POLICY "Assigned users can view project milestones"
-ON project_milestones FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM projects 
-    WHERE projects.id = project_milestones.project_id 
-    AND projects.assigned_to = auth.uid()
-  )
+-- Update to 2025 Advantage pricing
+UPDATE pricing_config SET 
+  value = 10.25,
+  label = 'Advantage Resurfacer',
+  description = '$307.50 / 30gal drum (Advantage)'
+WHERE key = 'RESURFACER_PER_GAL';
+
+UPDATE pricing_config SET 
+  value = 14.81,
+  label = 'Advantage Color',
+  description = '$444.30 / 30gal drum (Standard colors)'
+WHERE key = 'COLOR_CONCENTRATE_PER_GAL';
+
+UPDATE pricing_config SET 
+  value = 8.33,
+  description = 'Extra for US Open Blue ($23.14 - $14.81)'
+WHERE key = 'PREMIUM_COLOR_ADD_ON';
+
+UPDATE pricing_config SET 
+  value = 30.01,
+  description = '$150.05 / 5gal pail (White)'
+WHERE key = 'LINE_PAINT_PER_GAL';
+
+UPDATE pricing_config SET 
+  value = 20.58,
+  description = '$247 / 12-pack sausages'
+WHERE key = 'CRACK_FILLER_UNIT';
+```
+
+### B. Add Cushion Material Pricing (New Rows)
+
+```sql
+-- Add cushion material pricing (currently hardcoded)
+INSERT INTO pricing_config (category, key, label, value, unit, description, sort_order, is_active)
+VALUES 
+  ('materials', 'CUSHION_GRANULE_PER_GAL', 'Cushion Plus Granule', 8.00, 'per_gal', '$440 / 55gal drum', 7, true),
+  ('materials', 'CUSHION_POWDER_PER_GAL', 'Cushion Plus Powder', 8.00, 'per_gal', '$440 / 55gal drum', 8, true);
+```
+
+### C. New Inventory Table
+
+```sql
+CREATE TABLE material_inventory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_code TEXT NOT NULL,
+  product_name TEXT NOT NULL,
+  product_type TEXT NOT NULL, -- 'resurfacer', 'color', 'cushion', 'line_paint', 'specialty'
+  product_line TEXT NOT NULL DEFAULT 'advantage', -- 'advantage', 'standard', 'colorflex'
+  is_primary BOOLEAN DEFAULT true, -- true = primary product, false = backup
+  
+  -- Packaging
+  container_size DECIMAL(10,2) NOT NULL, -- gallons per container
+  container_type TEXT NOT NULL, -- 'drum', 'pail', 'case'
+  
+  -- Pricing
+  cost_per_gallon DECIMAL(10,2) NOT NULL,
+  cost_per_container DECIMAL(10,2) NOT NULL,
+  
+  -- Inventory tracking
+  quantity_on_hand INTEGER DEFAULT 0, -- containers in stock
+  reorder_point INTEGER DEFAULT 2, -- when to reorder
+  reorder_quantity INTEGER DEFAULT 5, -- how many to order
+  
+  -- Metadata
+  color_name TEXT, -- for color products
+  is_premium_color BOOLEAN DEFAULT false,
+  supplier TEXT DEFAULT 'Laykold/APT',
+  last_price_update TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  notes TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Assigned users can update milestone status
-CREATE POLICY "Assigned users can update project milestones"
-ON project_milestones FOR UPDATE
+-- RLS policies
+ALTER TABLE material_inventory ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Team members can view inventory"
+ON material_inventory FOR SELECT
+USING (
+  EXISTS (SELECT 1 FROM team_members WHERE user_id = auth.uid() AND is_active = true)
+);
+
+CREATE POLICY "Admin/Staff can manage inventory"
+ON material_inventory FOR ALL
 USING (
   EXISTS (
-    SELECT 1 FROM projects 
-    WHERE projects.id = project_milestones.project_id 
-    AND projects.assigned_to = auth.uid()
+    SELECT 1 FROM team_members 
+    WHERE user_id = auth.uid() 
+    AND is_active = true 
+    AND role IN ('owner', 'admin', 'staff')
   )
 );
 ```
 
-**project_photos table:**
-```sql
--- Assigned users can view photos for their projects
-CREATE POLICY "Assigned users can view project photos"
-ON project_photos FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM projects 
-    WHERE projects.id = project_photos.project_id 
-    AND projects.assigned_to = auth.uid()
-  )
-);
+### D. Seed Initial Inventory Data
 
--- Assigned users can upload photos to their projects
-CREATE POLICY "Assigned users can insert project photos"
-ON project_photos FOR INSERT
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM projects 
-    WHERE projects.id = project_photos.project_id 
-    AND projects.assigned_to = auth.uid()
-  )
-);
+```sql
+INSERT INTO material_inventory (product_code, product_name, product_type, product_line, is_primary, container_size, container_type, cost_per_gallon, cost_per_container, color_name, is_premium_color)
+VALUES
+  -- Advantage Resurfacers (PRIMARY)
+  ('ADV-RESF-30', 'Advantage Acrylic Resurfacer', 'resurfacer', 'advantage', true, 30, 'drum', 10.25, 307.50, NULL, false),
+  
+  -- Standard Resurfacer (BACKUP)
+  ('AR-RESF-55', 'Acrylic Resurfacer', 'resurfacer', 'standard', false, 55, 'drum', 11.50, 632.50, NULL, false),
+  
+  -- Advantage Colors - Standard (PRIMARY)
+  ('ADV-STD-30', 'Advantage Standard Colors', 'color', 'advantage', true, 30, 'drum', 14.81, 444.30, 'Standard', false),
+  
+  -- Advantage Colors - Premium
+  ('ADV-USOB-30', 'Advantage US Open Blue', 'color', 'advantage', true, 30, 'drum', 23.14, 694.20, 'US Open Blue', true),
+  ('ADV-USOG-30', 'Advantage US Open Green', 'color', 'advantage', true, 30, 'drum', 19.61, 588.30, 'US Open Green', true),
+  ('ADV-PURP-30', 'Advantage Royal Purple', 'color', 'advantage', true, 30, 'drum', 19.92, 597.60, 'Royal Purple', true),
+  
+  -- ColorFlex (BACKUP)
+  ('CFX-STD-55', 'ColorFlex Standard Colors', 'color', 'colorflex', false, 55, 'drum', 18.60, 1023.00, 'Standard', false),
+  
+  -- Cushion Products
+  ('CPG-55', 'Cushion Plus Granule', 'cushion', 'standard', true, 55, 'drum', 8.00, 440.00, NULL, false),
+  ('CPP-55', 'Cushion Plus Powder', 'cushion', 'standard', true, 55, 'drum', 8.00, 440.00, NULL, false),
+  
+  -- Line Paint
+  ('LP-WHT-5', 'Textured White Line Paint', 'line_paint', 'standard', true, 5, 'pail', 30.01, 150.05, 'White', false),
+  ('LP-BLK-5', 'Textured Black Line Paint', 'line_paint', 'standard', true, 5, 'pail', 32.00, 160.00, 'Black', false),
+  ('LP-YLW-5', 'Textured Yellow Line Paint', 'line_paint', 'standard', true, 5, 'pail', 47.00, 235.00, 'Yellow', true),
+  
+  -- Specialty
+  ('QC-BLK-12', 'Qualicaulk Crack Filler (Black)', 'specialty', 'standard', true, 0.42, 'case', 20.58, 247.00, 'Black', false);
 ```
 
 ---
 
-## UI Components
+## Part 4: Code Changes
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/lib/pricingConstants.ts` | Update fallback defaults, add CUSHION_GRANULE_PER_GAL/POWDER |
+| `src/hooks/usePricingConfig.ts` | Add cushion material mapping to keyMapping |
+| `src/lib/courtCalculator.ts` | Use dynamic cushion pricing instead of hardcoded MATERIAL_PRICES |
+| `src/pages/admin/PricingConfig.tsx` | No changes (auto-picks up new DB rows) |
 
 ### New Files
 
 | File | Purpose |
 |------|---------|
-| `src/pages/admin/ContractorPortal.tsx` | Main portal page - list of assigned jobs |
-| `src/pages/admin/ContractorJobDetail.tsx` | Limited job view for contractors |
-| `src/components/admin/AssignContractorSelect.tsx` | Dropdown to assign team member |
-
-### Modified Files
-
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Add routes for `/admin/portal` and `/admin/portal/:id` |
-| `src/components/admin/AdminLayout.tsx` | Add "My Jobs" nav item for crew_lead/project_manager roles |
-| `src/pages/admin/ProjectDetail.tsx` | Add contractor assignment dropdown |
-| `src/hooks/useUserRole.ts` | Add `isContractor` helper |
+| `src/pages/admin/Inventory.tsx` | Inventory management dashboard |
+| `src/components/admin/InventoryTable.tsx` | Table with stock levels, reorder alerts |
+| `src/components/admin/AddInventoryModal.tsx` | Add new product or adjust stock |
 
 ---
 
-## Navigation Logic
+## Part 5: Inventory Management UI
 
-The sidebar will show different items based on role:
+### Dashboard Features
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Role                  │ Navigation Items                    │
-├───────────────────────┼─────────────────────────────────────┤
-│ owner, admin, staff   │ Full navigation (all items)         │
-│ crew_lead             │ My Jobs only                        │
-│ project_manager       │ My Jobs + Projects (read-only)      │
-│ sales                 │ Leads, Customers, Estimates         │
-│ accounting            │ Invoices, Payments                  │
+│  📦 Material Inventory                         [+ Add Item] │
+├─────────────────────────────────────────────────────────────┤
+│  Filter: [All Products ▼]  [Show Low Stock Only ☐]          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─ Resurfacers ────────────────────────────────────────┐   │
+│  │ ★ Advantage Resurfacer (30gal)    │ 8 drums │ ✅ OK  │   │
+│  │   Acrylic Resurfacer (55gal)      │ 2 drums │ ⚠️ Low │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─ Color Coats ────────────────────────────────────────┐   │
+│  │ ★ Advantage Standard Colors       │ 12 drums│ ✅ OK  │   │
+│  │ ★ Advantage US Open Blue          │ 4 drums │ ✅ OK  │   │
+│  │   ColorFlex (Backup)              │ 0 drums │ 🔴 Out │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─ Cushion Materials ──────────────────────────────────┐   │
+│  │ ★ Cushion Plus Granule (55gal)    │ 6 drums │ ✅ OK  │   │
+│  │ ★ Cushion Plus Powder (55gal)     │ 5 drums │ ✅ OK  │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
----
+### Stock Adjustment Modal
 
-## Contractor Portal UI
-
-### Job List View (Mobile-First)
-
-```
-┌─────────────────────────────────────────┐
-│  🔧 My Assigned Jobs                    │
-├─────────────────────────────────────────┤
-│ ┌─────────────────────────────────────┐ │
-│ │ Johnson Residence - Pickleball     │ │
-│ │ 📍 Augusta, GA                      │ │
-│ │ 📅 Start: Jan 28 | Due: Feb 15     │ │
-│ │ ━━━━━━━━━━━━━━━━━━░░░░ 67%         │ │
-│ │ 🟡 In Progress                      │ │
-│ └─────────────────────────────────────┘ │
-│                                         │
-│ ┌─────────────────────────────────────┐ │
-│ │ City Park Tennis Courts            │ │
-│ │ 📍 Martinez, GA                     │ │
-│ │ 📅 Start: Feb 1 | Due: Feb 28      │ │
-│ │ ░░░░░░░░░░░░░░░░░░░░ 0%            │ │
-│ │ 🔵 Scheduled                        │ │
-│ └─────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
-```
-
-### Job Detail View (Mobile-First)
-
-```
-┌─────────────────────────────────────────┐
-│ ← Back                                  │
-├─────────────────────────────────────────┤
-│ Johnson Residence - Pickleball          │
-│ 📍 123 Oak Street, Augusta, GA 30909    │
-│                                         │
-│ ┌─ Schedule ─────────────────────────┐  │
-│ │ Start: Jan 28, 2026                │  │
-│ │ Target: Feb 15, 2026               │  │
-│ └────────────────────────────────────┘  │
-│                                         │
-│ ┌─ Milestones ───────────────────────┐  │
-│ │ ✅ Site Preparation                │  │
-│ │ ✅ Base Work                       │  │
-│ │ ✅ Concrete Pour                   │  │
-│ │ ✅ Curing Period                   │  │
-│ │ ⬜ Surface Coating          [TAP] │  │
-│ │ ⬜ Color Coating                   │  │
-│ │ ⬜ Line Striping                   │  │
-│ │ ⬜ Net Posts & Hardware            │  │
-│ │ ⬜ Final Walkthrough               │  │
-│ └────────────────────────────────────┘  │
-│                                         │
-│ ┌─ Progress Photos ──────────────────┐  │
-│ │ [📷 Add Photo]                     │  │
-│ │                                    │  │
-│ │ ┌────┐ ┌────┐ ┌────┐              │  │
-│ │ │    │ │    │ │    │              │  │
-│ │ └────┘ └────┘ └────┘              │  │
-│ └────────────────────────────────────┘  │
-│                                         │
-│ ┌─ Notes ────────────────────────────┐  │
-│ │ Add update...                      │  │
-│ └────────────────────────────────────┘  │
-└─────────────────────────────────────────┘
-```
+- Quick +/- buttons for receiving shipments or using materials
+- Link to project when materials are consumed
+- History log of all adjustments
 
 ---
 
-## Technical Details
+## Part 6: Implementation Order
 
-### useUserRole Hook Update
+1. **Database Migration** - Create inventory table and update pricing_config
+2. **Update pricingConstants.ts** - New fallback defaults for Advantage pricing
+3. **Update usePricingConfig.ts** - Map cushion pricing keys
+4. **Update courtCalculator.ts** - Use dynamic cushion pricing
+5. **Create Inventory page** - Basic table with stock levels
+6. **Add to Navigation** - "Inventory" link in admin sidebar
+7. **Stock Adjustment Features** - Receive/consume materials
+
+---
+
+## Technical Notes
+
+### Product Line Logic
+
+The estimator will always calculate using the **primary product** pricing:
 
 ```typescript
-// Add to existing hook
-const isContractor = hasRole("crew_lead") || hasRole("project_manager");
-const isCrewLead = hasRole("crew_lead");
+// Example: Get resurfacer price
+// 1. Check pricing_config for RESURFACER_PER_GAL (now Advantage @ $10.25)
+// 2. Fall back to pricingConstants.ts defaults if DB unavailable
+
+// For rare cases needing backup products, admin can:
+// 1. Manually adjust estimate line items
+// 2. Or temporarily swap pricing in pricing_config
 ```
 
-### Navigation Filtering
+### Cushion Pricing Fix
 
-The AdminLayout will conditionally render nav items:
+Currently cushion materials use hardcoded `MATERIAL_PRICES.CUSHION_GRANULE_PER_GAL` ($45/gal). This needs to be:
 
-```typescript
-const getNavItems = () => {
-  if (isOwner || isAdmin || hasRole("staff")) {
-    return fullNavItems;
-  }
-  
-  const items = [];
-  
-  if (hasRole("crew_lead") || hasRole("project_manager")) {
-    items.push({ href: "/admin/portal", label: "My Jobs", icon: HardHat });
-  }
-  
-  if (hasRole("project_manager")) {
-    items.push({ href: "/admin/projects", label: "All Projects", icon: FolderKanban });
-  }
-  
-  if (hasRole("sales")) {
-    items.push(...salesNavItems);
-  }
-  
-  if (hasRole("accounting")) {
-    items.push(...accountingNavItems);
-  }
-  
-  return items;
-};
-```
+1. Added to `pricing_config` database table ($8.00/gal from price sheet)
+2. Mapped in `usePricingConfig.ts`
+3. Used in `courtCalculator.ts` from dynamic pricing
 
----
-
-## Security Considerations
-
-1. **RLS Policies**: Contractors can only see/update their assigned projects
-2. **No Financial Data**: Contract values hidden from contractor views
-3. **No Customer Contact**: Customer details not shown to contractors
-4. **Photo Upload**: Contractors can only upload to their projects
-5. **Milestone Updates**: Only status changes allowed, no deletion
-
----
-
-## Files to Create/Modify
-
-| Action | File | Purpose |
-|--------|------|---------|
-| Create | `src/pages/admin/ContractorPortal.tsx` | Job list for contractors |
-| Create | `src/pages/admin/ContractorJobDetail.tsx` | Job detail for contractors |
-| Create | `src/components/admin/AssignContractorSelect.tsx` | Team member assignment UI |
-| Create | `supabase/migrations/xxx_contractor_rls.sql` | RLS policies for contractors |
-| Modify | `src/App.tsx` | Add new routes |
-| Modify | `src/components/admin/AdminLayout.tsx` | Role-based navigation |
-| Modify | `src/pages/admin/ProjectDetail.tsx` | Add assignment dropdown |
-| Modify | `src/hooks/useUserRole.ts` | Add `isContractor` helper |
-
+This is a significant cost reduction: ~$37/gal × 20+ gallons per project = **$700+ savings per cushion project**.
