@@ -1,198 +1,255 @@
 
 
-# Full Pricing System Audit Report
+# Plan: Enhanced Estimate PDF with CourtPro Augusta Branding & Marketing
 
-## Summary of Issues Found
+## Overview
 
-I've completed a comprehensive analysis of the entire pricing system. There are **critical mismatches** between the database values, the code constants, and the key naming conventions that are causing pricing inconsistencies.
-
----
-
-## Issue 1: DATABASE KEY CASING MISMATCH (Root Cause of Repeated Failures)
-
-The `usePricingConfig.ts` hook expects **lowercase** keys (e.g., `resurfacer_per_gal`), but the database has a **mix of uppercase and lowercase**:
-
-| Database Key | Expected by Hook | Status |
-|--------------|------------------|--------|
-| `RESURFACER_PER_GAL` | `resurfacer_per_gal` | MISMATCH - Not being read |
-| `COLOR_CONCENTRATE_PER_GAL` | `color_concentrate_per_gal` | MISMATCH - Not being read |
-| `PREMIUM_COLOR_ADD_ON` | `premium_color_add_on` | MISMATCH - Not being read |
-| `LINE_PAINT_PER_GAL` | `line_paint_per_gal` | MISMATCH - Not being read |
-| `PRIMESEAL_PER_GAL` | `primeseal_per_gal` | MISMATCH - Not being read |
-| `CRACK_FILLER_UNIT` | `crack_filler_unit` | MISMATCH - Not being read |
-| `cushion_granule_per_gal` | `cushion_granule_per_gal` | OK |
-| `cushion_powder_per_gal` | `cushion_powder_per_gal` | OK |
-| `primeseal_gal_per_sy` | `primeseal_gal_per_sy` | OK |
-
-**Result**: The system is using hardcoded fallback values instead of database values for 6 material prices.
+Transform the estimate PDF from a plain document into a **professionally branded, marketing-focused sales tool** that reinforces trust and helps close deals.
 
 ---
 
-## Issue 2: DATABASE VALUES ARE OUTDATED
+## Part 1: Branding Updates
 
-Even if the keys matched, the database values are wrong:
+### Change Company Name Display
 
-| Material | Database Value | Correct 2025 PA3D Value |
-|----------|----------------|-------------------------|
-| Resurfacer | $11.73/gal | **$10.25/gal** (Advantage) |
-| Color Concentrate | $15.85/gal | **$14.81/gal** (Advantage Std) |
-| Premium Color Add-on | $8.00/gal | **$8.33/gal** |
-| Line Paint | $30.61/gal | **$30.01/gal** |
-| PrimeSeal | $45.00/gal | **$45.65/gal** |
-| Crack Filler | $25.00/unit | **$20.58/unit** |
+| Location | Current | New |
+|----------|---------|-----|
+| PDF Header | "CourtHaus Construction, LLC dba CourtPro Augusta" | **"CourtPro Augusta"** |
+| Subheader | None | **"Professional Court Construction"** |
+| Footer/Legal | Not shown | Small text: "A CourtHaus Construction, LLC company" |
 
----
+This keeps the legal identity while emphasizing the customer-facing brand.
 
-## Issue 3: CODE CONSTANTS ARE CORRECT (Fallbacks Working)
-
-The `pricingConstants.ts` file has the correct 2025 pricing:
-```typescript
-RESURFACER_PER_GAL: 10.25,        // ✓ Correct
-COLOR_CONCENTRATE_PER_GAL: 14.81, // ✓ Correct
-PRIMESEAL_PER_GAL: 45.65,         // ✓ Correct
-```
-
-**This is why estimates might appear to work** - the code falls back to these when database lookup fails.
-
----
-
-## Issue 4: MISSING COVERAGE RATES IN DATABASE
-
-The `COVERAGE` section is incomplete:
-
-| Coverage Rate | In Database? | Value |
-|---------------|--------------|-------|
-| `acrylic_gal_per_sy` | ✓ Yes | 0.05 |
-| `primeseal_gal_per_sy` | ✓ Yes | 0.05 |
-| `cushion_granule_gal_per_sy` | ✗ Missing | Should be 0.20 |
-| `cushion_powder_gal_per_sy` | ✗ Missing | Should be 0.12 |
-| `color_coat_gal_per_sy` | ✗ Missing | Should be 0.065 |
-
----
-
-## Issue 5: LABEL/DESCRIPTION CLARITY
-
-The Pricing Config page shows generic labels like "Resurfacer" instead of the specific product "Advantage Resurfacer" with pricing source.
-
----
-
-## Complete Fix Plan
-
-### Step 1: Standardize All Database Keys to Lowercase
-
-Update all uppercase keys in `pricing_config` to lowercase to match the hook's key mapping:
-
-```sql
--- Fix key casing for all materials
-UPDATE pricing_config SET key = 'resurfacer_per_gal' WHERE key = 'RESURFACER_PER_GAL';
-UPDATE pricing_config SET key = 'color_concentrate_per_gal' WHERE key = 'COLOR_CONCENTRATE_PER_GAL';
-UPDATE pricing_config SET key = 'premium_color_add_on' WHERE key = 'PREMIUM_COLOR_ADD_ON';
-UPDATE pricing_config SET key = 'line_paint_per_gal' WHERE key = 'LINE_PAINT_PER_GAL';
-UPDATE pricing_config SET key = 'primeseal_per_gal' WHERE key = 'PRIMESEAL_PER_GAL';
-UPDATE pricing_config SET key = 'crack_filler_unit' WHERE key = 'CRACK_FILLER_UNIT';
-
--- Fix labor keys
-UPDATE pricing_config SET key = 'wash_per_sf' WHERE key = 'WASH_PER_SF';
-UPDATE pricing_config SET key = 'crack_repair_per_lf' WHERE key = 'CRACK_REPAIR_PER_LF';
-UPDATE pricing_config SET key = 'acrylic_install_per_sf' WHERE key = 'ACRYLIC_INSTALL_PER_SF';
-UPDATE pricing_config SET key = 'cushion_install_per_sf' WHERE key = 'CUSHION_INSTALL_PER_SF';
-UPDATE pricing_config SET key = 'striping_per_court' WHERE key = 'STRIPING_PER_COURT';
-UPDATE pricing_config SET key = 'mobilization' WHERE key = 'MOBILIZATION';
-UPDATE pricing_config SET key = 'core_drill_per_hole' WHERE key = 'CORE_DRILL_PER_HOLE';
-
--- Fix construction keys
-UPDATE pricing_config SET key = 'asphalt_paving_per_sf' WHERE key = 'ASPHALT_PAVING_PER_SF';
-UPDATE pricing_config SET key = 'concrete_pt_per_sf' WHERE key = 'CONCRETE_PT_PER_SF';
-UPDATE pricing_config SET key = 'fencing_10ft_per_lf' WHERE key = 'FENCING_10FT_PER_LF';
-UPDATE pricing_config SET key = 'light_pole_unit' WHERE key = 'LIGHT_POLE_UNIT';
-UPDATE pricing_config SET key = 'playground_budget' WHERE key = 'PLAYGROUND_BUDGET';
-
--- Fix equipment keys
-UPDATE pricing_config SET key = 'net_post_set' WHERE key = 'NET_POST_SET';
-UPDATE pricing_config SET key = 'player_bench_6ft' WHERE key = 'PLAYER_BENCH_6FT';
-UPDATE pricing_config SET key = 'windscreen_per_lf' WHERE key = 'WINDSCREEN_PER_LF';
-UPDATE pricing_config SET key = 'ball_containment_per_lf' WHERE key = 'BALL_CONTAINMENT_PER_LF';
-
--- Fix margin keys
-UPDATE pricing_config SET key = 'default_margin' WHERE key = 'DEFAULT_MARGIN';
-UPDATE pricing_config SET key = 'min_margin' WHERE key = 'MIN_MARGIN';
-UPDATE pricing_config SET key = 'max_margin' WHERE key = 'MAX_MARGIN';
-```
-
-### Step 2: Update All Values to 2025 PA3D Pricing
-
-```sql
--- Update material prices to 2025 Advantage line
-UPDATE pricing_config SET 
-  value = 10.25, 
-  label = 'Advantage Resurfacer',
-  description = '$307.50 / 30gal drum (PA3D 2025)'
-WHERE key = 'resurfacer_per_gal';
-
-UPDATE pricing_config SET 
-  value = 14.81, 
-  label = 'Advantage Color (Standard)',
-  description = '$444.30 / 30gal drum (PA3D 2025)'
-WHERE key = 'color_concentrate_per_gal';
-
-UPDATE pricing_config SET 
-  value = 8.33, 
-  label = 'Premium Color Add-on',
-  description = 'Extra for US Open Blue ($23.14 - $14.81)'
-WHERE key = 'premium_color_add_on';
-
-UPDATE pricing_config SET 
-  value = 30.01, 
-  label = 'Textured Line Paint',
-  description = '$150.05 / 5gal pail (White)'
-WHERE key = 'line_paint_per_gal';
-
-UPDATE pricing_config SET 
-  value = 45.65, 
-  label = '1K PrimeSeal Primer',
-  description = '$228.25 / 5gal pail - New concrete prep'
-WHERE key = 'primeseal_per_gal';
-
-UPDATE pricing_config SET 
-  value = 20.58, 
-  label = 'Qualicaulk Crack Filler',
-  description = '$247 / 12-pack sausages'
-WHERE key = 'crack_filler_unit';
-```
-
-### Step 3: Add Missing Coverage Rates
-
-```sql
-INSERT INTO pricing_config (category, key, label, value, unit, description, sort_order, is_active)
-VALUES 
-  ('coverage', 'cushion_granule_gal_per_sy', 'Cushion Granule Coverage', 0.20, 'gal_per_sy', 'Laykold Pro Plus Guide', 3, true),
-  ('coverage', 'cushion_powder_gal_per_sy', 'Cushion Powder Coverage', 0.12, 'gal_per_sy', 'Laykold Pro Plus Guide', 4, true),
-  ('coverage', 'color_coat_gal_per_sy', 'Color Coat Coverage', 0.065, 'gal_per_sy', 'Standard color application rate', 5, true)
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, is_active = true;
-```
-
-### Step 4: Update Hook Key Mapping (if needed)
-
-The `usePricingConfig.ts` already uses lowercase mappings, so after the database fix, it will work correctly.
-
----
-
-## Verification Checklist
-
-After implementation, verify:
-
-1. **Pricing Config Page**: Shows "Advantage Resurfacer" at $10.25/gal (not $11.73)
-2. **Admin Estimate Builder**: Creates estimates using database values
-3. **Sales Estimator**: Uses same database pricing
-4. **Material Calculator**: Pulls correct rates from inventory
-
----
-
-## Files to Modify
+### Files to Update
 
 | File | Changes |
 |------|---------|
-| Database migration | Fix key casing + update values + add missing coverage |
+| `supabase/functions/generate-estimate-pdf/index.ts` | Update COMPANY_INFO, redesign header/layout |
+| `supabase/functions/generate-invoice-pdf/index.ts` | Match branding for consistency |
+| `supabase/functions/send-estimate-email/index.ts` | Already uses "CourtPro Augusta" in header - just update footer |
 
-No code changes needed - the hook already expects lowercase keys. The issue is purely database key casing.
+---
+
+## Part 2: Visual Design Improvements
+
+### New PDF Layout Structure
+
+```text
++------------------------------------------------------------------+
+|                        [HEADER SECTION]                           |
+|    COURTPRO AUGUSTA                                               |
+|    Professional Court Construction                                |
+|    (706) 309-1993 | estimates@courtproaugusta.com                |
++------------------------------------------------------------------+
+|                                                                   |
+|    ESTIMATE #EST-2026-0042           Date: January 26, 2026      |
+|    Valid Until: February 25, 2026                                 |
+|                                                                   |
++------------------------------------------------------------------+
+|    PREPARED FOR:                                                  |
+|    [Customer Name]                                                |
+|    [Address]                                                      |
+|                                                                   |
++==================================================================+
+|                      YOUR PROJECT INCLUDES                        |
++==================================================================+
+|                                                                   |
+|    - Pro Plus Elite cushioned surfacing system (7 coats)         |
+|    - Professional pressure washing and surface preparation        |
+|    - Complete 4-court pickleball line striping                   |
+|    - Premium color selection with UV-stable pigments              |
+|                                                                   |
++------------------------------------------------------------------+
+|                                                                   |
+|   +----------------------------------------------------------+   |
+|   |                  PROJECT INVESTMENT                       |   |
+|   |                                                           |   |
+|   |                     $12,450.00                            |   |
+|   +----------------------------------------------------------+   |
+|                                                                   |
++------------------------------------------------------------------+
+|   +----------------------------------------------------------+   |
+|   |        FLEXIBLE PAYMENT OPTIONS                           |   |
+|   |   Klarna | Apple Pay | Cash App | Cards                  |   |
+|   |   Bank Transfer (ACH) - NO FEES!                          |   |
+|   +----------------------------------------------------------+   |
+|                                                                   |
++==================================================================+
+|                      WHY CHOOSE COURTPRO?                         |
++==================================================================+
+|                                                                   |
+|   [Trophy Icon] 200+ Courts Completed                            |
+|   [Star Icon] ASBA Certified Builder                             |
+|   [Shield Icon] Industry-Leading Warranty                        |
+|   [Clock Icon] On-Time Project Delivery                          |
+|                                                                   |
++------------------------------------------------------------------+
+|                                                                   |
+|   "Your court is an investment. We use only premium Laykold      |
+|    surfacing systems to ensure years of exceptional play."        |
+|                                                                   |
++------------------------------------------------------------------+
+|                        [FOOTER]                                   |
+|   A CourtHaus Construction, LLC company                          |
+|   500 Furys Ferry Rd. Suite 107, Augusta, GA 30907               |
++------------------------------------------------------------------+
+```
+
+### Color Scheme
+
+| Element | Color | RGB Value |
+|---------|-------|-----------|
+| Header Background | Dark Navy | rgb(0.12, 0.23, 0.37) |
+| Primary Accent | Brand Green | rgb(0.02, 0.59, 0.41) |
+| Investment Box Background | Light Gray | rgb(0.95, 0.97, 1.0) |
+| Investment Amount | Brand Green | rgb(0.02, 0.59, 0.41) |
+| Marketing Section | Light Sage | rgb(0.94, 0.98, 0.94) |
+
+---
+
+## Part 3: Marketing Content Additions
+
+### "Why Choose CourtPro?" Section
+
+Add a dedicated marketing section before the footer with trust-building content:
+
+```typescript
+const MARKETING_POINTS = [
+  { icon: '*', text: '200+ Courts Completed - Trusted by homeowners, schools & clubs' },
+  { icon: '*', text: 'ASBA Certified - American Sports Builders Association member' },
+  { icon: '*', text: 'Premium Materials - Laykold surfaces used by US Open & ATP' },
+  { icon: '*', text: 'Local Expertise - Serving Augusta & CSRA since 2020' },
+];
+```
+
+### Warranty/Quality Callout
+
+Add a quality assurance statement:
+
+```
+"Your court is more than pavement - it's where memories are made.
+We use only premium Laykold surfacing systems, the same materials
+trusted by the US Open and professional tournaments worldwide."
+```
+
+### Dynamic Marketing Based on Project Type
+
+The marketing text will adapt based on the estimate content:
+
+| Project Type | Marketing Focus |
+|--------------|-----------------|
+| Pickleball | "The fastest-growing sport - invest in quality that lasts" |
+| Tennis | "Championship-quality surfaces for serious players" |
+| Basketball | "Built tough for years of hard play" |
+| Resurfacing | "Restore your court to like-new condition" |
+
+---
+
+## Part 4: Implementation Details
+
+### Updated generate-estimate-pdf/index.ts
+
+Key changes:
+
+1. **Header Section**: Navy gradient with "CourtPro Augusta" prominently displayed
+2. **Remove Legal Entity**: No more "CourtHaus Construction, LLC dba" in header
+3. **Add Tagline**: "Professional Court Construction" under brand name
+4. **Marketing Section**: New section with trust signals before footer
+5. **Footer**: Small legal text for compliance
+
+### PDF Drawing Functions
+
+```typescript
+// New header drawing function
+function drawBrandedHeader(page: PDFPage, fonts: { bold: PDFFont, regular: PDFFont }) {
+  // Navy header bar
+  page.drawRectangle({
+    x: 0, y: 742, width: 612, height: 50,
+    color: rgb(0.12, 0.23, 0.37)
+  });
+  
+  // Brand name
+  page.drawText('CourtPro Augusta', {
+    x: 50, y: 758, size: 22, font: fonts.bold,
+    color: rgb(1, 1, 1)
+  });
+  
+  // Tagline
+  page.drawText('Professional Court Construction', {
+    x: 50, y: 744, size: 10, font: fonts.regular,
+    color: rgb(0.58, 0.77, 0.99) // Light blue
+  });
+  
+  // Contact on right side
+  page.drawText('(706) 309-1993', {
+    x: 450, y: 758, size: 10, font: fonts.regular,
+    color: rgb(1, 1, 1)
+  });
+}
+
+// New marketing section drawing function
+function drawMarketingSection(page: PDFPage, y: number, fonts: { bold: PDFFont, regular: PDFFont }) {
+  // Section header
+  page.drawRectangle({
+    x: 50, y: y - 5, width: 512, height: 25,
+    color: rgb(0.02, 0.59, 0.41) // Brand green
+  });
+  
+  page.drawText('WHY CHOOSE COURTPRO?', {
+    x: 60, y: y + 3, size: 12, font: fonts.bold,
+    color: rgb(1, 1, 1)
+  });
+  
+  y -= 40;
+  
+  // Trust points
+  const points = [
+    '* 200+ Courts Completed - Trusted by homeowners, schools & clubs',
+    '* ASBA Certified - American Sports Builders Association member',
+    '* Premium Materials - Laykold surfaces used by US Open & ATP',
+    '* Local Expertise - Serving Augusta & the CSRA',
+  ];
+  
+  for (const point of points) {
+    page.drawText(point, { x: 60, y, size: 10, font: fonts.regular });
+    y -= 16;
+  }
+  
+  return y;
+}
+```
+
+---
+
+## Part 5: Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/generate-estimate-pdf/index.ts` | Complete redesign with new branding and marketing |
+| `supabase/functions/generate-invoice-pdf/index.ts` | Update header to match (optional - follow-up) |
+| `supabase/functions/send-estimate-email/index.ts` | Update footer COMPANY_INFO to match |
+
+---
+
+## Part 6: Sample Output Preview
+
+The new PDF will include:
+
+1. **Bold Navy Header** - "CourtPro Augusta" with contact info
+2. **Clean Estimate Info** - Number, date, validity period
+3. **Customer Section** - Professional "Prepared For" block
+4. **Scope Bullets** - What's included with check marks
+5. **Investment Box** - Large, prominent total with green accent
+6. **Payment Options** - Klarna, cards, bank transfer callout
+7. **Marketing Section** - Trust signals and quality messaging
+8. **Professional Footer** - Legal entity in small text
+
+---
+
+## Technical Notes
+
+- Uses pdf-lib standard fonts (Helvetica, Helvetica-Bold) - no custom fonts needed
+- All text uses WinAnsi-compatible characters (no unicode symbols)
+- Bullet points use asterisk (*) or hyphen (-) instead of checkmarks
+- Colors use rgb() function for consistency
 
