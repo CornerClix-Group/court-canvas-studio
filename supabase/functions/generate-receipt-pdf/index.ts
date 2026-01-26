@@ -194,7 +194,7 @@ function createSimplePdf(textContent: string): Uint8Array {
   
   const fontObj = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
   const boldFontObj = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
-  const gsObj = "7 0 obj\n<< /Type /ExtGState /CA 0.2 /ca 0.2 >>\nendobj\n";
+  const gsObj = "7 0 obj\n<< /Type /ExtGState /CA 0.35 /ca 0.35 >>\nendobj\n";
   
   let contentStream = "BT\n/F1 9 Tf\n";
   let yPos = 750;
@@ -215,10 +215,10 @@ function createSimplePdf(textContent: string): Uint8Array {
   // Add diagonal "PAID" watermark
   contentStream += "q\n";
   contentStream += "/GS1 gs\n";
-  contentStream += "0 0.5 0 rg\n";
+  contentStream += "0.75 0.92 0.75 rg\n";  // Light green (matches invoice style)
   contentStream += "BT\n";
-  contentStream += "/F2 72 Tf\n";
-  contentStream += "0.707 0.707 -0.707 0.707 180 350 Tm\n";
+  contentStream += "/F2 65 Tf\n";  // Match invoice font size
+  contentStream += "0.707 0.707 -0.707 0.707 150 320 Tm\n";  // Adjusted position
   contentStream += "(PAID) Tj\n";
   contentStream += "ET\n";
   contentStream += "Q\n";
