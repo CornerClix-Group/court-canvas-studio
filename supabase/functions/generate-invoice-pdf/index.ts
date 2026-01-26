@@ -1,23 +1,40 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage } from "https://esm.sh/pdf-lib@1.17.1";
 
-// Company information
+// Company branding information
 const COMPANY_INFO = {
-  legalName: "CourtHaus Construction, LLC",
-  dbaName: "CourtPro Augusta",
-  displayName: "CourtHaus Construction, LLC dba CourtPro Augusta",
-  address: {
-    street: "500 Furys Ferry Rd.",
-    suite: "Suite 107",
-    city: "Augusta",
-    state: "GA",
-    zip: "30907",
-    full: "500 Furys Ferry Rd. Suite 107, Augusta, GA 30907",
-  },
+  brandName: "CourtPro Augusta",
+  tagline: "Professional Court Construction",
+  legalName: "A CourtHaus Construction, LLC Company",
+  address: "500 Furys Ferry Rd. Suite 107",
+  cityStateZip: "Augusta, GA 30907",
   phone: "(706) 309-1993",
-  email: "estimates@courtproaugusta.com",
+  email: "billing@courtproaugusta.com",
   website: "courtproaugusta.com",
 };
+
+// Brand colors
+const COLORS = {
+  navy: rgb(0.12, 0.23, 0.37),
+  brandGreen: rgb(0.02, 0.59, 0.41),
+  lightBlue: rgb(0.58, 0.77, 0.99),
+  lightGray: rgb(0.95, 0.97, 1.0),
+  sage: rgb(0.94, 0.98, 0.94),
+  teal: rgb(0.03, 0.57, 0.70),
+  darkText: rgb(0.12, 0.12, 0.12),
+  grayText: rgb(0.4, 0.4, 0.4),
+  white: rgb(1, 1, 1),
+  paidGreen: rgb(0.02, 0.5, 0.02),
+};
+
+// Marketing trust points
+const MARKETING_POINTS = [
+  "200+ Courts Completed - Trusted by homeowners, schools & clubs",
+  "ASBA Certified - American Sports Builders Association member",
+  "Premium Materials - Laykold surfaces used by US Open & ATP",
+  "Local Expertise - Serving Augusta & the CSRA",
+];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,250 +88,745 @@ const formatDate = (dateStr: string): string => {
   });
 };
 
-// Generate PDF using a simple text-based approach that creates valid PDF
-function generatePdfContent(invoice: InvoiceData): Uint8Array {
-  const customer = invoice.customers;
-  const isPaid = invoice.status === "paid";
-  
-  // Build content lines
-  const lines: string[] = [];
-  
-  // Add PAID stamp at the top if invoice is paid
-  if (isPaid) {
-    lines.push("");
-    lines.push("*".repeat(60));
-    lines.push("*" + " ".repeat(20) + "*** PAID ***" + " ".repeat(20) + "*");
-    if (invoice.paid_at) {
-      const paidDate = formatDate(invoice.paid_at);
-      const padding = Math.max(0, Math.floor((58 - paidDate.length - 6) / 2));
-      lines.push("*" + " ".repeat(padding) + `Paid: ${paidDate}` + " ".repeat(58 - padding - paidDate.length - 6) + "*");
-    }
-    lines.push("*".repeat(60));
-    lines.push("");
-  }
-  
-  // Company header with full legal name and address
-  lines.push(COMPANY_INFO.displayName);
-  lines.push(COMPANY_INFO.address.street + " " + COMPANY_INFO.address.suite);
-  lines.push(`${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}`);
-  lines.push("");
-  lines.push(`Phone: ${COMPANY_INFO.phone}`);
-  lines.push(`Email: ${COMPANY_INFO.email}`);
-  lines.push("");
-  lines.push("=".repeat(60));
-  lines.push("");
-  lines.push(`INVOICE ${invoice.invoice_number}`);
-  lines.push("");
-  lines.push(`Date: ${formatDate(invoice.created_at)}`);
-  if (invoice.due_date) {
-    lines.push(`Due Date: ${formatDate(invoice.due_date)}`);
-  }
-  lines.push(`Status: ${invoice.status.toUpperCase()}`);
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  
-  // Bill To
-  lines.push("BILL TO:");
-  if (customer) {
-    if (customer.company_name) lines.push(customer.company_name);
-    lines.push(customer.contact_name);
-    if (customer.address) lines.push(customer.address);
-    if (customer.city || customer.state || customer.zip) {
-      lines.push(`${customer.city || ""}, ${customer.state || ""} ${customer.zip || ""}`.trim());
-    }
-    if (customer.email) lines.push(customer.email);
-    if (customer.phone) lines.push(customer.phone);
-  }
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  
-  // Line items header
-  lines.push("DESCRIPTION".padEnd(35) + "QTY".padStart(8) + "PRICE".padStart(12) + "TOTAL".padStart(12));
-  lines.push("-".repeat(67));
-  
-  // Line items
-  for (const item of invoice.invoice_items) {
-    const desc = item.description.substring(0, 34).padEnd(35);
-    const qty = item.quantity.toString().padStart(8);
-    const price = formatCurrency(item.unit_price).padStart(12);
-    const total = formatCurrency(item.total).padStart(12);
-    lines.push(`${desc}${qty}${price}${total}`);
-  }
-  
-  lines.push("-".repeat(67));
-  lines.push("");
-  
-  // Totals
-  lines.push("SUBTOTAL:".padStart(47) + formatCurrency(invoice.subtotal).padStart(20));
-  if (invoice.tax_rate && invoice.tax_amount) {
-    lines.push(`TAX (${invoice.tax_rate}%):`.padStart(47) + formatCurrency(invoice.tax_amount).padStart(20));
-  }
-  lines.push("=".repeat(67));
-  lines.push("TOTAL DUE:".padStart(47) + formatCurrency(invoice.total).padStart(20));
-  
-  // Show payment info for paid invoices
-  if (isPaid) {
-    lines.push("");
-    lines.push("=".repeat(67));
-    lines.push("AMOUNT PAID:".padStart(47) + formatCurrency(invoice.total).padStart(20));
-    lines.push("BALANCE DUE:".padStart(47) + formatCurrency(0).padStart(20));
-  }
-  
-  // Flexible Payment Options badge for unpaid invoices
-  if (!isPaid) {
-    lines.push("");
-    lines.push("*".repeat(67));
-    lines.push("*" + " ".repeat(13) + "FLEXIBLE PAYMENT OPTIONS" + " ".repeat(28) + "*");
-    lines.push("*" + " ".repeat(5) + "Klarna | Apple Pay | Cash App | Amazon Pay | Cards" + " ".repeat(9) + "*");
-    lines.push("*" + " ".repeat(10) + "Bank Transfer (ACH) - NO FEE!" + " ".repeat(26) + "*");
-    lines.push("*".repeat(67));
-  }
-  
-  lines.push("");
-  
-  // Notes
-  if (invoice.notes) {
-    lines.push("-".repeat(60));
-    lines.push("NOTES:");
-    lines.push(invoice.notes);
-  }
-  
-  lines.push("");
-  lines.push("-".repeat(60));
-  lines.push("");
-  
-  if (isPaid) {
-    lines.push("PAYMENT RECEIVED - THANK YOU!");
-  } else {
-    lines.push("PAYMENT INFORMATION:");
-    lines.push("");
-    lines.push(`Please make checks payable to: ${COMPANY_INFO.legalName}`);
-    lines.push("");
-    lines.push("Mail to:");
-    lines.push(`  ${COMPANY_INFO.address.street} ${COMPANY_INFO.address.suite}`);
-    lines.push(`  ${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}`);
-    lines.push("");
-    lines.push(`For questions, contact us at ${COMPANY_INFO.email} or ${COMPANY_INFO.phone}`);
-  }
-  lines.push("");
-  lines.push("Thank you for your business!");
-  
-  const content = lines.join("\n");
-  
-  // Create a simple PDF structure
-  const pdf = createSimplePdf(content, isPaid);
-  return pdf;
+// Draw branded header
+function drawBrandedHeader(
+  page: PDFPage,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  width: number
+): void {
+  // Navy header bar
+  page.drawRectangle({
+    x: 0,
+    y: 742,
+    width: width,
+    height: 50,
+    color: COLORS.navy,
+  });
+
+  // Brand name
+  page.drawText(COMPANY_INFO.brandName, {
+    x: 50,
+    y: 760,
+    size: 22,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  // Tagline
+  page.drawText(COMPANY_INFO.tagline, {
+    x: 50,
+    y: 746,
+    size: 10,
+    font: fonts.regular,
+    color: COLORS.lightBlue,
+  });
+
+  // Contact on right side
+  page.drawText(COMPANY_INFO.phone, {
+    x: width - 150,
+    y: 760,
+    size: 10,
+    font: fonts.regular,
+    color: COLORS.white,
+  });
+
+  page.drawText(COMPANY_INFO.email, {
+    x: width - 150,
+    y: 746,
+    size: 9,
+    font: fonts.regular,
+    color: COLORS.lightBlue,
+  });
 }
 
-function createSimplePdf(textContent: string, isPaid: boolean = false): Uint8Array {
-  const lines = textContent.split("\n");
-  
-  // PDF structure
-  let pdf = "%PDF-1.4\n";
-  let objects: string[] = [];
-  let offsets: number[] = [];
-  
-  // Object 1: Catalog
-  offsets.push(pdf.length);
-  objects.push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-  
-  // Object 2: Pages
-  offsets.push(pdf.length + objects.join("").length);
-  objects.push("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-  
-  // Object 3: Page - with extended graphics state for transparency
-  offsets.push(pdf.length + objects.join("").length);
-  objects.push("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /ExtGState << /GS1 7 0 R >> >> >>\nendobj\n");
-  
-  // Object 5: Courier Font
-  const fontObj = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
-  
-  // Object 6: Helvetica Bold Font for PAID stamp
-  const boldFontObj = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
-  
-  // Object 7: Graphics state for transparency
-  const gsObj = "7 0 obj\n<< /Type /ExtGState /CA 0.3 /ca 0.3 >>\nendobj\n";
-  
-  // Build content stream
-  let contentStream = "BT\n/F1 9 Tf\n";
-  let yPos = 750;
-  const lineHeight = 11;
-  const leftMargin = 50;
-  
-  for (const line of lines) {
-    if (yPos < 50) {
-      // Would need multi-page support for long invoices
-      break;
-    }
-    // Escape special characters for PDF
-    const escapedLine = line
-      .replace(/\\/g, "\\\\")
-      .replace(/\(/g, "\\(")
-      .replace(/\)/g, "\\)");
-    contentStream += `1 0 0 1 ${leftMargin} ${yPos} Tm\n(${escapedLine}) Tj\n`;
-    yPos -= lineHeight;
-  }
-  contentStream += "ET\n";
-  
-  // Add diagonal PAID watermark if paid
+// Draw invoice info section
+function drawInvoiceInfo(
+  page: PDFPage,
+  invoice: InvoiceData,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  y: number
+): number {
+  const isPaid = invoice.status === "paid";
+
+  // Invoice title with status
+  page.drawText("INVOICE", {
+    x: 50,
+    y,
+    size: 24,
+    font: fonts.bold,
+    color: COLORS.darkText,
+  });
+
+  // Status badge
   if (isPaid) {
-    contentStream += "q\n"; // Save graphics state
-    contentStream += "/GS1 gs\n"; // Apply transparency
-    contentStream += "0 0.5 0 rg\n"; // Green color
-    contentStream += "BT\n";
-    contentStream += "/F2 72 Tf\n"; // Large bold font
-    // Rotate 45 degrees and position in center
-    contentStream += "0.707 0.707 -0.707 0.707 200 350 Tm\n";
-    contentStream += "(PAID) Tj\n";
-    contentStream += "ET\n";
-    contentStream += "Q\n"; // Restore graphics state
+    page.drawRectangle({
+      x: 140,
+      y: y - 3,
+      width: 50,
+      height: 20,
+      color: COLORS.brandGreen,
+    });
+    page.drawText("PAID", {
+      x: 150,
+      y: y + 2,
+      size: 11,
+      font: fonts.bold,
+      color: COLORS.white,
+    });
   }
-  
-  // Object 4: Content stream
-  offsets.push(pdf.length + objects.join("").length);
-  objects.push(`4 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream\nendobj\n`);
-  
-  // Add font objects
-  offsets.push(pdf.length + objects.join("").length);
-  objects.push(fontObj);
-  
-  offsets.push(pdf.length + objects.join("").length);
-  objects.push(boldFontObj);
-  
-  // Add graphics state object
-  offsets.push(pdf.length + objects.join("").length);
-  objects.push(gsObj);
-  
-  // Recalculate offsets
-  let currentOffset = pdf.length;
-  const finalOffsets: number[] = [];
-  for (const obj of objects) {
-    finalOffsets.push(currentOffset);
-    currentOffset += obj.length;
+
+  y -= 25;
+
+  // Invoice number
+  page.drawText("Invoice Number:", {
+    x: 50,
+    y,
+    size: 10,
+    font: fonts.regular,
+    color: COLORS.grayText,
+  });
+  page.drawText(invoice.invoice_number, {
+    x: 140,
+    y,
+    size: 10,
+    font: fonts.bold,
+    color: COLORS.darkText,
+  });
+
+  y -= 15;
+
+  // Date
+  page.drawText("Date:", {
+    x: 50,
+    y,
+    size: 10,
+    font: fonts.regular,
+    color: COLORS.grayText,
+  });
+  page.drawText(formatDate(invoice.created_at), {
+    x: 140,
+    y,
+    size: 10,
+    font: fonts.regular,
+    color: COLORS.darkText,
+  });
+
+  y -= 15;
+
+  // Due date
+  if (invoice.due_date) {
+    page.drawText("Due Date:", {
+      x: 50,
+      y,
+      size: 10,
+      font: fonts.regular,
+      color: COLORS.grayText,
+    });
+    page.drawText(formatDate(invoice.due_date), {
+      x: 140,
+      y,
+      size: 10,
+      font: fonts.bold,
+      color: isPaid ? COLORS.grayText : COLORS.darkText,
+    });
+    y -= 15;
   }
-  
-  // Build final PDF
-  pdf += objects.join("");
-  
-  // Cross-reference table
-  const xrefOffset = pdf.length;
-  pdf += "xref\n";
-  pdf += `0 ${objects.length + 1}\n`;
-  pdf += "0000000000 65535 f \n";
-  for (const offset of finalOffsets) {
-    pdf += offset.toString().padStart(10, "0") + " 00000 n \n";
+
+  // Paid date if applicable
+  if (isPaid && invoice.paid_at) {
+    page.drawText("Paid:", {
+      x: 50,
+      y,
+      size: 10,
+      font: fonts.regular,
+      color: COLORS.brandGreen,
+    });
+    page.drawText(formatDate(invoice.paid_at), {
+      x: 140,
+      y,
+      size: 10,
+      font: fonts.bold,
+      color: COLORS.brandGreen,
+    });
+    y -= 15;
   }
+
+  return y - 15;
+}
+
+// Draw Bill To section
+function drawBillTo(
+  page: PDFPage,
+  customer: InvoiceData["customers"],
+  fonts: { bold: PDFFont; regular: PDFFont },
+  y: number
+): number {
+  // Section header bar
+  page.drawRectangle({
+    x: 50,
+    y: y - 5,
+    width: 150,
+    height: 20,
+    color: COLORS.lightGray,
+  });
+
+  page.drawText("BILL TO", {
+    x: 55,
+    y: y,
+    size: 11,
+    font: fonts.bold,
+    color: COLORS.darkText,
+  });
+
+  y -= 30;
+
+  if (customer) {
+    if (customer.company_name) {
+      page.drawText(customer.company_name, {
+        x: 50,
+        y,
+        size: 11,
+        font: fonts.bold,
+        color: COLORS.darkText,
+      });
+      y -= 14;
+    }
+
+    page.drawText(customer.contact_name, {
+      x: 50,
+      y,
+      size: 10,
+      font: fonts.regular,
+      color: COLORS.darkText,
+    });
+    y -= 14;
+
+    if (customer.address) {
+      page.drawText(customer.address, {
+        x: 50,
+        y,
+        size: 10,
+        font: fonts.regular,
+        color: COLORS.grayText,
+      });
+      y -= 14;
+    }
+
+    if (customer.city || customer.state || customer.zip) {
+      const cityStateZip = [customer.city, customer.state, customer.zip]
+        .filter(Boolean)
+        .join(", ");
+      page.drawText(cityStateZip, {
+        x: 50,
+        y,
+        size: 10,
+        font: fonts.regular,
+        color: COLORS.grayText,
+      });
+      y -= 14;
+    }
+
+    if (customer.email) {
+      page.drawText(customer.email, {
+        x: 50,
+        y,
+        size: 10,
+        font: fonts.regular,
+        color: COLORS.grayText,
+      });
+      y -= 14;
+    }
+
+    if (customer.phone) {
+      page.drawText(customer.phone, {
+        x: 50,
+        y,
+        size: 10,
+        font: fonts.regular,
+        color: COLORS.grayText,
+      });
+      y -= 14;
+    }
+  }
+
+  return y - 10;
+}
+
+// Draw line items table
+function drawLineItems(
+  page: PDFPage,
+  items: InvoiceItem[],
+  fonts: { bold: PDFFont; regular: PDFFont },
+  y: number,
+  width: number
+): number {
+  const tableWidth = width - 100;
+
+  // Table header
+  page.drawRectangle({
+    x: 50,
+    y: y - 5,
+    width: tableWidth,
+    height: 25,
+    color: COLORS.navy,
+  });
+
+  page.drawText("Description", {
+    x: 60,
+    y: y + 2,
+    size: 10,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  page.drawText("Qty", {
+    x: 340,
+    y: y + 2,
+    size: 10,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  page.drawText("Price", {
+    x: 400,
+    y: y + 2,
+    size: 10,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  page.drawText("Total", {
+    x: 480,
+    y: y + 2,
+    size: 10,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  y -= 30;
+
+  // Draw rows
+  items.forEach((item, index) => {
+    // Alternating row colors
+    if (index % 2 === 0) {
+      page.drawRectangle({
+        x: 50,
+        y: y - 8,
+        width: tableWidth,
+        height: 22,
+        color: COLORS.lightGray,
+      });
+    }
+
+    // Truncate description if too long
+    const desc = item.description.length > 45 
+      ? item.description.substring(0, 42) + "..." 
+      : item.description;
+
+    page.drawText(desc, {
+      x: 60,
+      y,
+      size: 9,
+      font: fonts.regular,
+      color: COLORS.darkText,
+    });
+
+    page.drawText(item.quantity.toString(), {
+      x: 345,
+      y,
+      size: 9,
+      font: fonts.regular,
+      color: COLORS.darkText,
+    });
+
+    page.drawText(formatCurrency(item.unit_price), {
+      x: 390,
+      y,
+      size: 9,
+      font: fonts.regular,
+      color: COLORS.darkText,
+    });
+
+    page.drawText(formatCurrency(item.total), {
+      x: 470,
+      y,
+      size: 9,
+      font: fonts.bold,
+      color: COLORS.darkText,
+    });
+
+    y -= 22;
+  });
+
+  return y - 10;
+}
+
+// Draw totals section
+function drawTotals(
+  page: PDFPage,
+  invoice: InvoiceData,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  y: number,
+  width: number
+): number {
+  const boxX = width - 220;
+  const boxWidth = 170;
+  const isPaid = invoice.status === "paid";
+
+  // Totals box background
+  page.drawRectangle({
+    x: boxX,
+    y: y - 70,
+    width: boxWidth,
+    height: 75,
+    color: COLORS.lightGray,
+  });
+
+  // Green accent line
+  page.drawRectangle({
+    x: boxX,
+    y: y - 70,
+    width: 4,
+    height: 75,
+    color: COLORS.brandGreen,
+  });
+
+  // Subtotal
+  page.drawText("Subtotal:", {
+    x: boxX + 15,
+    y: y - 15,
+    size: 10,
+    font: fonts.regular,
+    color: COLORS.grayText,
+  });
+  page.drawText(formatCurrency(invoice.subtotal), {
+    x: boxX + boxWidth - 70,
+    y: y - 15,
+    size: 10,
+    font: fonts.regular,
+    color: COLORS.darkText,
+  });
+
+  // Tax if applicable
+  if (invoice.tax_rate && invoice.tax_amount) {
+    page.drawText(`Tax (${invoice.tax_rate}%):`, {
+      x: boxX + 15,
+      y: y - 32,
+      size: 10,
+      font: fonts.regular,
+      color: COLORS.grayText,
+    });
+    page.drawText(formatCurrency(invoice.tax_amount), {
+      x: boxX + boxWidth - 70,
+      y: y - 32,
+      size: 10,
+      font: fonts.regular,
+      color: COLORS.darkText,
+    });
+  }
+
+  // Total
+  page.drawText(isPaid ? "PAID:" : "TOTAL DUE:", {
+    x: boxX + 15,
+    y: y - 55,
+    size: 12,
+    font: fonts.bold,
+    color: isPaid ? COLORS.brandGreen : COLORS.darkText,
+  });
+  page.drawText(formatCurrency(invoice.total), {
+    x: boxX + boxWidth - 80,
+    y: y - 55,
+    size: 14,
+    font: fonts.bold,
+    color: isPaid ? COLORS.brandGreen : COLORS.brandGreen,
+  });
+
+  return y - 90;
+}
+
+// Draw payment options banner (only for unpaid invoices)
+function drawPaymentOptions(
+  page: PDFPage,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  y: number,
+  width: number
+): number {
+  // Teal banner
+  page.drawRectangle({
+    x: 50,
+    y: y - 5,
+    width: width - 100,
+    height: 50,
+    color: COLORS.teal,
+  });
+
+  page.drawText("FLEXIBLE PAYMENT OPTIONS", {
+    x: 60,
+    y: y + 25,
+    size: 12,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  page.drawText("Klarna - Pay in 4 or Finance | Apple Pay | Cash App | Amazon Pay | Cards", {
+    x: 60,
+    y: y + 8,
+    size: 9,
+    font: fonts.regular,
+    color: COLORS.white,
+  });
+
+  page.drawText("Bank Transfer (ACH) - NO FEE!", {
+    x: 60,
+    y: y - 7,
+    size: 10,
+    font: fonts.bold,
+    color: rgb(0.8, 1, 0.8),
+  });
+
+  return y - 65;
+}
+
+// Draw marketing section
+function drawMarketingSection(
+  page: PDFPage,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  y: number,
+  width: number
+): number {
+  // Section header
+  page.drawRectangle({
+    x: 50,
+    y: y - 5,
+    width: width - 100,
+    height: 22,
+    color: COLORS.brandGreen,
+  });
+
+  page.drawText("WHY CHOOSE COURTPRO?", {
+    x: 60,
+    y: y,
+    size: 11,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  y -= 35;
+
+  // Background for marketing points
+  page.drawRectangle({
+    x: 50,
+    y: y - 55,
+    width: width - 100,
+    height: 70,
+    color: COLORS.sage,
+  });
+
+  // Marketing points
+  MARKETING_POINTS.forEach((point, index) => {
+    page.drawText(`* ${point}`, {
+      x: 60,
+      y: y - (index * 16),
+      size: 9,
+      font: fonts.regular,
+      color: COLORS.darkText,
+    });
+  });
+
+  return y - 75;
+}
+
+// Draw quality statement
+function drawQualityStatement(
+  page: PDFPage,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  y: number,
+  width: number
+): number {
+  // Quote box background
+  page.drawRectangle({
+    x: 50,
+    y: y - 50,
+    width: width - 100,
+    height: 55,
+    color: COLORS.lightGray,
+  });
+
+  const quote = '"Your court is more than pavement - its where memories are made.';
+  const quote2 = 'We use only premium Laykold surfacing systems, trusted by the US Open."';
+
+  page.drawText(quote, {
+    x: 60,
+    y: y - 15,
+    size: 9,
+    font: fonts.regular,
+    color: COLORS.grayText,
+  });
+
+  page.drawText(quote2, {
+    x: 60,
+    y: y - 30,
+    size: 9,
+    font: fonts.regular,
+    color: COLORS.grayText,
+  });
+
+  return y - 65;
+}
+
+// Draw footer
+function drawFooter(
+  page: PDFPage,
+  fonts: { bold: PDFFont; regular: PDFFont },
+  width: number
+): void {
+  // Navy footer bar
+  page.drawRectangle({
+    x: 0,
+    y: 0,
+    width: width,
+    height: 45,
+    color: COLORS.navy,
+  });
+
+  page.drawText(COMPANY_INFO.brandName, {
+    x: 50,
+    y: 28,
+    size: 11,
+    font: fonts.bold,
+    color: COLORS.white,
+  });
+
+  page.drawText(`${COMPANY_INFO.address}, ${COMPANY_INFO.cityStateZip}`, {
+    x: 50,
+    y: 15,
+    size: 8,
+    font: fonts.regular,
+    color: COLORS.lightBlue,
+  });
+
+  page.drawText(COMPANY_INFO.legalName, {
+    x: width - 200,
+    y: 15,
+    size: 8,
+    font: fonts.regular,
+    color: COLORS.grayText,
+  });
+}
+
+// Draw PAID watermark for paid invoices
+function drawPaidWatermark(
+  page: PDFPage,
+  fonts: { bold: PDFFont },
+  width: number,
+  height: number
+): void {
+  // Draw diagonal PAID watermark with light green color for transparency effect
+  const text = "PAID";
+  const fontSize = 100;
   
-  // Trailer
-  pdf += "trailer\n";
-  pdf += `<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
-  pdf += "startxref\n";
-  pdf += `${xrefOffset}\n`;
-  pdf += "%%EOF";
+  // Position in center of page, offset for rotation
+  const x = width / 2 - 100;
+  const y = height / 2;
+
+  // Use a light green color to simulate transparency
+  page.drawText(text, {
+    x: x,
+    y: y,
+    size: fontSize,
+    font: fonts.bold,
+    color: rgb(0.85, 0.95, 0.85),
+  });
   
-  return new TextEncoder().encode(pdf);
+  // Draw a second slightly offset for depth effect
+  page.drawText(text, {
+    x: x + 2,
+    y: y - 2,
+    size: fontSize,
+    font: fonts.bold,
+    color: rgb(0.75, 0.92, 0.75),
+  });
+}
+
+// Generate the branded PDF
+async function generateBrandedPdf(invoice: InvoiceData): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([612, 792]); // Letter size
+
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fonts = { regular: helvetica, bold: helveticaBold };
+
+  const width = page.getWidth();
+  const height = page.getHeight();
+  const isPaid = invoice.status === "paid";
+
+  // Draw PAID watermark first (behind content) for paid invoices
+  if (isPaid) {
+    drawPaidWatermark(page, { bold: helveticaBold }, width, height);
+  }
+
+  // Draw header
+  drawBrandedHeader(page, fonts, width);
+
+  // Start content below header
+  let y = 710;
+
+  // Draw invoice info
+  y = drawInvoiceInfo(page, invoice, fonts, y);
+
+  // Draw Bill To section
+  y = drawBillTo(page, invoice.customers, fonts, y);
+
+  // Draw line items table
+  y = drawLineItems(page, invoice.invoice_items, fonts, y, width);
+
+  // Draw totals
+  y = drawTotals(page, invoice, fonts, y, width);
+
+  // Draw payment options only for unpaid invoices
+  if (!isPaid) {
+    y = drawPaymentOptions(page, fonts, y, width);
+  }
+
+  // Draw marketing section if there's room
+  if (y > 200) {
+    y = drawMarketingSection(page, fonts, y, width);
+  }
+
+  // Draw quality statement if there's room
+  if (y > 130) {
+    y = drawQualityStatement(page, fonts, y, width);
+  }
+
+  // Draw notes if present
+  if (invoice.notes && y > 100) {
+    page.drawText("Notes:", {
+      x: 50,
+      y: y - 10,
+      size: 10,
+      font: fonts.bold,
+      color: COLORS.darkText,
+    });
+    
+    // Truncate notes if too long
+    const notesText = invoice.notes.length > 200 
+      ? invoice.notes.substring(0, 197) + "..." 
+      : invoice.notes;
+    
+    page.drawText(notesText, {
+      x: 50,
+      y: y - 25,
+      size: 9,
+      font: fonts.regular,
+      color: COLORS.grayText,
+    });
+  }
+
+  // Draw footer
+  drawFooter(page, fonts, width);
+
+  return await pdfDoc.save();
 }
 
 serve(async (req) => {
@@ -326,27 +838,27 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
+
     // Authentication check
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Create client with user's token to validate auth
     const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
+      global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
-    
+
     if (claimsError || !claimsData?.claims) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -355,27 +867,27 @@ serve(async (req) => {
 
     // Verify user has admin/staff role using service client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     const { data: roles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
 
     if (rolesError) {
-      console.error('Error checking roles:', rolesError);
+      console.error("Error checking roles:", rolesError);
       return new Response(
-        JSON.stringify({ error: 'Failed to verify permissions' }),
+        JSON.stringify({ error: "Failed to verify permissions" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const hasAccess = roles?.some(r => 
-      ['owner', 'admin', 'staff', 'accounting', 'sales', 'project_manager'].includes(r.role)
+    const hasAccess = roles?.some((r) =>
+      ["owner", "admin", "staff", "accounting", "sales", "project_manager"].includes(r.role)
     );
 
     if (!hasAccess) {
       return new Response(
-        JSON.stringify({ error: 'Forbidden - Insufficient permissions' }),
+        JSON.stringify({ error: "Forbidden - Insufficient permissions" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -386,7 +898,7 @@ serve(async (req) => {
       throw new Error("Invoice ID is required");
     }
 
-    console.log(`Generating PDF for invoice: ${invoiceId} by user: ${userId}`);
+    console.log(`Generating branded PDF for invoice: ${invoiceId} by user: ${userId}`);
 
     // Fetch invoice with customer and items
     const { data: invoice, error: fetchError } = await supabase
@@ -425,11 +937,11 @@ serve(async (req) => {
     }
 
     // Sort items by sort_order
-    invoice.invoice_items.sort((a: any, b: any) => a.sort_order - b.sort_order);
+    invoice.invoice_items.sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order);
 
-    // Generate PDF
-    const pdfBytes = generatePdfContent(invoice as InvoiceData);
-    
+    // Generate branded PDF
+    const pdfBytes = await generateBrandedPdf(invoice as InvoiceData);
+
     // Upload to Supabase Storage
     const fileName = `${invoice.invoice_number}.pdf`;
     const filePath = `${invoiceId}/${fileName}`;
@@ -466,7 +978,7 @@ serve(async (req) => {
       console.error("Error updating invoice:", updateError);
     }
 
-    console.log(`PDF generated successfully: ${filePath}`);
+    console.log(`Branded PDF generated successfully: ${filePath}`);
 
     return new Response(
       JSON.stringify({
@@ -479,10 +991,11 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating PDF:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
