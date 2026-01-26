@@ -1,82 +1,157 @@
 
 
-# Plan: Fix PDF Box Overlap - Payment Options vs Project Investment
+# Plan: Fix Invoice PDF PAID Watermark Alignment
 
 ## Problem Analysis
 
-Looking at the PDF, the "FLEXIBLE PAYMENT OPTIONS" green box is overlapping with the "PROJECT INVESTMENT" box above it.
+Looking at the PDF screenshot, the "PAID" watermark is positioned in the center of the page at `(width/2 - 100, height/2)` which places it directly over the line items table. The watermark is drawn horizontally with a large 100pt font size in light green, obscuring the invoice content.
 
-### Current Code Logic (Lines 359-371)
+### Current Code (Lines 746-778)
 
-```text
-Project Investment Box:
-  - Rectangle: y - 55 to y + 5 (height 60)
-  - Text "PROJECT INVESTMENT" at y - 20
-  - Price text at y - 30
-  - Then: y -= 75
+```typescript
+function drawPaidWatermark(page, fonts, width, height): void {
+  const text = "PAID";
+  const fontSize = 100;
+  
+  // Position in center of page - THIS IS THE PROBLEM
+  const x = width / 2 - 100;  // = ~206
+  const y = height / 2;        // = ~396 (middle of line items area)
 
-Payment Options Box:
-  - Rectangle: y - 5 to y + 40 (height 45, drawn at y-5)
-  - But "y" is now (original_y - 75)
-  - So box occupies: (original_y - 80) to (original_y - 35)
+  // Light green color - not light enough
+  page.drawText(text, { x, y, size: fontSize, color: rgb(0.85, 0.95, 0.85) });
+  
+  // Second offset text for "depth"
+  page.drawText(text, { x: x + 2, y: y - 2, size: fontSize, color: rgb(0.75, 0.92, 0.75) });
+}
 ```
 
 ### Visual Problem
 
 ```text
-Before Fix:
-                y = 400 (example)
-   +------------------------+  <- y + 5 = 405
-   |  PROJECT INVESTMENT    |
-   |        $8,324.72       |
-   +------------------------+  <- y - 55 = 345
-         y -= 75 → y = 325
-   +------------------------+  <- y + 40 = 365  ← OVERLAP!
-   | FLEXIBLE PAYMENT OPT   |     (365 > 345)
-   +------------------------+  <- y - 5 = 320
+Page Layout (792pt height):
+  +-----------------------+ y=792
+  |  Navy Header          | y=742
+  +-----------------------+
+  |  INVOICE PAID         | y=710
+  |  Invoice Number/Date  |
+  +-----------------------+
+  |  BILL TO              |
+  |  Customer Info        |
+  +-----------------------+ y~520
+  |  Line Items Table     |
+  |    [PAID WATERMARK]   | <-- y=396 (center) - overlaps!
+  |                       |
+  +-----------------------+
+  |  Subtotal/Total       |
+  +-----------------------+
+  ...
 ```
-
-The payment box top (365) is ABOVE the investment box bottom (345) = **20px overlap**!
 
 ---
 
 ## Solution
 
-Adjust the y decrement after the Project Investment box. The investment box occupies 60px of height from `y - 55` to `y + 5`. We need to move y down by at least 60px plus some spacing to clear the box.
+Reposition the watermark to be:
+1. **Diagonal** - Use rotation transform for a professional watermark look
+2. **Lighter color** - More subtle so it doesn't interfere with reading
+3. **Better positioned** - Either lower on the page or spanning diagonally across
 
-### Current vs Fixed
+Since pdf-lib doesn't support text rotation directly, we'll use a different approach:
+- Position the watermark in the bottom-right quadrant of the page (below main content)
+- Use a much lighter, more subtle color
+- Make it smaller and less obtrusive
 
-| Step | Current | Fixed |
-|------|---------|-------|
-| Investment box height | 60px (at y-55 to y+5) | Same |
-| y decrement after box | 75 | 70 |
-| Payment box position | y - 5 (top at y+40) | y - 50 (top at y-5) |
+---
 
-### Fixed Logic
+## Implementation Options
+
+### Option A: Reposition to Bottom-Right (Recommended)
+Move the watermark to the bottom-right corner where it won't interfere with content:
 
 ```typescript
-// Project Investment Box - prominent with green accent
-page.drawRectangle({ 
-  x: leftMargin, 
-  y: y - 55, 
-  width: 512, 
-  height: 60, 
-  ... 
-});
-// Text at y - 20 and y - 30
-
-y -= 70; // Move past the investment box (was 75)
-
-// Flexible Payment Options badge - positioned below with proper gap
-page.drawRectangle({ 
-  x: leftMargin, 
-  y: y - 50, // Changed from y - 5 to y - 50
-  width: 350, 
-  height: 45, 
-  ... 
-});
-// Text positions adjusted accordingly
+function drawPaidWatermark(page, fonts, width, height): void {
+  const text = "PAID";
+  const fontSize = 80;  // Slightly smaller
+  
+  // Position in bottom-right area, away from content
+  const x = width - 200;  // Right side
+  const y = 120;          // Near bottom
+  
+  // Very subtle light green
+  page.drawText(text, {
+    x, y,
+    size: fontSize,
+    font: fonts.bold,
+    color: rgb(0.92, 0.98, 0.92),  // Much lighter
+  });
+}
 ```
+
+### Option B: Full-Page Diagonal Watermark (Alternative)
+Create a diagonal effect by drawing multiple smaller "PAID" texts at an angle using character positioning:
+
+```typescript
+// Draw PAID multiple times in diagonal pattern across page
+// This creates a watermark effect without rotation support
+```
+
+---
+
+## Recommended Fix (Option A)
+
+### Changes to `generate-invoice-pdf/index.ts`
+
+**Before (Lines 746-778):**
+```typescript
+function drawPaidWatermark(page, fonts, width, height): void {
+  const text = "PAID";
+  const fontSize = 100;
+  const x = width / 2 - 100;
+  const y = height / 2;
+
+  page.drawText(text, { x, y, size: fontSize, font: fonts.bold, color: rgb(0.85, 0.95, 0.85) });
+  page.drawText(text, { x: x + 2, y: y - 2, size: fontSize, font: fonts.bold, color: rgb(0.75, 0.92, 0.75) });
+}
+```
+
+**After:**
+```typescript
+function drawPaidWatermark(page, fonts, width, height): void {
+  const text = "PAID";
+  
+  // Large subtle watermark in bottom-right corner (away from content)
+  page.drawText(text, {
+    x: width - 180,
+    y: 100,
+    size: 72,
+    font: fonts.bold,
+    color: rgb(0.90, 0.97, 0.90),  // Very light green
+  });
+  
+  // Optional: smaller badge watermark in the content area
+  // This appears as a subtle background indicator
+  page.drawText(text, {
+    x: 280,
+    y: 280,
+    size: 48,
+    font: fonts.bold,
+    color: rgb(0.93, 0.98, 0.93),  // Even lighter
+  });
+}
+```
+
+---
+
+## Alternative: Remove Duplicate Watermark Entirely
+
+The invoice already has:
+1. A green "PAID" badge next to "INVOICE" in the header
+2. "PAID:" label in the totals section with green text
+3. "Paid: [date]" in the invoice info section
+
+These are sufficient to indicate paid status. The large watermark may be **redundant** and could be:
+- Removed entirely, OR
+- Made extremely subtle (just a light corner indicator)
 
 ---
 
@@ -84,93 +159,45 @@ page.drawRectangle({
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-estimate-pdf/index.ts` | Fix payment box y-position in `generateLumpSumPdf` |
-| `supabase/functions/generate-invoice-pdf/index.ts` | Apply same fix if payment options section exists |
+| `supabase/functions/generate-invoice-pdf/index.ts` | Fix watermark positioning in `drawPaidWatermark` function |
 
 ---
 
-## Updated Coordinate Math
+## Expected Result After Fix
 
 ```text
-After Fix:
-                y = 400 (example)
-   +------------------------+  <- y + 5 = 405
-   |  PROJECT INVESTMENT    |
-   |        $8,324.72       |
-   +------------------------+  <- y - 55 = 345
-         y -= 70 → y = 330
-                              <- 10px gap
-   +------------------------+  <- y - 5 = 325
-   | FLEXIBLE PAYMENT OPT   |
-   +------------------------+  <- y - 50 = 280
-```
-
-Now the payment box (280-325) is clearly below the investment box (345-405) with proper spacing.
-
----
-
-## Technical Implementation
-
-### generateLumpSumPdf Changes (Lines 359-372)
-
-**Before:**
-```typescript
-// Project Investment Box
-page.drawRectangle({ x: leftMargin, y: y - 55, width: 512, height: 60, ... });
-page.drawText("PROJECT INVESTMENT", { x: leftMargin + 20, y: y - 20, ... });
-page.drawText(formatCurrency(estimate.total), { x: 380, y: y - 30, ... });
-
-y -= 75;
-
-// Flexible Payment Options badge
-page.drawRectangle({ x: leftMargin, y: y - 5, width: 350, height: 45, ... });
-page.drawText("FLEXIBLE PAYMENT OPTIONS", { x: leftMargin + 12, y: y + 22, ... });
-page.drawText("Klarna...", { x: leftMargin + 12, y: y + 8, ... });
-page.drawText("Apple Pay...", { x: leftMargin + 12, y: y - 5, ... });
-
-y -= 65;
-```
-
-**After:**
-```typescript
-// Project Investment Box
-page.drawRectangle({ x: leftMargin, y: y - 55, width: 512, height: 60, ... });
-page.drawText("PROJECT INVESTMENT", { x: leftMargin + 20, y: y - 20, ... });
-page.drawText(formatCurrency(estimate.total), { x: 380, y: y - 30, ... });
-
-y -= 70; // Adjusted to properly clear the box
-
-// Flexible Payment Options badge - fixed positioning
-page.drawRectangle({ x: leftMargin, y: y - 50, width: 350, height: 45, ... });
-page.drawText("FLEXIBLE PAYMENT OPTIONS", { x: leftMargin + 12, y: y - 15, ... });
-page.drawText("Klarna...", { x: leftMargin + 12, y: y - 28, ... });
-page.drawText("Apple Pay...", { x: leftMargin + 12, y: y - 40, ... });
-
-y -= 60;
+Page Layout:
+  +-----------------------+
+  |  Navy Header          |
+  +-----------------------+
+  |  INVOICE [PAID badge] | <-- Green badge still visible
+  |  Invoice Number/Date  |
+  |  Paid: Jan 22, 2026   | <-- Green paid date
+  +-----------------------+
+  |  BILL TO              |
+  |  Customer Info        |
+  +-----------------------+
+  |  Line Items Table     | <-- NO watermark overlap
+  |    (clear, readable)  |
+  +-----------------------+
+  |  PAID: $21,250.00     | <-- Green total
+  +-----------------------+
+  |  Marketing Section    |
+  +-----------------------+
+  |  Quality Statement    |
+  +-----------------------+
+  |  Footer          PAID | <-- Subtle corner watermark
+  +-----------------------+
 ```
 
 ---
 
-## Expected Result
+## Recommendation
 
-After the fix:
+Given that paid status is already clearly indicated by:
+- Header badge
+- Green "Paid:" date
+- Green "PAID:" total label
 
-```text
-+----------------------------------+
-| YOUR PROJECT INCLUDES            |  (Navy header)
-+----------------------------------+
-| - Bullet point 1                 |
-| - Bullet point 2                 |
-+----------------------------------+
-
-+----------------------------------+
-| PROJECT INVESTMENT    $8,324.72  |  (Gray box with green border)
-+----------------------------------+
-          ↓ 10-15px gap
-+----------------------------------+
-| FLEXIBLE PAYMENT OPTIONS         |  (Dark green box, no overlap)
-| Klarna - Pay in 4...             |
-| Apple Pay | Cash App...          |
-+----------------------------------+
-```
+I recommend **Option A with minimal watermark** - a single, subtle "PAID" in the bottom-right corner that doesn't interfere with any content. This provides redundancy for quick visual scanning without obscuring the actual invoice details.
 
