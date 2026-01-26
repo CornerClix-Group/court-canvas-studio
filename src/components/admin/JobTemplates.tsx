@@ -133,12 +133,12 @@ export const JOB_TEMPLATES: JobTemplate[] = [
   {
     id: "tennis_new_concrete",
     name: "New Tennis on Concrete",
-    description: "Tennis court on new concrete base",
+    description: "Tennis court on new post-tension concrete base",
     projectType: "tennis",
     courtPreset: "TENNIS_1",
     numberOfCourts: 1,
     customSqFt: 0,
-    baseType: "NEW_CONCRETE",
+    baseType: "POST_TENSION_CONCRETE",
     crackRepairLf: 0,
     selectedSystem: "PRO_PLUS_PREMIUM",
     surfaceCondition: {

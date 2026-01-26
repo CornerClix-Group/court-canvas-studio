@@ -79,7 +79,7 @@ export default function SalesEstimator() {
 
   // Step 4: Construction & Lighting
   const [newConstruction, setNewConstruction] = useState(false);
-  const [constructionType, setConstructionType] = useState<'asphalt' | 'post_tension' | null>(null);
+  const [constructionType, setConstructionType] = useState<'asphalt' | 'standard_concrete' | 'post_tension' | null>(null);
   const [fencingRequired, setFencingRequired] = useState(false);
   const [fencingLinearFeet, setFencingLinearFeet] = useState(0);
   const [lightingRequired, setLightingRequired] = useState(false);
@@ -147,7 +147,7 @@ export default function SalesEstimator() {
     numberOfCourts,
     systemId: getSystemId(),
     baseType: newConstruction && constructionType 
-      ? (constructionType === 'asphalt' ? 'NEW_ASPHALT' : 'POST_TENSION_CONCRETE')
+      ? (constructionType === 'asphalt' ? 'NEW_ASPHALT' : constructionType === 'standard_concrete' ? 'STANDARD_CONCRETE' : 'POST_TENSION_CONCRETE')
       : 'EXISTING_ASPHALT',
     crackRepairLf,
     addons: [],
@@ -505,7 +505,7 @@ export default function SalesEstimator() {
             {newConstruction && (
               <div className="pl-4 border-l-4 border-primary/30 space-y-4">
                 <Label className="text-lg block">Base Type</Label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <Card
                     className={`cursor-pointer transition-all hover:shadow-lg ${
                       constructionType === 'asphalt' ? "ring-2 ring-primary border-primary" : ""
@@ -520,20 +520,38 @@ export default function SalesEstimator() {
                   </Card>
                   <Card
                     className={`cursor-pointer transition-all hover:shadow-lg ${
+                      constructionType === 'standard_concrete' ? "ring-2 ring-primary border-primary" : ""
+                    }`}
+                    onClick={() => setConstructionType('standard_concrete')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <p className="font-semibold text-lg">Standard</p>
+                      <p className="text-muted-foreground text-sm">4" Concrete Slab</p>
+                      <p className="text-primary font-bold mt-1">${PRICING.CONSTRUCTION.CONCRETE_STANDARD_PER_SF.toFixed(2)}/sf</p>
+                    </CardContent>
+                  </Card>
+                  <Card
+                    className={`cursor-pointer transition-all hover:shadow-lg ${
                       constructionType === 'post_tension' ? "ring-2 ring-primary border-primary" : ""
                     }`}
                     onClick={() => setConstructionType('post_tension')}
                   >
                     <CardContent className="p-4 text-center">
                       <p className="font-semibold text-lg">Post-Tension</p>
-                      <p className="text-muted-foreground text-sm">Concrete Slab</p>
+                      <p className="text-muted-foreground text-sm">Crack-Resistant</p>
                       <p className="text-primary font-bold mt-1">${PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF.toFixed(2)}/sf</p>
                     </CardContent>
                   </Card>
                 </div>
                 {constructionType && (
                   <Badge variant="secondary" className="text-lg px-4 py-2">
-                    Base Cost: {formatCurrency(totalSqFt * (constructionType === 'asphalt' ? PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF : PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF))}
+                    Base Cost: {formatCurrency(totalSqFt * (
+                      constructionType === 'asphalt' 
+                        ? PRICING.CONSTRUCTION.ASPHALT_PAVING_PER_SF 
+                        : constructionType === 'standard_concrete'
+                          ? PRICING.CONSTRUCTION.CONCRETE_STANDARD_PER_SF
+                          : PRICING.CONSTRUCTION.CONCRETE_PT_PER_SF
+                    ))}
                   </Badge>
                 )}
               </div>
