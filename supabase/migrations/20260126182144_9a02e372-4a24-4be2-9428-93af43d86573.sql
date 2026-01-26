@@ -1,0 +1,1 @@
+UPDATE pricing_config SET key = 'acrylic_gal_per_sy' WHERE key = 'ACRYLIC_GAL_PER_SY';
