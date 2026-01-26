@@ -105,12 +105,13 @@ async function generateLumpSumPdf(estimate: any, supabase: any): Promise<Uint8Ar
       const text = bullet.bullet_text;
       const maxWidth = 480;
       const words = text.split(' ');
-      let line = '✓ ';
+      const bulletChar = '-';
+      let line = bulletChar + ' ';
       
       for (const word of words) {
         const testLine = line + word + ' ';
         const width = helvetica.widthOfTextAtSize(testLine, 10);
-        if (width > maxWidth && line !== '✓ ') {
+        if (width > maxWidth && line !== bulletChar + ' ') {
           page.drawText(line.trim(), { x: leftMargin, y, size: 10, font: helvetica }); 
           y -= 14;
           line = '   ' + word + ' '; // Indent continuation
@@ -125,7 +126,7 @@ async function generateLumpSumPdf(estimate: any, supabase: any): Promise<Uint8Ar
     }
   } else {
     // Fallback if no bullets saved
-    page.drawText("✓ Complete professional court construction services", { x: leftMargin, y, size: 10, font: helvetica }); y -= 18;
+    page.drawText("- Complete professional court construction services", { x: leftMargin, y, size: 10, font: helvetica }); y -= 18;
   }
   
   y -= 15;
