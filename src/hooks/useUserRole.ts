@@ -11,6 +11,9 @@ interface UserRoleState {
   isAdminOrAbove: boolean;
   isSalesOrAbove: boolean;
   isManagerOrAbove: boolean;
+  isContractor: boolean;
+  isCrewLead: boolean;
+  isAccounting: boolean;
   hasRole: (role: AppRole) => boolean;
 }
 
@@ -62,6 +65,9 @@ export function useUserRole(): UserRoleState {
   const isAdminOrAbove = isOwner || isAdmin || hasRole("staff");
   const isSalesOrAbove = isAdminOrAbove || hasRole("sales");
   const isManagerOrAbove = isAdminOrAbove || hasRole("project_manager");
+  const isContractor = hasRole("crew_lead") || hasRole("project_manager");
+  const isCrewLead = hasRole("crew_lead");
+  const isAccounting = hasRole("accounting");
 
   return {
     roles,
@@ -71,6 +77,9 @@ export function useUserRole(): UserRoleState {
     isAdminOrAbove,
     isSalesOrAbove,
     isManagerOrAbove,
+    isContractor,
+    isCrewLead,
+    isAccounting,
     hasRole,
   };
 }

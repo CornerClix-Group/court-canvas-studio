@@ -31,6 +31,8 @@ import AdminProjects from "./pages/admin/Projects";
 import ProjectDetail from "./pages/admin/ProjectDetail";
 import AdminTeam from "./pages/admin/Team";
 import PricingConfig from "./pages/admin/PricingConfig";
+import ContractorPortal from "./pages/admin/ContractorPortal";
+import ContractorJobDetail from "./pages/admin/ContractorJobDetail";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +78,8 @@ const App = () => (
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="team" element={<AdminTeam />} />
             <Route path="pricing" element={<PricingConfig />} />
+            <Route path="portal" element={<ContractorPortal />} />
+            <Route path="portal/:id" element={<ContractorJobDetail />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
