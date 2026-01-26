@@ -5,8 +5,9 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const COMPANY_INFO = {
-  name: "CourtHaus Construction, LLC",
-  dba: "dba CourtPro Augusta",
+  brandName: "CourtPro Augusta",
+  tagline: "Professional Court Construction",
+  legalName: "A CourtHaus Construction, LLC Company",
   address: "500 Furys Ferry Rd. Suite 107",
   cityStateZip: "Augusta, GA 30907",
   phone: "(706) 309-1993",
@@ -317,11 +318,17 @@ function generateLumpSumEmailHTML(estimate: Estimate, scopeBullets: ScopeBullet[
         <!-- Footer -->
         <tr>
           <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
-            <p style="color: #9ca3af; margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">${COMPANY_INFO.name}</p>
-            <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 12px;">${COMPANY_INFO.dba}</p>
-            <p style="color: #6b7280; margin: 0 0 5px 0; font-size: 12px;">${COMPANY_INFO.address}</p>
-            <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 12px;">${COMPANY_INFO.cityStateZip}</p>
-            <p style="color: #9ca3af; margin: 0; font-size: 12px;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
+            <p style="color: #ffffff; margin: 0 0 5px 0; font-size: 18px; font-weight: 600;">${COMPANY_INFO.brandName}</p>
+            <p style="color: #93c5fd; margin: 0 0 12px 0; font-size: 12px;">${COMPANY_INFO.tagline}</p>
+            <p style="color: #9ca3af; margin: 0; font-size: 12px;">
+              ${COMPANY_INFO.phone} | ${COMPANY_INFO.email}
+            </p>
+            <p style="color: #6b7280; margin: 10px 0 0 0; font-size: 11px;">
+              ${COMPANY_INFO.address}, ${COMPANY_INFO.cityStateZip}
+            </p>
+            <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 10px; font-style: italic;">
+              ${COMPANY_INFO.legalName}
+            </p>
           </td>
         </tr>
       </table>
@@ -520,11 +527,17 @@ function generateDetailedScopeEmailHTML(estimate: Estimate, lineItems: LineItem[
         <!-- Footer -->
         <tr>
           <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
-            <p style="color: #9ca3af; margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">${COMPANY_INFO.name}</p>
-            <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 12px;">${COMPANY_INFO.dba}</p>
-            <p style="color: #6b7280; margin: 0 0 5px 0; font-size: 12px;">${COMPANY_INFO.address}</p>
-            <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 12px;">${COMPANY_INFO.cityStateZip}</p>
-            <p style="color: #9ca3af; margin: 0; font-size: 12px;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
+            <p style="color: #ffffff; margin: 0 0 5px 0; font-size: 18px; font-weight: 600;">${COMPANY_INFO.brandName}</p>
+            <p style="color: #93c5fd; margin: 0 0 12px 0; font-size: 12px;">${COMPANY_INFO.tagline}</p>
+            <p style="color: #9ca3af; margin: 0; font-size: 12px;">
+              ${COMPANY_INFO.phone} | ${COMPANY_INFO.email}
+            </p>
+            <p style="color: #6b7280; margin: 10px 0 0 0; font-size: 11px;">
+              ${COMPANY_INFO.address}, ${COMPANY_INFO.cityStateZip}
+            </p>
+            <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 10px; font-style: italic;">
+              ${COMPANY_INFO.legalName}
+            </p>
           </td>
         </tr>
       </table>
