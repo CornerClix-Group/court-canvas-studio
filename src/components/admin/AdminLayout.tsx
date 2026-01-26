@@ -24,10 +24,18 @@ import {
   Shield,
   Key,
   DollarSign,
+  HardHat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+}
+
+const fullNavItems: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/leads", label: "Leads", icon: UserCircle },
   { href: "/admin/customers", label: "Customers", icon: Users },
@@ -37,6 +45,17 @@ const navItems = [
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
   { href: "/admin/team", label: "Team", icon: Shield },
   { href: "/admin/pricing", label: "Pricing", icon: DollarSign },
+];
+
+const salesNavItems: NavItem[] = [
+  { href: "/admin/leads", label: "Leads", icon: UserCircle },
+  { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/estimates", label: "Estimates", icon: FileText },
+];
+
+const accountingNavItems: NavItem[] = [
+  { href: "/admin/invoices", label: "Invoices", icon: Receipt },
+  { href: "/admin/payments", label: "Payments", icon: CreditCard },
 ];
 
 export default function AdminLayout() {
@@ -49,7 +68,41 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { roles, loading: rolesLoading, isAdminOrAbove } = useUserRole();
+  const { roles, loading: rolesLoading, isAdminOrAbove, isContractor, isAccounting, hasRole } = useUserRole();
+
+  // Build navigation items based on role
+  const getNavItems = (): NavItem[] => {
+    // Admin/staff/owner get full navigation
+    if (isAdminOrAbove) {
+      return fullNavItems;
+    }
+
+    const items: NavItem[] = [];
+
+    // Contractors (crew_lead or project_manager) get My Jobs
+    if (isContractor) {
+      items.push({ href: "/admin/portal", label: "My Jobs", icon: HardHat, exact: true });
+    }
+
+    // Project managers also see all projects (read-only)
+    if (hasRole("project_manager")) {
+      items.push({ href: "/admin/projects", label: "All Projects", icon: FolderKanban });
+    }
+
+    // Sales role
+    if (hasRole("sales")) {
+      items.push(...salesNavItems);
+    }
+
+    // Accounting role
+    if (isAccounting) {
+      items.push(...accountingNavItems);
+    }
+
+    return items;
+  };
+
+  const navItems = getNavItems();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -109,8 +162,10 @@ export default function AdminLayout() {
     return null;
   }
 
-  // Check if user has any admin/staff role - if not, show access denied
-  if (!isAdminOrAbove && roles.length === 0) {
+  // Check if user has any admin/staff role or specialized role
+  const hasAnyRole = isAdminOrAbove || isContractor || hasRole("sales") || isAccounting;
+  
+  if (!hasAnyRole && roles.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="max-w-md text-center p-8">

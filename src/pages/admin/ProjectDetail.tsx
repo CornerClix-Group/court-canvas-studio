@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import USTAApplicationForm from "@/components/admin/USTAApplicationForm";
+import { AssignContractorSelect } from "@/components/admin/AssignContractorSelect";
 
 interface Project {
   id: string;
@@ -52,6 +53,7 @@ interface Project {
   estimate_id: string | null;
   customer_id: string | null;
   is_usta_funded: boolean | null;
+  assigned_to: string | null;
   customer: { contact_name: string; email: string | null; phone: string | null } | null;
 }
 
@@ -372,6 +374,17 @@ export default function ProjectDetail() {
                   <Label htmlFor="is_usta_funded">USTA Grant Funded</Label>
                 </div>
               </div>
+
+              {/* Contractor Assignment */}
+              {!isNew && project && (
+                <div className="pt-4 border-t">
+                  <AssignContractorSelect
+                    projectId={project.id}
+                    currentAssignee={project.assigned_to}
+                    onAssigned={() => fetchProject()}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
