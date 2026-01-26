@@ -39,6 +39,12 @@ interface EstimateAttachment {
   sort_order: number;
 }
 
+interface ScopeBullet {
+  id: string;
+  bullet_text: string;
+  sort_order: number | null;
+}
+
 // Customer-friendly grouped item for email display
 interface CustomerLineItem {
   description: string;
@@ -143,6 +149,7 @@ interface Estimate {
   notes: string | null;
   valid_until: string | null;
   created_at: string;
+  display_format: string | null;
   customer: Customer | null;
 }
 
@@ -162,7 +169,169 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[], hasAttachments: boolean): string {
+// Lump Sum Email - Marketing focused with bullet points
+function generateLumpSumEmailHTML(estimate: Estimate, scopeBullets: ScopeBullet[], hasAttachments: boolean): string {
+  const customerName = estimate.customer?.contact_name || "Valued Customer";
+  const validUntil = estimate.valid_until ? formatDate(estimate.valid_until) : "30 days from receipt";
+
+  // Sort bullets by sort_order
+  const sortedBullets = [...scopeBullets].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  
+  const bulletsHTML = sortedBullets.length > 0 
+    ? sortedBullets.map(bullet => `
+        <li style="padding: 8px 0; color: #1f2937; font-size: 15px; line-height: 1.5;">
+          <span style="color: #059669; font-weight: bold;">✓</span> ${bullet.bullet_text}
+        </li>
+      `).join("")
+    : `<li style="padding: 8px 0; color: #1f2937; font-size: 15px;">
+        <span style="color: #059669; font-weight: bold;">✓</span> Complete professional court construction services
+      </li>`;
+
+  const siteDocumentationNote = hasAttachments ? `
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px;">
+              <h4 style="color: #166534; margin: 0 0 8px 0; font-size: 14px;">📍 Site Documentation Included</h4>
+              <p style="color: #15803d; margin: 0; font-size: 14px; line-height: 1.5;">
+                GIS aerial imagery and site photos have been included in the attached PDF for your reference.
+              </p>
+            </div>
+          </td>
+        </tr>
+  ` : '';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Estimate ${estimate.estimate_number}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <tr>
+          <td style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">CourtPro Augusta</h1>
+            <p style="color: #93c5fd; margin: 5px 0 0 0; font-size: 14px;">Professional Court Construction</p>
+          </td>
+        </tr>
+        
+        <!-- Greeting -->
+        <tr>
+          <td style="padding: 30px 30px 20px 30px;">
+            <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 22px;">Hello ${customerName},</h2>
+            <p style="color: #4b5563; margin: 0; font-size: 16px; line-height: 1.6;">
+              Thank you for your interest in our court construction services. We're excited to present your custom project proposal!
+            </p>
+          </td>
+        </tr>
+        
+        ${siteDocumentationNote}
+        
+        <!-- Project Scope Section -->
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid #059669; padding-bottom: 10px;">Your Court Project Includes:</h3>
+            <ul style="margin: 0; padding: 0 0 0 20px; list-style: none;">
+              ${bulletsHTML}
+            </ul>
+          </td>
+        </tr>
+        
+        <!-- Investment Box -->
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 12px; padding: 25px; text-align: center;">
+              <p style="color: #d1fae5; margin: 0 0 5px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Project Investment</p>
+              <h2 style="color: #ffffff; margin: 0; font-size: 36px; font-weight: bold;">${formatCurrency(estimate.total)}</h2>
+            </div>
+          </td>
+        </tr>
+        
+        <!-- Estimate Details -->
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <tr>
+                <td style="padding: 15px;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="color: #64748b; font-size: 13px;">Estimate Number</td>
+                      <td style="color: #1f2937; font-size: 13px; text-align: right; font-weight: 600;">${estimate.estimate_number}</td>
+                    </tr>
+                    <tr>
+                      <td style="color: #64748b; font-size: 13px; padding-top: 8px;">Date</td>
+                      <td style="color: #1f2937; font-size: 13px; text-align: right; padding-top: 8px;">${formatDate(estimate.created_at)}</td>
+                    </tr>
+                    <tr>
+                      <td style="color: #64748b; font-size: 13px; padding-top: 8px;">Valid Until</td>
+                      <td style="color: #1f2937; font-size: 13px; text-align: right; padding-top: 8px;">${validUntil}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        
+        <!-- Flexible Payment Options Banner -->
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <div style="background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); border-radius: 8px; padding: 20px; text-align: center;">
+              <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Flexible Payment Options</h3>
+              <p style="color: #cffafe; margin: 0; font-size: 14px;">
+                Finance with Klarna - Pay in 4 or spread over time
+              </p>
+              <p style="color: #a5f3fc; margin: 8px 0 0 0; font-size: 12px;">
+                Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
+              </p>
+            </div>
+          </td>
+        </tr>
+        
+        ${estimate.notes ? `
+        <tr>
+          <td style="padding: 0 30px 20px 30px;">
+            <div style="background-color: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px;">
+              <h4 style="color: #92400e; margin: 0 0 8px 0; font-size: 14px;">Notes</h4>
+              <p style="color: #78350f; margin: 0; font-size: 14px; line-height: 1.5;">${estimate.notes}</p>
+            </div>
+          </td>
+        </tr>
+        ` : ""}
+        
+        <!-- CTA -->
+        <tr>
+          <td style="padding: 10px 30px 30px 30px; text-align: center;">
+            <p style="color: #4b5563; margin: 0 0 20px 0; font-size: 15px;">
+              Ready to transform your space? Let's get started!
+            </p>
+            <a href="tel:${COMPANY_INFO.phone}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+              Call ${COMPANY_INFO.phone}
+            </a>
+          </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+          <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
+            <p style="color: #9ca3af; margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">${COMPANY_INFO.name}</p>
+            <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 12px;">${COMPANY_INFO.dba}</p>
+            <p style="color: #6b7280; margin: 0 0 5px 0; font-size: 12px;">${COMPANY_INFO.address}</p>
+            <p style="color: #6b7280; margin: 0 0 10px 0; font-size: 12px;">${COMPANY_INFO.cityStateZip}</p>
+            <p style="color: #9ca3af; margin: 0; font-size: 12px;">${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
+// Detailed Scope Email - Grouped categories with subtotals
+function generateDetailedScopeEmailHTML(estimate: Estimate, lineItems: LineItem[], hasAttachments: boolean): string {
   const customerName = estimate.customer?.contact_name || "Valued Customer";
   const validUntil = estimate.valid_until ? formatDate(estimate.valid_until) : "30 days from receipt";
 
@@ -184,7 +353,6 @@ function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[], ha
     .join("");
 
   const siteDocumentationNote = hasAttachments ? `
-        <!-- Site Documentation Notice -->
         <tr>
           <td style="padding: 0 30px 20px 30px;">
             <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px;">
@@ -325,7 +493,6 @@ function generateEstimateEmailHTML(estimate: Estimate, lineItems: LineItem[], ha
         ${
           estimate.notes
             ? `
-        <!-- Notes -->
         <tr>
           <td style="padding: 0 30px 20px 30px;">
             <div style="background-color: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px;">
@@ -384,13 +551,14 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch estimate with customer and attachments
+    // Fetch estimate with customer, attachments, and scope bullets
     const { data: estimate, error: estimateError } = await supabase
       .from("estimates")
       .select(`
         *,
         customer:customers(*),
-        estimate_attachments(*)
+        estimate_attachments(*),
+        estimate_scope_bullets(*)
       `)
       .eq("id", estimateId)
       .single();
@@ -418,6 +586,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const hasAttachments = estimate.estimate_attachments && estimate.estimate_attachments.length > 0;
+    const displayFormat = estimate.display_format || 'detailed_scope';
+    const scopeBullets = estimate.estimate_scope_bullets || [];
+
+    console.log(`Using display format: ${displayFormat}`);
 
     // Generate PDF by calling the generate-estimate-pdf function
     console.log("Generating PDF...");
@@ -453,7 +625,6 @@ const handler = async (req: Request): Promise<Response> => {
       
       for (const attachment of attachmentsToInclude) {
         try {
-          // Get the file from storage
           const { data: fileData, error: fileError } = await supabase.storage
             .from('estimate-attachments')
             .download(attachment.file_path);
@@ -462,49 +633,57 @@ const handler = async (req: Request): Promise<Response> => {
             console.error(`Failed to download attachment ${attachment.file_name}:`, fileError);
             continue;
           }
-          
-          // Convert to base64
+
           const arrayBuffer = await fileData.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
-          const base64 = btoa(String.fromCharCode(...uint8Array));
-          
+          const base64Content = btoa(
+            new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+          );
+
           emailAttachments.push({
-            filename: attachment.caption ? `${attachment.caption}.${attachment.file_name.split('.').pop()}` : attachment.file_name,
-            content: base64,
+            filename: attachment.file_name,
+            content: base64Content,
           });
-        } catch (err) {
-          console.error(`Error processing attachment ${attachment.file_name}:`, err);
+          
+          console.log(`Added attachment: ${attachment.file_name}`);
+        } catch (attachError) {
+          console.error(`Error processing attachment ${attachment.file_name}:`, attachError);
         }
       }
     }
 
-    // Generate email HTML
-    const emailHtml = generateEstimateEmailHTML(estimate as Estimate, lineItems || [], hasAttachments);
+    // Generate email HTML based on display format
+    const emailHTML = displayFormat === 'lump_sum'
+      ? generateLumpSumEmailHTML(estimate as unknown as Estimate, scopeBullets, hasAttachments)
+      : generateDetailedScopeEmailHTML(estimate as unknown as Estimate, lineItems || [], hasAttachments);
 
-    // Send email with PDF and site photo attachments
+    // Send email with Resend
+    console.log(`Sending email to: ${customerEmail}`);
     const emailResponse = await resend.emails.send({
-      from: `CourtPro Augusta <${COMPANY_INFO.email}>`,
+      from: "CourtPro Augusta <estimates@courtproaugusta.com>",
       to: [customerEmail],
-      cc: [COMPANY_INFO.email],
-      subject: `Estimate ${estimate.estimate_number} from CourtPro Augusta`,
-      html: emailHtml,
+      subject: `Your Estimate ${estimate.estimate_number} from CourtPro Augusta`,
+      html: emailHTML,
       attachments: emailAttachments,
     });
 
     console.log("Email sent successfully:", emailResponse);
 
-    // Log the email
-    const { error: logError } = await supabase.from("email_logs").insert({
-      email_type: "estimate",
-      recipient_email: customerEmail,
-      related_id: estimateId,
-      subject: `Estimate ${estimate.estimate_number} from CourtPro Augusta`,
-      status: "sent",
-      resend_email_id: emailResponse.data?.id || null,
-    });
+    // Log the email in email_logs table
+    const resendEmailId = (emailResponse as any)?.data?.id || (emailResponse as any)?.id || null;
+    const { error: logError } = await supabase
+      .from('email_logs')
+      .insert({
+        email_type: 'estimate',
+        recipient_email: customerEmail,
+        related_id: estimateId,
+        subject: `Your Estimate ${estimate.estimate_number} from CourtPro Augusta`,
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        resend_email_id: resendEmailId,
+      });
 
     if (logError) {
-      console.error("Failed to log email:", logError);
+      console.error('Failed to log email:', logError);
     }
 
     // Update estimate status to sent
@@ -512,7 +691,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from("estimates")
       .update({ 
         status: "sent",
-        sent_at: new Date().toISOString() 
+        sent_at: new Date().toISOString()
       })
       .eq("id", estimateId);
 
@@ -521,11 +700,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Estimate sent successfully",
-        emailId: emailResponse.data?.id,
-        attachmentsIncluded: emailAttachments.length,
+      JSON.stringify({ 
+        success: true, 
+        message: "Estimate email sent successfully",
+        emailId: resendEmailId
       }),
       {
         status: 200,
@@ -533,7 +711,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-estimate-email function:", error);
+    console.error("Error sending estimate email:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
