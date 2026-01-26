@@ -361,15 +361,15 @@ async function generateLumpSumPdf(estimate: any, supabase: any): Promise<Uint8Ar
   page.drawText("PROJECT INVESTMENT", { x: leftMargin + 20, y: y - 20, size: 14, font: helveticaBold, color: COLORS.navy });
   page.drawText(formatCurrency(estimate.total), { x: 380, y: y - 30, size: 28, font: helveticaBold, color: COLORS.green });
 
-  y -= 75;
+  y -= 70;
 
-  // Flexible Payment Options badge
-  page.drawRectangle({ x: leftMargin, y: y - 5, width: 350, height: 45, color: COLORS.greenDark });
-  page.drawText("FLEXIBLE PAYMENT OPTIONS", { x: leftMargin + 12, y: y + 22, size: 12, font: helveticaBold, color: COLORS.white });
-  page.drawText("Klarna - Pay in 4 or spread over time!", { x: leftMargin + 12, y: y + 8, size: 9, font: helvetica, color: rgb(0.82, 0.95, 0.85) });
-  page.drawText("Apple Pay | Cash App | Cards | Bank Transfer (No Fee!)", { x: leftMargin + 12, y: y - 5, size: 8, font: helvetica, color: rgb(0.7, 0.9, 0.75) });
+  // Flexible Payment Options badge - positioned below with proper gap
+  page.drawRectangle({ x: leftMargin, y: y - 50, width: 350, height: 45, color: COLORS.greenDark });
+  page.drawText("FLEXIBLE PAYMENT OPTIONS", { x: leftMargin + 12, y: y - 15, size: 12, font: helveticaBold, color: COLORS.white });
+  page.drawText("Klarna - Pay in 4 or spread over time!", { x: leftMargin + 12, y: y - 28, size: 9, font: helvetica, color: rgb(0.82, 0.95, 0.85) });
+  page.drawText("Apple Pay | Cash App | Cards | Bank Transfer (No Fee!)", { x: leftMargin + 12, y: y - 40, size: 8, font: helvetica, color: rgb(0.7, 0.9, 0.75) });
 
-  y -= 65;
+  y -= 60;
 
   // Marketing section if space allows
   if (y > 180) {
