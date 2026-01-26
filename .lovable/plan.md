@@ -1,117 +1,278 @@
 
 
-# Plan: Add Standard Concrete Base Option
+# Plan: Contractor/Subcontractor Portal
 
-## Problem Summary
+## Overview
 
-The estimator currently only offers **Post-Tension Concrete** at $9.00/sf for new concrete construction. Users need a more affordable **Standard Concrete** option at $7.25/sf for projects that don't require the crack-resistance of post-tension slabs.
-
----
-
-## Current Base Options
-
-| Option | Description | Price |
-|--------|-------------|-------|
-| Existing Asphalt | Resurface existing asphalt | $0/sf |
-| Existing Concrete | Resurface existing concrete | $0/sf |
-| New Asphalt | 1.5" asphalt overlay | $4.50/sf |
-| Post-Tension Concrete | Premium crack-resistant slab | $9.00/sf |
-
-## Target Base Options
-
-| Option | Description | Price |
-|--------|-------------|-------|
-| Existing Asphalt | Resurface existing asphalt | $0/sf |
-| Existing Concrete | Resurface existing concrete | $0/sf |
-| New Asphalt | 1.5" asphalt overlay | $4.50/sf |
-| **Standard Concrete** | **Standard 4" concrete slab** | **$7.25/sf** |
-| Post-Tension Concrete | Premium crack-resistant slab | $9.00/sf |
+Create a dedicated portal for contractors (crew leads and project managers) to view their assigned jobs, update milestone status, and upload progress photos - all from their mobile devices in the field.
 
 ---
 
-## Implementation Plan
+## Current State
 
-### 1. Update Pricing Constants
+| Component | Status |
+|-----------|--------|
+| `crew_lead` role | Exists in database |
+| `project_manager` role | Exists in database |
+| `assigned_to` column on projects | Exists but not used in UI |
+| RLS policy for assigned users | Exists: "Assigned users can view their projects" |
+| Milestone/Photo RLS for contractors | Missing - only admin/staff can access |
 
-**File:** `src/lib/pricingConstants.ts`
+---
 
-Add to `PRICING.CONSTRUCTION`:
-```typescript
-CONSTRUCTION: {
-  ASPHALT_PAVING_PER_SF: 4.50,
-  CONCRETE_STANDARD_PER_SF: 7.25,    // NEW: Standard 4" concrete
-  CONCRETE_PT_PER_SF: 9.00,
-  // ... rest unchanged
-}
+## What We're Building
+
+### 1. Contractor Portal Page (`/admin/portal`)
+
+A mobile-friendly view showing:
+- List of assigned projects (cards with key info)
+- Quick status indicators (on track, behind schedule)
+- Tap to view project details
+
+### 2. Contractor Project Detail View
+
+Limited view compared to admin, showing:
+- Project name, location, schedule
+- Milestone checklist (can toggle complete)
+- Photo upload section
+- Notes field for daily updates
+- NO access to: contract values, customer contact, financial data
+
+### 3. Assignment UI in Admin
+
+Add to existing ProjectDetail page:
+- Team member selector to assign contractor
+- Filter to show only crew_lead/project_manager users
+
+---
+
+## Database Changes
+
+### New RLS Policies
+
+**project_milestones table:**
+```sql
+-- Assigned users can view milestones for their projects
+CREATE POLICY "Assigned users can view project milestones"
+ON project_milestones FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM projects 
+    WHERE projects.id = project_milestones.project_id 
+    AND projects.assigned_to = auth.uid()
+  )
+);
+
+-- Assigned users can update milestone status
+CREATE POLICY "Assigned users can update project milestones"
+ON project_milestones FOR UPDATE
+USING (
+  EXISTS (
+    SELECT 1 FROM projects 
+    WHERE projects.id = project_milestones.project_id 
+    AND projects.assigned_to = auth.uid()
+  )
+);
 ```
 
-Add to `BASE_OPTIONS`:
-```typescript
-STANDARD_CONCRETE: {
-  id: 'standard_concrete',
-  name: 'Standard Concrete',
-  description: 'Standard 4" concrete slab installation',
-  pricePerSqFt: PRICING.CONSTRUCTION.CONCRETE_STANDARD_PER_SF,
-},
+**project_photos table:**
+```sql
+-- Assigned users can view photos for their projects
+CREATE POLICY "Assigned users can view project photos"
+ON project_photos FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM projects 
+    WHERE projects.id = project_photos.project_id 
+    AND projects.assigned_to = auth.uid()
+  )
+);
+
+-- Assigned users can upload photos to their projects
+CREATE POLICY "Assigned users can insert project photos"
+ON project_photos FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM projects 
+    WHERE projects.id = project_photos.project_id 
+    AND projects.assigned_to = auth.uid()
+  )
+);
 ```
-
-### 2. Update Job Templates (if needed)
-
-**File:** `src/components/admin/JobTemplates.tsx`
-
-The template referencing `NEW_CONCRETE` should be updated to use either `STANDARD_CONCRETE` or `POST_TENSION_CONCRETE` as appropriate.
-
-### 3. Update Sales Estimator Base Type Logic
-
-**File:** `src/pages/SalesEstimator.tsx`
-
-If the public estimator offers concrete as a construction type, update the mapping to distinguish between standard and post-tension concrete options.
 
 ---
 
-## Files to Modify
+## UI Components
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `src/pages/admin/ContractorPortal.tsx` | Main portal page - list of assigned jobs |
+| `src/pages/admin/ContractorJobDetail.tsx` | Limited job view for contractors |
+| `src/components/admin/AssignContractorSelect.tsx` | Dropdown to assign team member |
+
+### Modified Files
 
 | File | Changes |
 |------|---------|
-| `src/lib/pricingConstants.ts` | Add `CONCRETE_STANDARD_PER_SF` and `STANDARD_CONCRETE` base option |
-| `src/components/admin/JobTemplates.tsx` | Update template reference from `NEW_CONCRETE` |
-| `src/pages/SalesEstimator.tsx` | (Optional) Add concrete type selection if public estimator needs it |
+| `src/App.tsx` | Add routes for `/admin/portal` and `/admin/portal/:id` |
+| `src/components/admin/AdminLayout.tsx` | Add "My Jobs" nav item for crew_lead/project_manager roles |
+| `src/pages/admin/ProjectDetail.tsx` | Add contractor assignment dropdown |
+| `src/hooks/useUserRole.ts` | Add `isContractor` helper |
 
 ---
 
-## Result
+## Navigation Logic
 
-After this update, the EstimateBuilder's base selection step will show:
+The sidebar will show different items based on role:
 
 ```
-┌─────────────────────────┐  ┌─────────────────────────┐
-│ Existing Asphalt        │  │ Existing Concrete       │
-│ Resurface existing      │  │ Resurface existing      │
-│ $0/sf                   │  │ $0/sf                   │
-└─────────────────────────┘  └─────────────────────────┘
-
-┌─────────────────────────┐  ┌─────────────────────────┐
-│ New Asphalt Base        │  │ Standard Concrete       │
-│ 1.5" asphalt overlay    │  │ Standard 4" slab        │
-│ $4.50/sf                │  │ $7.25/sf                │
-└─────────────────────────┘  └─────────────────────────┘
-
-┌─────────────────────────┐
-│ Post-Tension Concrete   │
-│ Premium crack-resistant │
-│ $9.00/sf                │
-└─────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ Role                  │ Navigation Items                    │
+├───────────────────────┼─────────────────────────────────────┤
+│ owner, admin, staff   │ Full navigation (all items)         │
+│ crew_lead             │ My Jobs only                        │
+│ project_manager       │ My Jobs + Projects (read-only)      │
+│ sales                 │ Leads, Customers, Estimates         │
+│ accounting            │ Invoices, Payments                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Note on PDF/Email Functions
+## Contractor Portal UI
 
-The PDF generation and email template functions were already updated in the previous implementation to support both **Lump Sum** and **Detailed Scope** formats. They:
+### Job List View (Mobile-First)
 
-- Fetch `display_format` and `estimate_scope_bullets` from the database
-- Render Lump Sum format with bullet points and single total
-- Render Detailed Scope format with grouped categories
+```
+┌─────────────────────────────────────────┐
+│  🔧 My Assigned Jobs                    │
+├─────────────────────────────────────────┤
+│ ┌─────────────────────────────────────┐ │
+│ │ Johnson Residence - Pickleball     │ │
+│ │ 📍 Augusta, GA                      │ │
+│ │ 📅 Start: Jan 28 | Due: Feb 15     │ │
+│ │ ━━━━━━━━━━━━━━━━━━░░░░ 67%         │ │
+│ │ 🟡 In Progress                      │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ City Park Tennis Courts            │ │
+│ │ 📍 Martinez, GA                     │ │
+│ │ 📅 Start: Feb 1 | Due: Feb 28      │ │
+│ │ ░░░░░░░░░░░░░░░░░░░░ 0%            │ │
+│ │ 🔵 Scheduled                        │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+```
 
-No additional changes are needed for the edge functions unless you'd like me to verify their implementation.
+### Job Detail View (Mobile-First)
+
+```
+┌─────────────────────────────────────────┐
+│ ← Back                                  │
+├─────────────────────────────────────────┤
+│ Johnson Residence - Pickleball          │
+│ 📍 123 Oak Street, Augusta, GA 30909    │
+│                                         │
+│ ┌─ Schedule ─────────────────────────┐  │
+│ │ Start: Jan 28, 2026                │  │
+│ │ Target: Feb 15, 2026               │  │
+│ └────────────────────────────────────┘  │
+│                                         │
+│ ┌─ Milestones ───────────────────────┐  │
+│ │ ✅ Site Preparation                │  │
+│ │ ✅ Base Work                       │  │
+│ │ ✅ Concrete Pour                   │  │
+│ │ ✅ Curing Period                   │  │
+│ │ ⬜ Surface Coating          [TAP] │  │
+│ │ ⬜ Color Coating                   │  │
+│ │ ⬜ Line Striping                   │  │
+│ │ ⬜ Net Posts & Hardware            │  │
+│ │ ⬜ Final Walkthrough               │  │
+│ └────────────────────────────────────┘  │
+│                                         │
+│ ┌─ Progress Photos ──────────────────┐  │
+│ │ [📷 Add Photo]                     │  │
+│ │                                    │  │
+│ │ ┌────┐ ┌────┐ ┌────┐              │  │
+│ │ │    │ │    │ │    │              │  │
+│ │ └────┘ └────┘ └────┘              │  │
+│ └────────────────────────────────────┘  │
+│                                         │
+│ ┌─ Notes ────────────────────────────┐  │
+│ │ Add update...                      │  │
+│ └────────────────────────────────────┘  │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## Technical Details
+
+### useUserRole Hook Update
+
+```typescript
+// Add to existing hook
+const isContractor = hasRole("crew_lead") || hasRole("project_manager");
+const isCrewLead = hasRole("crew_lead");
+```
+
+### Navigation Filtering
+
+The AdminLayout will conditionally render nav items:
+
+```typescript
+const getNavItems = () => {
+  if (isOwner || isAdmin || hasRole("staff")) {
+    return fullNavItems;
+  }
+  
+  const items = [];
+  
+  if (hasRole("crew_lead") || hasRole("project_manager")) {
+    items.push({ href: "/admin/portal", label: "My Jobs", icon: HardHat });
+  }
+  
+  if (hasRole("project_manager")) {
+    items.push({ href: "/admin/projects", label: "All Projects", icon: FolderKanban });
+  }
+  
+  if (hasRole("sales")) {
+    items.push(...salesNavItems);
+  }
+  
+  if (hasRole("accounting")) {
+    items.push(...accountingNavItems);
+  }
+  
+  return items;
+};
+```
+
+---
+
+## Security Considerations
+
+1. **RLS Policies**: Contractors can only see/update their assigned projects
+2. **No Financial Data**: Contract values hidden from contractor views
+3. **No Customer Contact**: Customer details not shown to contractors
+4. **Photo Upload**: Contractors can only upload to their projects
+5. **Milestone Updates**: Only status changes allowed, no deletion
+
+---
+
+## Files to Create/Modify
+
+| Action | File | Purpose |
+|--------|------|---------|
+| Create | `src/pages/admin/ContractorPortal.tsx` | Job list for contractors |
+| Create | `src/pages/admin/ContractorJobDetail.tsx` | Job detail for contractors |
+| Create | `src/components/admin/AssignContractorSelect.tsx` | Team member assignment UI |
+| Create | `supabase/migrations/xxx_contractor_rls.sql` | RLS policies for contractors |
+| Modify | `src/App.tsx` | Add new routes |
+| Modify | `src/components/admin/AdminLayout.tsx` | Role-based navigation |
+| Modify | `src/pages/admin/ProjectDetail.tsx` | Add assignment dropdown |
+| Modify | `src/hooks/useUserRole.ts` | Add `isContractor` helper |
 
