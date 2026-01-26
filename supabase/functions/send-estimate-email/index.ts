@@ -674,6 +674,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "CourtPro Augusta <estimates@courtproaugusta.com>",
       to: [customerEmail],
+      cc: ["estimates@courtproaugusta.com"],
       subject: `Your Estimate ${estimate.estimate_number} from CourtPro Augusta`,
       html: emailHTML,
       attachments: emailAttachments,
