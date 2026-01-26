@@ -156,24 +156,6 @@ function drawInvoiceInfo(
     color: COLORS.darkText,
   });
 
-  // Status badge
-  if (isPaid) {
-    page.drawRectangle({
-      x: 140,
-      y: y - 3,
-      width: 50,
-      height: 20,
-      color: COLORS.brandGreen,
-    });
-    page.drawText("PAID", {
-      x: 150,
-      y: y + 2,
-      size: 11,
-      font: fonts.bold,
-      color: COLORS.white,
-    });
-  }
-
   y -= 25;
 
   // Invoice number
@@ -743,7 +725,7 @@ function drawFooter(
   });
 }
 
-// Draw PAID watermark for paid invoices - positioned in bottom-right to avoid content overlap
+// Draw PAID watermark for paid invoices - positioned in left white space area
 function drawPaidWatermark(
   page: PDFPage,
   fonts: { bold: PDFFont },
@@ -752,13 +734,14 @@ function drawPaidWatermark(
 ): void {
   const text = "PAID";
   
-  // Single subtle watermark in bottom-right corner (away from content)
+  // Subtle watermark in left-center white space (next to totals box on right)
+  // This area is clear of content - totals box is positioned on the right side
   page.drawText(text, {
-    x: width - 180,
-    y: 100,
-    size: 72,
+    x: 120,
+    y: 280,
+    size: 65,
     font: fonts.bold,
-    color: rgb(0.90, 0.97, 0.90),
+    color: rgb(0.88, 0.96, 0.88),
   });
 }
 
