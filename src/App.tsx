@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import SmsTerms from "./pages/SmsTerms";
+import OptIn from "./pages/OptIn";
 import PickleballCourts from "./pages/PickleballCourts";
 import TennisCourts from "./pages/TennisCourts";
 import CourtResurfacing from "./pages/CourtResurfacing";
@@ -49,6 +50,7 @@ const App = () => (
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/sms-terms" element={<SmsTerms />} />
+          <Route path="/optin" element={<OptIn />} />
           <Route path="/pickleball-courts" element={<PickleballCourts />} />
           <Route path="/tennis-courts" element={<TennisCourts />} />
           <Route path="/court-resurfacing" element={<CourtResurfacing />} />
