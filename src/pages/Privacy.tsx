@@ -51,6 +51,27 @@ const Privacy = () => {
             </section>
 
             <section>
+              <h2 className="text-2xl font-bold text-foreground mb-4">SMS/Text Messaging</h2>
+              <p>
+                When you provide your phone number and opt in to receive text messages, we may send you 
+                SMS messages related to your court construction project, including project updates, 
+                scheduling notifications, estimate reminders, and appointment confirmations. By opting in, 
+                you consent to receive recurring automated text messages from CourtPro Augusta at the 
+                mobile number you provided. Consent is not a condition of any purchase.
+              </p>
+              <ul className="list-disc pl-6 space-y-2 mt-3">
+                <li><strong>Message frequency:</strong> Varies; approximately 1–10 messages per month during active project phases.</li>
+                <li><strong>Message and data rates may apply.</strong> Contact your wireless carrier for details.</li>
+                <li><strong>Opt-out:</strong> Reply STOP to any message to unsubscribe. You will receive a final confirmation message.</li>
+                <li><strong>Help:</strong> Reply HELP to any message for assistance, or contact us at (706) 309-1993.</li>
+              </ul>
+              <p className="mt-3">
+                For complete SMS program details, please review our{" "}
+                <a href="/sms-terms" className="text-primary hover:underline">SMS Terms &amp; Conditions</a>.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-2xl font-bold text-foreground mb-4">Data Sharing and Disclosure</h2>
               <p>
                 We do not sell your personal information. We may share your information with:
@@ -60,6 +81,12 @@ const Privacy = () => {
                 <li>Analytics providers (e.g., Google Analytics)</li>
                 <li>Law enforcement or regulatory authorities when required by law</li>
               </ul>
+              <p className="mt-3 font-semibold">
+                Mobile Information Sharing: We will not sell, rent, loan, trade, lease, or otherwise transfer 
+                for profit any phone numbers or personal information collected through our SMS program to any 
+                third party. We will not share your mobile phone number or SMS opt-in consent with third parties 
+                for their marketing purposes.
+              </p>
             </section>
 
             <section>

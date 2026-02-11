@@ -130,25 +130,30 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
             />
           </div>
           {formData.phone && (
-            <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg border border-border">
-              <Checkbox
-                id="smsOptIn"
-                checked={formData.smsOptIn}
-                onCheckedChange={(checked) => setFormData({ ...formData, smsOptIn: checked === true })}
-                className="mt-0.5"
-              />
-              <div className="space-y-1">
-                <Label htmlFor="smsOptIn" className="text-xs font-medium cursor-pointer">
-                  I agree to receive text messages
+            <div className="p-3 bg-muted/50 rounded-lg border border-border space-y-2">
+              <p className="text-[10px] font-semibold text-foreground">
+                CourtPro Augusta SMS Communications
+              </p>
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="smsOptIn"
+                  checked={formData.smsOptIn}
+                  onCheckedChange={(checked) => setFormData({ ...formData, smsOptIn: checked === true })}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="smsOptIn" className="text-[10px] font-medium cursor-pointer leading-relaxed">
+                  I agree to receive recurring automated promotional and informational text messages 
+                  (e.g., project updates, estimates, and appointment reminders) from CourtPro Augusta 
+                  at the phone number provided. Consent is not a condition of purchase. 
+                  Msg frequency varies (approx. 1–10 msgs/month). Msg &amp; data rates may apply. 
+                  Reply STOP to cancel, HELP for help.
                 </Label>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  By checking this box, you consent to receive SMS from CourtPro Augusta. 
-                  Message & data rates may apply. Reply STOP to unsubscribe.{" "}
-                  <a href="/privacy" className="text-primary hover:underline">Privacy</a> |{" "}
-                  <a href="/terms" className="text-primary hover:underline">Terms</a> |{" "}
-                  <a href="/sms-terms" className="text-primary hover:underline">SMS Terms</a>
-                </p>
               </div>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">
+                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>{" · "}
+                <a href="/terms" className="text-primary hover:underline">Terms</a>{" · "}
+                <a href="/sms-terms" className="text-primary hover:underline">SMS Terms</a>
+              </p>
             </div>
           )}
           <div className="grid grid-cols-2 gap-4">

@@ -148,25 +148,30 @@ const ContactForm = () => {
               </div>
 
               {formData.phone && (
-                <div className="flex items-start space-x-3 p-4 bg-muted/50 rounded-lg border border-border">
-                  <Checkbox
-                    id="smsOptIn"
-                    checked={formData.smsOptIn}
-                    onCheckedChange={(checked) => setFormData({ ...formData, smsOptIn: checked === true })}
-                    className="mt-0.5"
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="smsOptIn" className="text-sm font-medium cursor-pointer">
-                      I agree to receive text messages
+                <div className="p-4 bg-muted/50 rounded-lg border border-border space-y-3">
+                  <p className="text-xs font-semibold text-foreground">
+                    CourtPro Augusta SMS Communications
+                  </p>
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="smsOptIn"
+                      checked={formData.smsOptIn}
+                      onCheckedChange={(checked) => setFormData({ ...formData, smsOptIn: checked === true })}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="smsOptIn" className="text-xs font-medium cursor-pointer leading-relaxed">
+                      I agree to receive recurring automated promotional and informational text messages 
+                      (e.g., project updates, scheduling, estimates, and appointment reminders) from 
+                      CourtPro Augusta at the phone number provided. Consent is not a condition of purchase. 
+                      Msg frequency varies (approx. 1–10 msgs/month). Msg &amp; data rates may apply. 
+                      Reply STOP to cancel, HELP for help.
                     </Label>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      By checking this box, you consent to receive SMS text messages from CourtPro Augusta at the phone number provided. 
-                      Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe or HELP for assistance. 
-                      View our <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>,{" "}
-                      <a href="/terms" className="text-primary hover:underline">Terms of Service</a>, and{" "}
-                      <a href="/sms-terms" className="text-primary hover:underline">SMS Terms</a>.
-                    </p>
                   </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>{" · "}
+                    <a href="/terms" className="text-primary hover:underline">Terms of Service</a>{" · "}
+                    <a href="/sms-terms" className="text-primary hover:underline">SMS Terms &amp; Conditions</a>
+                  </p>
                 </div>
               )}
 
