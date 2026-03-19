@@ -521,6 +521,18 @@ async function generateDetailedScopePdf(estimate: any, supabase: any): Promise<U
 
   y -= 65;
 
+  // Exclusions section if space allows
+  if (exclusions.length > 0 && y > 200) {
+    page.drawText("EXCLUSIONS & ASSUMPTIONS", { x: leftMargin, y, size: 9, font: helveticaBold, color: COLORS.gray });
+    y -= 12;
+    for (const ex of exclusions) {
+      if (y < 60) break;
+      page.drawText("- " + (ex.exclusion_text || ""), { x: leftMargin + 5, y, size: 8, font: helvetica, color: COLORS.gray });
+      y -= 11;
+    }
+    y -= 5;
+  }
+
   // Marketing section if space allows
   if (y > 180) {
     y = drawMarketingSection(page, y, fonts);
