@@ -190,17 +190,17 @@ export default function AdminLeads() {
     setShowCustomerModal(true);
   };
 
-  const handleCustomerCreated = async (customerId: string) => {
+  const handleCustomerCreated = async (customer: any) => {
     if (!convertLead) return;
     try {
       const { error } = await supabase
         .from("leads")
-        .update({ status: "converted", converted_customer_id: customerId })
+        .update({ status: "converted", converted_customer_id: customer.id })
         .eq("id", convertLead.id);
 
       if (error) throw error;
       setLeads(prev =>
-        prev.map(l => l.id === convertLead.id ? { ...l, status: "converted", converted_customer_id: customerId } : l)
+        prev.map(l => l.id === convertLead.id ? { ...l, status: "converted", converted_customer_id: customer.id } : l)
       );
       toast({ title: "Lead converted!", description: "Customer record created successfully." });
     } catch (error) {
