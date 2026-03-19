@@ -5,6 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -68,6 +78,8 @@ interface Estimate {
   total: number;
   valid_until: string | null;
   created_at: string;
+  outcome: string | null;
+  lost_reason: string | null;
   customers: {
     contact_name: string;
     company_name: string | null;
@@ -165,10 +177,25 @@ export default function AdminEstimates() {
     fetchEstimates();
   }, [statusFilter]);
 
+  // Lost reason dialog state
+  const [lostDialog, setLostDialog] = useState<{
+    open: boolean;
+    estimateId: string;
+    estimateNumber: string;
+  } | null>(null);
+  const [lostReason, setLostReason] = useState("");
+
   const handleStatusChange = async () => {
     if (!confirmDialog) return;
     
     const { estimateId, estimateNumber, action } = confirmDialog;
+
+    // If declining, open lost reason dialog instead
+    if (action === "declined") {
+      setConfirmDialog(null);
+      setLostDialog({ open: true, estimateId, estimateNumber });
+      return;
+    }
     
     try {
       const updateData: Record<string, unknown> = { status: action };
@@ -177,6 +204,7 @@ export default function AdminEstimates() {
         updateData.sent_at = new Date().toISOString();
       } else if (action === "approved") {
         updateData.approved_at = new Date().toISOString();
+        updateData.outcome = "won";
       }
 
       const { error } = await supabase
@@ -209,6 +237,43 @@ export default function AdminEstimates() {
       });
     } finally {
       setConfirmDialog(null);
+    }
+  };
+
+  const handleMarkLost = async () => {
+    if (!lostDialog) return;
+    try {
+      const { error } = await supabase
+        .from("estimates")
+        .update({
+          status: "declined",
+          outcome: "lost",
+          lost_reason: lostReason || "No reason given",
+        })
+        .eq("id", lostDialog.estimateId);
+
+      if (error) throw error;
+
+      await logActivity({
+        action: "status_changed",
+        entityType: "estimate",
+        entityId: lostDialog.estimateId,
+        entityName: lostDialog.estimateNumber,
+        details: { newStatus: "declined", outcome: "lost", lostReason },
+      });
+
+      toast({
+        title: "Estimate Marked Lost",
+        description: `${lostDialog.estimateNumber} marked as lost.`,
+      });
+
+      fetchEstimates();
+    } catch (error) {
+      console.error("Error marking lost:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to mark as lost." });
+    } finally {
+      setLostDialog(null);
+      setLostReason("");
     }
   };
 
@@ -709,6 +774,41 @@ export default function AdminEstimates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Lost Reason Dialog */}
+      <Dialog open={lostDialog?.open ?? false} onOpenChange={(open) => !open && setLostDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Why was this estimate lost?</DialogTitle>
+            <DialogDescription>
+              Select a reason for losing {lostDialog?.estimateNumber}. This helps track sales performance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Reason</Label>
+            <Select value={lostReason} onValueChange={setLostReason}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a reason..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="too_expensive">Too Expensive</SelectItem>
+                <SelectItem value="went_with_competitor">Went with Competitor</SelectItem>
+                <SelectItem value="project_cancelled">Project Cancelled</SelectItem>
+                <SelectItem value="no_response">No Response</SelectItem>
+                <SelectItem value="bad_fit">Bad Fit / Not Qualified</SelectItem>
+                <SelectItem value="timing">Timing / Delayed</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLostDialog(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleMarkLost} disabled={!lostReason}>
+              Mark as Lost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
