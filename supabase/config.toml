@@ -62,3 +62,9 @@ verify_jwt = false
 
 [functions.bid-document-chat]
 verify_jwt = false
+
+[functions.score-lead]
+verify_jwt = false
+
+[functions.expire-estimates]
+verify_jwt = false

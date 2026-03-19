@@ -68,6 +68,8 @@ interface Estimate {
   total: number;
   valid_until: string | null;
   created_at: string;
+  outcome: string | null;
+  lost_reason: string | null;
   customers: {
     contact_name: string;
     company_name: string | null;

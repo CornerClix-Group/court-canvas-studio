@@ -162,10 +162,18 @@ export default function AdminDashboard() {
         })}
       </div>
 
+      {/* Follow-Up Alerts */}
+      <FollowUpWidget />
+
       {/* Sales Pipeline & Bank Balance */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <EstimatePipelineWidget />
         <MercuryBalanceCard />
+      </div>
+
+      {/* Sales Analytics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <SalesAnalyticsWidget />
       </div>
 
       {/* Pending Payments Alert */}
