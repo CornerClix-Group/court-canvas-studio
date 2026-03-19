@@ -433,6 +433,41 @@ export type Database = {
           },
         ]
       }
+      estimate_exclusions: {
+        Row: {
+          created_at: string | null
+          estimate_id: string | null
+          exclusion_text: string
+          id: string
+          is_default: boolean | null
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          estimate_id?: string | null
+          exclusion_text: string
+          id?: string
+          is_default?: boolean | null
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          estimate_id?: string | null
+          exclusion_text?: string
+          id?: string
+          is_default?: boolean | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_exclusions_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_items: {
         Row: {
           created_at: string
@@ -519,7 +554,9 @@ export type Database = {
           estimate_number: string
           id: string
           lead_id: string | null
+          lost_reason: string | null
           notes: string | null
+          outcome: string | null
           sent_at: string | null
           status: string
           subtotal: number
@@ -538,7 +575,9 @@ export type Database = {
           estimate_number: string
           id?: string
           lead_id?: string | null
+          lost_reason?: string | null
           notes?: string | null
+          outcome?: string | null
           sent_at?: string | null
           status?: string
           subtotal?: number
@@ -557,7 +596,9 @@ export type Database = {
           estimate_number?: string
           id?: string
           lead_id?: string | null
+          lost_reason?: string | null
           notes?: string | null
+          outcome?: string | null
           sent_at?: string | null
           status?: string
           subtotal?: number
@@ -717,52 +758,94 @@ export type Database = {
       }
       leads: {
         Row: {
+          ai_score: number | null
+          ai_tags: string[] | null
+          base_type: string | null
+          budget_range: string | null
           city: string | null
           converted_customer_id: string | null
+          court_condition: string | null
           created_at: string
           email: string | null
+          follow_up_count: number | null
+          follow_up_date: string | null
           id: string
+          job_type: string | null
+          last_contacted_at: string | null
           location_id: string | null
+          lost_reason: string | null
           name: string
           notes: string | null
+          number_of_courts: number | null
+          ownership_type: string | null
           phone: string | null
+          photo_urls: string[] | null
           project_type: string | null
           source: string | null
           state: string | null
           status: string
           updated_at: string
+          urgency: string | null
         }
         Insert: {
+          ai_score?: number | null
+          ai_tags?: string[] | null
+          base_type?: string | null
+          budget_range?: string | null
           city?: string | null
           converted_customer_id?: string | null
+          court_condition?: string | null
           created_at?: string
           email?: string | null
+          follow_up_count?: number | null
+          follow_up_date?: string | null
           id?: string
+          job_type?: string | null
+          last_contacted_at?: string | null
           location_id?: string | null
+          lost_reason?: string | null
           name: string
           notes?: string | null
+          number_of_courts?: number | null
+          ownership_type?: string | null
           phone?: string | null
+          photo_urls?: string[] | null
           project_type?: string | null
           source?: string | null
           state?: string | null
           status?: string
           updated_at?: string
+          urgency?: string | null
         }
         Update: {
+          ai_score?: number | null
+          ai_tags?: string[] | null
+          base_type?: string | null
+          budget_range?: string | null
           city?: string | null
           converted_customer_id?: string | null
+          court_condition?: string | null
           created_at?: string
           email?: string | null
+          follow_up_count?: number | null
+          follow_up_date?: string | null
           id?: string
+          job_type?: string | null
+          last_contacted_at?: string | null
           location_id?: string | null
+          lost_reason?: string | null
           name?: string
           notes?: string | null
+          number_of_courts?: number | null
+          ownership_type?: string | null
           phone?: string | null
+          photo_urls?: string[] | null
           project_type?: string | null
           source?: string | null
           state?: string | null
           status?: string
           updated_at?: string
+          urgency?: string | null
         }
         Relationships: [
           {
