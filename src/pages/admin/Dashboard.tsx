@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { MercuryBalanceCard } from "@/components/admin/MercuryBalanceCard";
 import { EstimatePipelineWidget } from "@/components/admin/EstimatePipelineWidget";
+import { FollowUpWidget } from "@/components/admin/FollowUpWidget";
+import { SalesAnalyticsWidget } from "@/components/admin/SalesAnalyticsWidget";
 
 interface DashboardStats {
   leads: number;
