@@ -891,6 +891,7 @@ export type Database = {
           is_active: boolean | null
           key: string
           label: string
+          product_line: string
           sort_order: number | null
           unit: string | null
           updated_at: string
@@ -904,6 +905,7 @@ export type Database = {
           is_active?: boolean | null
           key: string
           label: string
+          product_line?: string
           sort_order?: number | null
           unit?: string | null
           updated_at?: string
@@ -917,6 +919,7 @@ export type Database = {
           is_active?: boolean | null
           key?: string
           label?: string
+          product_line?: string
           sort_order?: number | null
           unit?: string | null
           updated_at?: string

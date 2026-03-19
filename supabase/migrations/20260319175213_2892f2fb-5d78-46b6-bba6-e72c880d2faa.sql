@@ -1,0 +1,1 @@
+ALTER TABLE public.pricing_config ADD COLUMN product_line text NOT NULL DEFAULT 'all';
