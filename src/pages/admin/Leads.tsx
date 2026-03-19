@@ -504,17 +504,13 @@ export default function AdminLeads() {
             if (!open) setConvertLead(null);
           }}
           onSuccess={handleCustomerCreated}
-          customer={{
-            id: "",
+          initialData={{
             contact_name: convertLead.name,
-            company_name: null,
-            email: convertLead.email,
-            phone: convertLead.phone,
-            address: null,
-            city: convertLead.city,
-            state: convertLead.state,
-            zip: null,
-          } as any}
+            email: convertLead.email || "",
+            phone: convertLead.phone || "",
+            city: convertLead.city || "",
+            state: convertLead.state || "",
+          }}
         />
       )}
     </div>
