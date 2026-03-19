@@ -86,7 +86,7 @@ export default function BidDocuments() {
     if (data) setProjects(data);
   };
 
-  const MAX_FILE_SIZE_MB = 250;
+  const MAX_FILE_SIZE_MB = 50;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,8 +96,8 @@ export default function BidDocuments() {
     if (fileSizeMB > MAX_FILE_SIZE_MB) {
       toast({
         variant: "destructive",
-        title: "File too large",
-        description: `Maximum file size is ${MAX_FILE_SIZE_MB}MB. Your file is ${fileSizeMB.toFixed(1)}MB.`,
+        title: "File too large for this project",
+        description: `Supabase currently allows up to ${MAX_FILE_SIZE_MB}MB per file. Your file is ${fileSizeMB.toFixed(1)}MB. Please split/compress it and re-upload.`,
       });
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
@@ -140,7 +140,8 @@ export default function BidDocuments() {
   };
 
   const handleUploadWithProject = async () => {
-    await doUpload(selectedProjectId || null);
+    const projectId = selectedProjectId && selectedProjectId !== "none" ? selectedProjectId : null;
+    await doUpload(projectId);
   };
 
   const doUpload = async (projectId: string | null) => {
@@ -214,7 +215,16 @@ export default function BidDocuments() {
         setChatMessages([]);
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Upload failed", description: error.message });
+      const message = error?.message || "Unknown error";
+      const isSizeError = /maximum allowed size|payload too large|413/i.test(message);
+
+      toast({
+        variant: "destructive",
+        title: isSizeError ? "File too large for this project" : "Upload failed",
+        description: isSizeError
+          ? "Your Supabase project currently has a 50MB upload cap. Please split or compress this file and try again."
+          : message,
+      });
     } finally {
       setUploading(false);
       setPendingFile(null);
