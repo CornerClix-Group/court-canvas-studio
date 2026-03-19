@@ -49,6 +49,7 @@ const fullNavItems: NavItem[] = [
   { href: "/admin/inventory", label: "Inventory", icon: Package },
   { href: "/admin/calculator", label: "Calculator", icon: Calculator },
   { href: "/admin/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/admin/bid-documents", label: "Bid Docs", icon: FileSearch },
 ];
 
 const salesNavItems: NavItem[] = [

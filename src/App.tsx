@@ -88,6 +88,7 @@ const App = () => (
             <Route path="portal" element={<ContractorPortal />} />
             <Route path="portal" element={<ContractorPortal />} />
             <Route path="portal/:id" element={<ContractorJobDetail />} />
+            <Route path="bid-documents" element={<BidDocuments />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
