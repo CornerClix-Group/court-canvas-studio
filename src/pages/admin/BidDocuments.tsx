@@ -86,9 +86,23 @@ export default function BidDocuments() {
     if (data) setProjects(data);
   };
 
+  const MAX_FILE_SIZE_MB = 250;
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > MAX_FILE_SIZE_MB) {
+      toast({
+        variant: "destructive",
+        title: "File too large",
+        description: `Maximum file size is ${MAX_FILE_SIZE_MB}MB. Your file is ${fileSizeMB.toFixed(1)}MB.`,
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     setPendingFile(file);
     setSelectedProjectId("");
     setNewProjectName("");
