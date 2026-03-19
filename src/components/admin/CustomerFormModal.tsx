@@ -54,6 +54,7 @@ interface CustomerFormModalProps {
   onOpenChange: (open: boolean) => void;
   customer?: Customer | null;
   onSuccess: (customer: Customer) => void;
+  initialData?: Partial<CustomerFormData>;
 }
 
 export function CustomerFormModal({
@@ -61,23 +62,26 @@ export function CustomerFormModal({
   onOpenChange,
   customer,
   onSuccess,
+  initialData,
 }: CustomerFormModalProps) {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const isEditing = !!customer;
 
+  const defaults = customer || initialData;
+
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
-      contact_name: customer?.contact_name || "",
-      company_name: customer?.company_name || "",
-      email: customer?.email || "",
-      phone: customer?.phone || "",
-      address: customer?.address || "",
-      city: customer?.city || "",
-      state: customer?.state || "",
-      zip: customer?.zip || "",
-      notes: customer?.notes || "",
+      contact_name: defaults?.contact_name || "",
+      company_name: (defaults as any)?.company_name || "",
+      email: defaults?.email || "",
+      phone: defaults?.phone || "",
+      address: (defaults as any)?.address || "",
+      city: defaults?.city || "",
+      state: defaults?.state || "",
+      zip: (defaults as any)?.zip || "",
+      notes: (defaults as any)?.notes || "",
     },
   });
 
