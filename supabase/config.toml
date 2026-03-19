@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.analyze-bid-document]
+verify_jwt = false
+
+[functions.bid-document-chat]
+verify_jwt = false

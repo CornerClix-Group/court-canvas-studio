@@ -36,6 +36,7 @@ import Inventory from "./pages/admin/Inventory";
 import MaterialCalculator from "./pages/admin/MaterialCalculator";
 import ContractorPortal from "./pages/admin/ContractorPortal";
 import ContractorJobDetail from "./pages/admin/ContractorJobDetail";
+import BidDocuments from "./pages/admin/BidDocuments";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,7 @@ const App = () => (
             <Route path="portal" element={<ContractorPortal />} />
             <Route path="portal" element={<ContractorPortal />} />
             <Route path="portal/:id" element={<ContractorJobDetail />} />
+            <Route path="bid-documents" element={<BidDocuments />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

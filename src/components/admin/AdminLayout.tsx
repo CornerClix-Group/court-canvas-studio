@@ -5,7 +5,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, FileSearch } from "lucide-react";
 import { ChangePasswordDialog } from "@/components/admin/ChangePasswordDialog";
 import { ForcePasswordChangeDialog } from "@/components/admin/ForcePasswordChangeDialog";
 import { ActivityLogger } from "@/lib/activityLogger";
@@ -49,6 +49,7 @@ const fullNavItems: NavItem[] = [
   { href: "/admin/inventory", label: "Inventory", icon: Package },
   { href: "/admin/calculator", label: "Calculator", icon: Calculator },
   { href: "/admin/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/admin/bid-documents", label: "Bid Docs", icon: FileSearch },
 ];
 
 const salesNavItems: NavItem[] = [
