@@ -122,6 +122,83 @@ export type Database = {
           },
         ]
       }
+      bid_document_messages: {
+        Row: {
+          bid_document_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          bid_document_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          bid_document_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_document_messages_bid_document_id_fkey"
+            columns: ["bid_document_id"]
+            isOneToOne: false
+            referencedRelation: "bid_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_documents: {
+        Row: {
+          created_at: string
+          document_text: string | null
+          extracted_data: Json | null
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          document_text?: string | null
+          extracted_data?: Json | null
+          file_name: string
+          file_path: string
+          file_size?: number
+          file_type: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          document_text?: string | null
+          extracted_data?: Json | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       chat_rate_limits: {
         Row: {
           created_at: string
