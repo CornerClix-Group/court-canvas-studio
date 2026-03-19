@@ -30,7 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Search, UserCircle, Mail, Phone, MapPin, Calendar, AlertTriangle, ArrowRight, X } from "lucide-react";
 import { format, isToday, isPast, differenceInHours } from "date-fns";
-import CustomerFormModal from "@/components/admin/CustomerFormModal";
+import { CustomerFormModal } from "@/components/admin/CustomerFormModal";
 
 interface Lead {
   id: string;
