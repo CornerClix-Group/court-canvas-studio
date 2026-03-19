@@ -24,7 +24,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify user role
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
@@ -47,7 +46,6 @@ serve(async (req) => {
       });
     }
 
-    // Get document record
     const { data: doc, error: docError } = await supabase
       .from('bid_documents')
       .select('*')
@@ -60,10 +58,8 @@ serve(async (req) => {
       });
     }
 
-    // Update status to analyzing
     await supabase.from('bid_documents').update({ status: 'analyzing' }).eq('id', documentId);
 
-    // Download file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('bid-documents')
       .download(doc.file_path);
@@ -80,10 +76,39 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
-    // Convert file to base64 for vision model
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const uint8 = new Uint8Array(arrayBuffer);
+    const fileSizeMB = uint8.length / (1024 * 1024);
     const mimeType = doc.file_type || 'application/pdf';
+
+    console.log(`Analyzing bid document: ${doc.file_name} (${fileSizeMB.toFixed(1)} MB)`);
+
+    // For very large files (>15MB), we can't send as base64 to vision.
+    // We'll chunk the base64 or use a text-first approach for PDFs.
+    // OpenAI vision supports up to ~20MB base64 images.
+    const MAX_BASE64_SIZE_MB = 18;
+
+    let extractedData: any;
+    let documentText = '';
+
+    if (fileSizeMB > MAX_BASE64_SIZE_MB) {
+      // For very large files, skip vision and inform user
+      await supabase.from('bid_documents').update({ status: 'error' }).eq('id', documentId);
+      return new Response(JSON.stringify({ 
+        error: `File is too large for AI analysis (${fileSizeMB.toFixed(1)} MB). Please try a smaller file or split the PDF.` 
+      }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Convert to base64
+    let base64 = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8.length; i += chunkSize) {
+      const chunk = uint8.slice(i, i + chunkSize);
+      base64 += String.fromCharCode(...chunk);
+    }
+    base64 = btoa(base64);
 
     const extractionPrompt = `You are analyzing a bid document for a sports court construction company (CourtPro Augusta). Extract the following key details from this document. If a field is not found, set it to null.
 
@@ -113,29 +138,7 @@ Return a JSON object with these fields:
   "important_notes": ["array of other important items to note"]
 }`;
 
-    // Use vision model to read the document
-    const messages: any[] = [
-      { role: 'system', content: extractionPrompt },
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:${mimeType};base64,${base64}`,
-              detail: 'high',
-            },
-          },
-          {
-            type: 'text',
-            text: 'Please analyze this bid document and extract the key details as specified. Return ONLY the JSON object, no markdown formatting.',
-          },
-        ],
-      },
-    ];
-
-    console.log(`Analyzing bid document: ${doc.file_name} (${doc.file_size} bytes)`);
-
+    // Extraction call
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -144,7 +147,22 @@ Return a JSON object with these fields:
       },
       body: JSON.stringify({
         model: 'gpt-4o',
-        messages,
+        messages: [
+          { role: 'system', content: extractionPrompt },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: `data:${mimeType};base64,${base64}`, detail: 'high' },
+              },
+              {
+                type: 'text',
+                text: 'Please analyze this bid document and extract the key details as specified. Return ONLY the JSON object, no markdown formatting.',
+              },
+            ],
+          },
+        ],
         max_tokens: 4096,
         temperature: 0.1,
       }),
@@ -162,18 +180,15 @@ Return a JSON object with these fields:
     const aiResult = await response.json();
     const content = aiResult.choices?.[0]?.message?.content || '';
 
-    // Parse the JSON from the response
-    let extractedData;
     try {
-      // Remove any markdown code fences if present
       const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       extractedData = JSON.parse(cleaned);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse AI response:', content);
       extractedData = { raw_response: content, parse_error: true };
     }
 
-    // Now get a text summary for chat context using a second call
+    // Get text transcription for chat context
     const textResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -202,13 +217,11 @@ Return a JSON object with these fields:
       }),
     });
 
-    let documentText = '';
     if (textResponse.ok) {
       const textResult = await textResponse.json();
       documentText = textResult.choices?.[0]?.message?.content || '';
     }
 
-    // Update document with extracted data
     await supabase.from('bid_documents').update({
       extracted_data: extractedData,
       document_text: documentText,
