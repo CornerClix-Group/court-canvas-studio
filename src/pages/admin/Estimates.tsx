@@ -165,10 +165,25 @@ export default function AdminEstimates() {
     fetchEstimates();
   }, [statusFilter]);
 
+  // Lost reason dialog state
+  const [lostDialog, setLostDialog] = useState<{
+    open: boolean;
+    estimateId: string;
+    estimateNumber: string;
+  } | null>(null);
+  const [lostReason, setLostReason] = useState("");
+
   const handleStatusChange = async () => {
     if (!confirmDialog) return;
     
     const { estimateId, estimateNumber, action } = confirmDialog;
+
+    // If declining, open lost reason dialog instead
+    if (action === "declined") {
+      setConfirmDialog(null);
+      setLostDialog({ open: true, estimateId, estimateNumber });
+      return;
+    }
     
     try {
       const updateData: Record<string, unknown> = { status: action };
@@ -177,6 +192,7 @@ export default function AdminEstimates() {
         updateData.sent_at = new Date().toISOString();
       } else if (action === "approved") {
         updateData.approved_at = new Date().toISOString();
+        updateData.outcome = "won";
       }
 
       const { error } = await supabase
@@ -209,6 +225,43 @@ export default function AdminEstimates() {
       });
     } finally {
       setConfirmDialog(null);
+    }
+  };
+
+  const handleMarkLost = async () => {
+    if (!lostDialog) return;
+    try {
+      const { error } = await supabase
+        .from("estimates")
+        .update({
+          status: "declined",
+          outcome: "lost",
+          lost_reason: lostReason || "No reason given",
+        })
+        .eq("id", lostDialog.estimateId);
+
+      if (error) throw error;
+
+      await logActivity({
+        action: "status_changed",
+        entityType: "estimate",
+        entityId: lostDialog.estimateId,
+        entityName: lostDialog.estimateNumber,
+        details: { newStatus: "declined", outcome: "lost", lostReason },
+      });
+
+      toast({
+        title: "Estimate Marked Lost",
+        description: `${lostDialog.estimateNumber} marked as lost.`,
+      });
+
+      fetchEstimates();
+    } catch (error) {
+      console.error("Error marking lost:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to mark as lost." });
+    } finally {
+      setLostDialog(null);
+      setLostReason("");
     }
   };
 
