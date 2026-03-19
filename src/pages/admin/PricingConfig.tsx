@@ -6,17 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Save, 
-  Package, 
-  Wrench, 
-  Building2, 
-  Target, 
+import { useQueryClient } from "@tanstack/react-query";
+import { type ProductLine, PRODUCT_LINE_LABELS } from "@/hooks/usePricingConfig";
+import {
+  Save,
+  Package,
+  Wrench,
+  Building2,
+  Target,
   Percent,
   Loader2,
   RefreshCw,
-  Boxes
+  Boxes,
+  Layers
 } from "lucide-react";
 
 interface PricingConfigItem {
@@ -29,6 +33,7 @@ interface PricingConfigItem {
   description: string | null;
   sort_order: number;
   is_active: boolean;
+  product_line: string;
 }
 
 const CATEGORY_CONFIG = {
@@ -81,13 +86,18 @@ const UNIT_LABELS: Record<string, string> = {
   gal_per_sy: "gal / sq yd",
 };
 
+const PRODUCT_LINE_KEYS = ['resurfacer_per_gal', 'color_concentrate_per_gal', 'premium_color_add_on'];
+
 export default function PricingConfig() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [configs, setConfigs] = useState<PricingConfigItem[]>([]);
   const [editedValues, setEditedValues] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState("materials");
+  const [activeProductLine, setActiveProductLine] = useState<ProductLine>("advantage");
+  const [settingsRowId, setSettingsRowId] = useState<string | null>(null);
 
   const fetchConfigs = async () => {
     setLoading(true);
@@ -98,26 +108,61 @@ export default function PricingConfig() {
       .order("sort_order");
 
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load pricing configuration",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to load pricing configuration" });
     } else {
-      setConfigs(data || []);
-      // Initialize edited values
+      const allRows = (data || []) as PricingConfigItem[];
+      setConfigs(allRows);
+
+      // Find settings row for active product line
+      const settingsRow = allRows.find(r => r.category === 'settings' && r.key === 'active_product_line');
+      if (settingsRow) {
+        setSettingsRowId(settingsRow.id);
+        const val = settingsRow.value;
+        if (val === 1) setActiveProductLine('colorflex');
+        else if (val === 2) setActiveProductLine('masters');
+        else setActiveProductLine('advantage');
+      }
+
       const values: Record<string, number> = {};
-      data?.forEach((item) => {
-        values[item.id] = item.value;
-      });
+      allRows.forEach((item) => { values[item.id] = item.value; });
       setEditedValues(values);
     }
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchConfigs();
-  }, []);
+  useEffect(() => { fetchConfigs(); }, []);
+
+  const handleProductLineChange = async (line: ProductLine) => {
+    const numVal = line === 'colorflex' ? 1 : line === 'masters' ? 2 : 0;
+
+    if (settingsRowId) {
+      const { error } = await supabase
+        .from("pricing_config")
+        .update({ value: numVal })
+        .eq("id", settingsRowId);
+
+      if (error) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to update product line" });
+        return;
+      }
+    }
+
+    setActiveProductLine(line);
+    queryClient.invalidateQueries({ queryKey: ['active-product-line'] });
+    queryClient.invalidateQueries({ queryKey: ['pricing-config'] });
+    toast({ title: "Product Line Updated", description: `Switched to ${PRODUCT_LINE_LABELS[line]}` });
+  };
+
+  // Filter configs to show: shared items ('all') + active product line items for material category
+  const getVisibleConfigs = (category: string) => {
+    return configs.filter((c) => {
+      if (c.category !== category) return false;
+      if (PRODUCT_LINE_KEYS.includes(c.key)) {
+        return c.product_line === activeProductLine;
+      }
+      return c.product_line === 'all';
+    });
+  };
 
   const handleValueChange = (id: string, value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -125,11 +170,11 @@ export default function PricingConfig() {
   };
 
   const hasChanges = () => {
-    return configs.some((config) => config.value !== editedValues[config.id]);
+    return configs.some((config) => config.category !== 'settings' && config.value !== editedValues[config.id]);
   };
 
   const getChangedItems = () => {
-    return configs.filter((config) => config.value !== editedValues[config.id]);
+    return configs.filter((config) => config.category !== 'settings' && config.value !== editedValues[config.id]);
   };
 
   const handleSave = async () => {
@@ -143,7 +188,6 @@ export default function PricingConfig() {
           .from("pricing_config")
           .update({ value: editedValues[item.id] })
           .eq("id", item.id);
-
         if (error) throw error;
       }
 
@@ -152,14 +196,11 @@ export default function PricingConfig() {
         description: `${changedItems.length} value${changedItems.length > 1 ? "s" : ""} saved successfully.`,
       });
 
+      queryClient.invalidateQueries({ queryKey: ['pricing-config'] });
       await fetchConfigs();
     } catch (error) {
       console.error("Error saving pricing config:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save pricing changes",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to save pricing changes" });
     } finally {
       setSaving(false);
     }
@@ -167,14 +208,12 @@ export default function PricingConfig() {
 
   const handleReset = () => {
     const values: Record<string, number> = {};
-    configs.forEach((item) => {
-      values[item.id] = item.value;
-    });
+    configs.forEach((item) => { values[item.id] = item.value; });
     setEditedValues(values);
   };
 
   const renderConfigItems = (category: string) => {
-    const items = configs.filter((c) => c.category === category);
+    const items = getVisibleConfigs(category);
 
     return (
       <div className="grid gap-4">
@@ -191,15 +230,16 @@ export default function PricingConfig() {
                 <div className="flex items-center gap-2">
                   <Label className="font-medium">{item.label}</Label>
                   {isChanged && (
-                    <Badge variant="secondary" className="text-xs">
-                      Modified
+                    <Badge variant="secondary" className="text-xs">Modified</Badge>
+                  )}
+                  {PRODUCT_LINE_KEYS.includes(item.key) && (
+                    <Badge variant="outline" className="text-xs">
+                      {PRODUCT_LINE_LABELS[activeProductLine]}
                     </Badge>
                   )}
                 </div>
                 {item.description && (
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    {item.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{item.description}</p>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -260,20 +300,43 @@ export default function PricingConfig() {
             )}
             Save Changes
             {changedCount > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {changedCount}
-              </Badge>
+              <Badge variant="secondary" className="ml-2">{changedCount}</Badge>
             )}
           </Button>
         </div>
       </div>
 
+      {/* Product Line Selector */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <Layers className="w-5 h-5 text-primary" />
+            <div className="flex-1">
+              <Label className="text-base font-semibold">Active Product Line</Label>
+              <p className="text-sm text-muted-foreground">
+                This sets which Laykold product line pricing is used across all estimates and calculations.
+              </p>
+            </div>
+            <Select value={activeProductLine} onValueChange={(v) => handleProductLineChange(v as ProductLine)}>
+              <SelectTrigger className="w-64">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="advantage">Advantage (Factory Textured)</SelectItem>
+                <SelectItem value="colorflex">ColorFlex (Highly Flexible)</SelectItem>
+                <SelectItem value="masters">Masters (ColorCoat Concentrate)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-6">
           {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
             const Icon = config.icon;
-            const categoryChanges = configs.filter(
-              (c) => c.category === key && c.value !== editedValues[c.id]
+            const categoryChanges = getVisibleConfigs(key).filter(
+              (c) => c.value !== editedValues[c.id]
             ).length;
             return (
               <TabsTrigger key={key} value={key} className="relative">
