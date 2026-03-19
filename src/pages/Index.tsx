@@ -49,6 +49,8 @@ const Index = () => {
         <BuildProcess />
         <CourtViewer />
         <Services />
+        <Testimonials />
+        <ProjectGallery />
         <ContactForm />
       </main>
       <Footer />
