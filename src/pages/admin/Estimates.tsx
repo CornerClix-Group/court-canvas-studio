@@ -774,6 +774,41 @@ export default function AdminEstimates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Lost Reason Dialog */}
+      <Dialog open={lostDialog?.open ?? false} onOpenChange={(open) => !open && setLostDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Why was this estimate lost?</DialogTitle>
+            <DialogDescription>
+              Select a reason for losing {lostDialog?.estimateNumber}. This helps track sales performance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Reason</Label>
+            <Select value={lostReason} onValueChange={setLostReason}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a reason..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="too_expensive">Too Expensive</SelectItem>
+                <SelectItem value="went_with_competitor">Went with Competitor</SelectItem>
+                <SelectItem value="project_cancelled">Project Cancelled</SelectItem>
+                <SelectItem value="no_response">No Response</SelectItem>
+                <SelectItem value="bad_fit">Bad Fit / Not Qualified</SelectItem>
+                <SelectItem value="timing">Timing / Delayed</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLostDialog(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleMarkLost} disabled={!lostReason}>
+              Mark as Lost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

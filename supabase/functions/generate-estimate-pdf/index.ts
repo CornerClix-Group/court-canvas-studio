@@ -614,11 +614,22 @@ serve(async (req) => {
 
     const { data: estimate, error } = await supabase
       .from("estimates")
-      .select(`*, customers(*), estimate_items(*), estimate_attachments(*), estimate_custom_items(*), estimate_scope_bullets(*)`)
+      .select(`*, customers(*), estimate_items(*), estimate_attachments(*), estimate_custom_items(*), estimate_scope_bullets(*), estimate_exclusions(*)`)
       .eq("id", estimateId)
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Also fetch default exclusions if no estimate-specific ones
+    let exclusions = estimate.estimate_exclusions || [];
+    if (exclusions.length === 0) {
+      const { data: defaults } = await supabase
+        .from("estimate_exclusions")
+        .select("*")
+        .eq("is_default", true)
+        .order("sort_order");
+      exclusions = defaults || [];
+    }
 
     estimate.estimate_items?.sort((a: any, b: any) => a.sort_order - b.sort_order);
     estimate.estimate_attachments?.sort((a: any, b: any) => a.sort_order - b.sort_order);
