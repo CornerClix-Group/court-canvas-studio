@@ -3,31 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  Upload,
-  FileText,
-  Calendar,
-  Shield,
-  MapPin,
-  DollarSign,
-  ClipboardList,
-  Send,
-  Loader2,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Building,
-  HardHat,
-  FileSearch,
-  MessageSquare,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
+  Upload, FileText, Calendar, Shield, MapPin, DollarSign,
+  ClipboardList, Send, Loader2, AlertTriangle, CheckCircle,
+  Clock, Building, HardHat, FileSearch, MessageSquare,
+  Trash2, ChevronDown, ChevronUp, FolderKanban, Plus,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -40,11 +27,19 @@ interface BidDocument {
   status: string;
   extracted_data: any;
   created_at: string;
+  project_id: string | null;
+  projects?: { project_name: string } | null;
 }
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+}
+
+interface Project {
+  id: string;
+  project_name: string;
+  status: string;
 }
 
 export default function BidDocuments() {
@@ -55,12 +50,19 @@ export default function BidDocuments() {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [newProjectName, setNewProjectName] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchDocuments();
+    fetchProjects();
   }, []);
 
   useEffect(() => {
@@ -70,43 +72,96 @@ export default function BidDocuments() {
   const fetchDocuments = async () => {
     const { data, error } = await supabase
       .from("bid_documents")
-      .select("id, title, file_name, file_type, file_size, status, extracted_data, created_at")
+      .select("id, title, file_name, file_type, file_size, status, extracted_data, created_at, project_id")
       .order("created_at", { ascending: false });
 
     if (!error && data) setDocuments(data);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fetchProjects = async () => {
+    const { data } = await supabase
+      .from("projects")
+      .select("id, project_name, status")
+      .order("created_at", { ascending: false });
+    if (data) setProjects(data);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPendingFile(file);
+    setSelectedProjectId("");
+    setNewProjectName("");
+    setCreatingProject(false);
+    setUploadDialogOpen(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
+  const handleCreateProjectAndUpload = async () => {
+    if (!newProjectName.trim()) {
+      toast({ variant: "destructive", title: "Enter a project name" });
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data: project, error } = await supabase
+      .from("projects")
+      .insert({ project_name: newProjectName.trim(), status: "sold" })
+      .select("id, project_name, status")
+      .single();
+
+    if (error) {
+      toast({ variant: "destructive", title: "Failed to create project", description: error.message });
+      return;
+    }
+
+    setProjects((prev) => [project, ...prev]);
+    setSelectedProjectId(project.id);
+    setCreatingProject(false);
+
+    // Now upload with this project
+    await doUpload(project.id);
+  };
+
+  const handleUploadWithProject = async () => {
+    await doUpload(selectedProjectId || null);
+  };
+
+  const doUpload = async (projectId: string | null) => {
+    if (!pendingFile) return;
+    setUploadDialogOpen(false);
     setUploading(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
+      const file = pendingFile;
       const fileExt = file.name.split(".").pop();
       const filePath = `${session.user.id}/${Date.now()}.${fileExt}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from("bid-documents")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Create document record
+      const insertData: any = {
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        file_path: filePath,
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        status: "uploaded",
+        uploaded_by: session.user.id,
+      };
+      if (projectId) insertData.project_id = projectId;
+
       const { data: doc, error: insertError } = await supabase
         .from("bid_documents")
-        .insert({
-          title: file.name.replace(/\.[^/.]+$/, ""),
-          file_path: filePath,
-          file_name: file.name,
-          file_type: file.type,
-          file_size: file.size,
-          status: "uploaded",
-          uploaded_by: session.user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -114,7 +169,6 @@ export default function BidDocuments() {
 
       toast({ title: "Document uploaded", description: "Starting AI analysis..." });
 
-      // Trigger analysis
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-bid-document`,
         {
@@ -135,10 +189,9 @@ export default function BidDocuments() {
       toast({ title: "Analysis complete", description: "Key details have been extracted." });
       await fetchDocuments();
 
-      // Auto-select the new document
       const { data: updatedDoc } = await supabase
         .from("bid_documents")
-        .select("id, title, file_name, file_type, file_size, status, extracted_data, created_at")
+        .select("id, title, file_name, file_type, file_size, status, extracted_data, created_at, project_id")
         .eq("id", doc.id)
         .single();
 
@@ -150,7 +203,7 @@ export default function BidDocuments() {
       toast({ variant: "destructive", title: "Upload failed", description: error.message });
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPendingFile(null);
     }
   };
 
@@ -175,10 +228,7 @@ export default function BidDocuments() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            documentId: selectedDoc.id,
-            messages: updatedMessages,
-          }),
+          body: JSON.stringify({ documentId: selectedDoc.id, messages: updatedMessages }),
         }
       );
 
@@ -216,12 +266,11 @@ export default function BidDocuments() {
               ]);
             }
           } catch {
-            // partial JSON, wait for more
+            // partial JSON
           }
         }
       }
 
-      // Save messages to DB
       await supabase.from("bid_document_messages").insert([
         { bid_document_id: selectedDoc.id, role: "user", content: userMsg.content },
         { bid_document_id: selectedDoc.id, role: "assistant", content: assistantContent },
@@ -247,7 +296,6 @@ export default function BidDocuments() {
 
   const selectDocument = async (doc: BidDocument) => {
     setSelectedDoc(doc);
-    // Load chat history
     const { data } = await supabase
       .from("bid_document_messages")
       .select("role, content")
@@ -263,12 +311,13 @@ export default function BidDocuments() {
     return `${(bytes / 1048576).toFixed(1)} MB`;
   };
 
-  const renderExtractedField = (
-    icon: React.ReactNode,
-    label: string,
-    value: any,
-    key: string
-  ) => {
+  const getProjectName = (doc: BidDocument) => {
+    if (!doc.project_id) return null;
+    const project = projects.find((p) => p.id === doc.project_id);
+    return project?.project_name || null;
+  };
+
+  const renderExtractedField = (icon: React.ReactNode, label: string, value: any, key: string) => {
     if (!value || value === "null") return null;
     const isExpanded = expandedSection === key;
     const isLong = typeof value === "string" && value.length > 100;
@@ -311,7 +360,7 @@ export default function BidDocuments() {
             type="file"
             accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
             className="hidden"
-            onChange={handleFileUpload}
+            onChange={handleFileSelect}
           />
           <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
             {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
@@ -319,6 +368,69 @@ export default function BidDocuments() {
           </Button>
         </div>
       </div>
+
+      {/* Upload dialog — assign to project */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign to Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Optionally assign <strong>{pendingFile?.name}</strong> to a project for easy organization.
+            </p>
+
+            {!creatingProject ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Select Existing Project</Label>
+                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="No project (unassigned)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No project (unassigned)</SelectItem>
+                      {projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.project_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setCreatingProject(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Project
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label>New Project Name</Label>
+                <Input
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="e.g., May Park Improvements"
+                />
+                <Button variant="ghost" size="sm" onClick={() => setCreatingProject(false)}>
+                  ← Back to existing projects
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>Cancel</Button>
+            {creatingProject ? (
+              <Button onClick={handleCreateProjectAndUpload} disabled={!newProjectName.trim()}>
+                Create Project & Upload
+              </Button>
+            ) : (
+              <Button onClick={handleUploadWithProject}>
+                Upload{selectedProjectId && selectedProjectId !== "none" ? " & Assign" : ""}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Document list */}
@@ -335,52 +447,61 @@ export default function BidDocuments() {
             ) : (
               <ScrollArea className="h-[500px]">
                 <div className="space-y-1 p-2">
-                  {documents.map((doc) => (
-                    <button
-                      key={doc.id}
-                      onClick={() => selectDocument(doc)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedDoc?.id === doc.id
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{doc.title}</p>
-                          <p className={`text-xs ${selectedDoc?.id === doc.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                            {formatFileSize(doc.file_size)} · {format(new Date(doc.created_at), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Badge
-                            variant={doc.status === "analyzed" ? "default" : doc.status === "error" ? "destructive" : "secondary"}
-                            className="text-[10px] px-1.5"
-                          >
-                            {doc.status === "analyzed" ? (
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                            ) : doc.status === "error" ? (
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                            ) : (
-                              <Clock className="w-3 h-3 mr-1" />
+                  {documents.map((doc) => {
+                    const projectName = getProjectName(doc);
+                    return (
+                      <button
+                        key={doc.id}
+                        onClick={() => selectDocument(doc)}
+                        className={`w-full text-left p-3 rounded-lg transition-colors ${
+                          selectedDoc?.id === doc.id
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{doc.title}</p>
+                            {projectName && (
+                              <p className={`text-xs flex items-center gap-1 ${selectedDoc?.id === doc.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                                <FolderKanban className="w-3 h-3" />
+                                {projectName}
+                              </p>
                             )}
-                            {doc.status}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteDocument(doc.id);
-                            }}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                            <p className={`text-xs ${selectedDoc?.id === doc.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                              {formatFileSize(doc.file_size)} · {format(new Date(doc.created_at), "MMM d, yyyy")}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Badge
+                              variant={doc.status === "analyzed" ? "default" : doc.status === "error" ? "destructive" : "secondary"}
+                              className="text-[10px] px-1.5"
+                            >
+                              {doc.status === "analyzed" ? (
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                              ) : doc.status === "error" ? (
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                              ) : (
+                                <Clock className="w-3 h-3 mr-1" />
+                              )}
+                              {doc.status}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDocument(doc.id);
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </ScrollArea>
             )}
@@ -451,7 +572,7 @@ export default function BidDocuments() {
                   <CardContent className="py-12 text-center">
                     <AlertTriangle className="w-8 h-8 mx-auto mb-3 text-destructive" />
                     <p className="font-medium">Analysis failed</p>
-                    <p className="text-sm text-muted-foreground">Try re-uploading the document.</p>
+                    <p className="text-sm text-muted-foreground">Try re-uploading the document or a smaller version.</p>
                   </CardContent>
                 </Card>
               )}
@@ -476,17 +597,10 @@ export default function BidDocuments() {
                       ) : (
                         <div className="space-y-4">
                           {chatMessages.map((msg, i) => (
-                            <div
-                              key={i}
-                              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                            >
-                              <div
-                                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                                  msg.role === "user"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted"
-                                }`}
-                              >
+                            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                              <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                                msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                              }`}>
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                               </div>
                             </div>

@@ -164,6 +164,7 @@ export type Database = {
           file_size: number
           file_type: string
           id: string
+          project_id: string | null
           status: string
           title: string
           updated_at: string
@@ -178,6 +179,7 @@ export type Database = {
           file_size?: number
           file_type: string
           id?: string
+          project_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -192,12 +194,21 @@ export type Database = {
           file_size?: number
           file_type?: string
           id?: string
+          project_id?: string | null
           status?: string
           title?: string
           updated_at?: string
           uploaded_by?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bid_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_rate_limits: {
         Row: {
