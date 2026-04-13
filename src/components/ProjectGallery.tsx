@@ -9,21 +9,25 @@ const showcaseProjects = [
   {
     image: basketballBackyard,
     title: "Backyard Multi-Sport — Evans, GA",
+    alt: "Multi-sport court with pickleball and basketball lines built by CourtPro Augusta in Evans Georgia",
     tags: ["Basketball", "Pickleball", "Residential"],
   },
   {
     image: pickleballComplex,
     title: "Tournament Pickleball Complex — Aiken, SC",
+    alt: "LED-lit tournament pickleball complex built by CourtPro Augusta in Aiken South Carolina",
     tags: ["Pickleball", "Commercial", "LED Lighting"],
   },
   {
     image: tennisPB,
     title: "Tennis & Pickleball Facility — North Augusta, SC",
+    alt: "Tennis and pickleball facility with Laykold surfacing built by CourtPro Augusta in North Augusta SC",
     tags: ["Tennis", "Pickleball", "8 Courts"],
   },
   {
     image: basketballNight,
     title: "Night-Play Basketball — Grovetown, GA",
+    alt: "LED-lit basketball court built by CourtPro Augusta in Grovetown Georgia at night",
     tags: ["Basketball", "Residential", "LED Lighting"],
   },
 ];
@@ -58,9 +62,11 @@ const ProjectGallery = () => {
             >
               <img
                 src={project.image}
-                alt={project.title}
+                alt={project.alt}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
+                width={800}
+                height={500}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 via-secondary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
                 <h3 className="text-secondary-foreground font-bold text-lg mb-2">{project.title}</h3>
