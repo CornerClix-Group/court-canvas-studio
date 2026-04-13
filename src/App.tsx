@@ -14,6 +14,7 @@ import TennisCourts from "./pages/TennisCourts";
 import CourtResurfacing from "./pages/CourtResurfacing";
 import BasketballCourts from "./pages/BasketballCourts";
 import MultiSportCourts from "./pages/MultiSportCourts";
+import FAQPage from "./pages/FAQPage";
 import SalesEstimator from "./pages/SalesEstimator";
 import Pay from "./pages/Pay";
 import PaySuccess from "./pages/PaySuccess";
