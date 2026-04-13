@@ -58,7 +58,8 @@ const App = () => (
           <Route path="/court-resurfacing" element={<CourtResurfacing />} />
           <Route path="/basketball-courts" element={<BasketballCourts />} />
           <Route path="/multi-sport-courts" element={<MultiSportCourts />} />
-          
+          <Route path="/faq" element={<FAQPage />} />
+
           {/* Sales Estimator - Public field tool */}
           <Route path="/estimator" element={<SalesEstimator />} />
           
