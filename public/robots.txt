@@ -10,5 +10,22 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 User-agent: *
 Allow: /
+
+Disallow: /admin/
+Disallow: /admin
+
+Sitemap: https://www.courtproaugusta.com/sitemap.xml

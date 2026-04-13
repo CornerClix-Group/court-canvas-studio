@@ -14,6 +14,7 @@ import TennisCourts from "./pages/TennisCourts";
 import CourtResurfacing from "./pages/CourtResurfacing";
 import BasketballCourts from "./pages/BasketballCourts";
 import MultiSportCourts from "./pages/MultiSportCourts";
+import FAQPage from "./pages/FAQPage";
 import SalesEstimator from "./pages/SalesEstimator";
 import Pay from "./pages/Pay";
 import PaySuccess from "./pages/PaySuccess";
@@ -57,7 +58,8 @@ const App = () => (
           <Route path="/court-resurfacing" element={<CourtResurfacing />} />
           <Route path="/basketball-courts" element={<BasketballCourts />} />
           <Route path="/multi-sport-courts" element={<MultiSportCourts />} />
-          
+          <Route path="/faq" element={<FAQPage />} />
+
           {/* Sales Estimator - Public field tool */}
           <Route path="/estimator" element={<SalesEstimator />} />
           

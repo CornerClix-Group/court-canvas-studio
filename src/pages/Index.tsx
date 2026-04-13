@@ -10,13 +10,32 @@ import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
 import CookieBanner from "@/components/CookieBanner";
+import FAQ from "@/components/FAQ";
+import MobileFloatingCTA from "@/components/MobileFloatingCTA";
+import SEOHead from "@/components/SEOHead";
 import JsonLd, { businessData } from "@/components/JsonLd";
 
 const localBusinessSchema = {
   "@context": "https://schema.org",
   ...businessData,
-  description: "Professional sport court construction company serving Augusta, GA and the CSRA. We build custom pickleball, tennis, and basketball courts with post-tension concrete and Laykold surfacing.",
-  priceRange: "$$$$",
+  description: "Professional pickleball, tennis, and multi-sport court construction and resurfacing in Augusta, GA. 200+ courts delivered. Laykold surfacing, LED lighting, and full turn-key service.",
+  priceRange: "$$",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "500 Furys Ferry Rd. Suite 107",
+    addressLocality: "Augusta",
+    addressRegion: "GA",
+    postalCode: "30907",
+    addressCountry: "US",
+  },
+  serviceType: [
+    "Pickleball Court Construction",
+    "Tennis Court Construction",
+    "Basketball Court Construction",
+    "Court Resurfacing",
+    "Court Repair",
+    "LED Lighting Installation",
+  ],
   hasOfferCatalog: {
     "@type": "OfferCatalog",
     name: "Court Construction Services",
@@ -33,13 +52,17 @@ const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "CourtPro Augusta",
-  url: "https://courtproaugusta.com",
-  publisher: { "@id": "https://courtproaugusta.com/#business" },
+  url: "https://www.courtproaugusta.com",
+  publisher: { "@id": "https://www.courtproaugusta.com/#business" },
 };
 
 const Index = () => {
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title="CourtPro Augusta | Pickleball & Tennis Court Builders in Augusta, GA"
+        description="CourtPro Augusta builds and maintains pro-grade pickleball, tennis, and basketball courts in Augusta, GA and the CSRA. 200+ courts delivered. Laykold surfacing, LED lighting, and full turn-key service. Call (706) 309-1993."
+      />
       <JsonLd data={localBusinessSchema} />
       <JsonLd data={websiteSchema} />
       <Header />
@@ -51,10 +74,12 @@ const Index = () => {
         <Services />
         <Testimonials />
         <ProjectGallery />
+        <FAQ />
         <ContactForm />
       </main>
       <Footer />
       <Chatbot />
+      <MobileFloatingCTA />
       <CookieBanner />
     </div>
   );

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import heroCourt from "@/assets/hero-court.jpg";
 
 const Hero = () => {
@@ -14,17 +13,17 @@ const Hero = () => {
       <div className="max-w-7xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6">
           <h1 className="text-3xl md:text-5xl font-black leading-tight text-secondary text-center md:text-left">
-            Precision Court Builders in Augusta: <span className="text-primary">Pickleball, Tennis & Multi-Sport</span>
+            Augusta's Premier <span className="text-primary">Pickleball & Tennis Court Builders</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
             We design, build, and maintain pro-grade <span className="font-bold text-foreground">pickleball</span>,{" "}
             <span className="font-bold text-foreground">tennis</span>, and{" "}
             <span className="font-bold text-foreground">basketball</span> courts. Laykold surface expertise, exacting drainage
-            & grading, LED lighting, and turn-key delivery.
+            & grading, LED lighting, and turn-key delivery across Augusta, GA and the CSRA.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Button onClick={() => scrollToSection("viewer")} size="lg" className="font-semibold shadow-lg">
-              Open Court Viewer
+            <Button onClick={() => scrollToSection("contact")} size="lg" className="font-semibold shadow-lg">
+              Get a Free Estimate
             </Button>
             <Button onClick={() => scrollToSection("work")} variant="outline" size="lg" className="font-semibold">
               See Our Work
@@ -34,8 +33,10 @@ const Hero = () => {
         <Card className="overflow-hidden shadow-xl">
           <img
             src={heroCourt}
-            alt="Professional pickleball court"
+            alt="Laykold pickleball court construction Augusta GA by CourtPro Augusta"
             className="w-full h-auto rounded-lg"
+            width={800}
+            height={600}
           />
         </Card>
       </div>
