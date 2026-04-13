@@ -18,6 +18,7 @@ const projects = [
     category: "Residential",
     sport: "Basketball",
     title: "Multi-Sport Backyard Court — Evans, GA",
+    alt: "Multi-sport backyard court with basketball and pickleball lines built by CourtPro Augusta in Evans GA",
     description: "Basketball and pickleball combo court with custom color scheme and professional lighting.",
   },
   {
@@ -25,6 +26,7 @@ const projects = [
     category: "Commercial",
     sport: "Pickleball",
     title: "2-Court Pickleball Complex — Aiken, SC",
+    alt: "Laykold pickleball court construction by CourtPro Augusta in Aiken SC with LED lighting",
     description: "Tournament facility with Laykold cushioned system, LED lighting, and spectator areas.",
   },
   {
@@ -32,6 +34,7 @@ const projects = [
     category: "Commercial",
     sport: "Multi-Sport",
     title: "Tennis & Pickleball Facility — North Augusta, SC",
+    alt: "Tennis and pickleball court facility with terracotta surfacing built by CourtPro Augusta",
     description: "Full-size tennis court with 8 dedicated pickleball courts, terracotta out-of-bounds surfacing.",
   },
   {
@@ -39,6 +42,7 @@ const projects = [
     category: "Residential",
     sport: "Basketball",
     title: "Premium Basketball Court — Grovetown, GA",
+    alt: "LED-lit basketball court with multi-color design built by CourtPro Augusta in Grovetown Georgia",
     description: "Full-court with multi-color key design, professional hoops, and high-output LED lighting system.",
   },
   {
@@ -116,8 +120,11 @@ const RecentProjects = () => {
                 {project.image ? (
                   <img
                     src={project.image}
-                    alt={project.title}
+                    alt={project.alt || project.title}
                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    width={600}
+                    height={400}
                   />
                 ) : (
                   <video
