@@ -179,6 +179,12 @@ export default function EstimateBuilder() {
     return (calculation?.grandTotal || 0) + customItemsTotal;
   }, [calculation?.grandTotal, customItemsTotal]);
 
+  // Customer-facing price uses override if set
+  const customerFacingTotal = useMemo(() => {
+    if (overrideEnabled && overrideSellPrice !== null) return overrideSellPrice;
+    return grandTotalWithCustomItems;
+  }, [overrideEnabled, overrideSellPrice, grandTotalWithCustomItems]);
+
   // Generate scope bullets when calculation changes
   useEffect(() => {
     if (calculation) {
