@@ -137,6 +137,8 @@ export default function EstimateBuilder() {
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
   const [displayFormat, setDisplayFormat] = useState<EstimateDisplayFormat>('lump_sum');
   const [scopeBullets, setScopeBullets] = useState<string[]>([]);
+  const [overrideSellPrice, setOverrideSellPrice] = useState<number | null>(null);
+  const [overrideEnabled, setOverrideEnabled] = useState(false);
 
   // Calculate total sq ft
   const totalSqFt = useMemo(() => {

@@ -35,7 +35,8 @@ export interface CustomItem {
   markupPercent: number;
   customerPrice: number;
   notes?: string;
-  pricingMode: 'direct' | 'markup';
+  pricingMode: 'direct' | 'markup' | 'at_cost';
+  isAlternate?: boolean;
 }
 
 interface CustomItemsEditorProps {
