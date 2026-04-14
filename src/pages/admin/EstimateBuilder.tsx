@@ -1507,9 +1507,17 @@ export default function EstimateBuilder() {
                           </div>
                         )}
                         <div className="border-t pt-2 flex justify-between">
-                          <span className="font-semibold">Customer Total:</span>
-                          <span className="font-bold text-lg">{formatCurrency(grandTotalWithCustomItems)}</span>
+                          <span className="font-semibold">
+                            {overrideEnabled && overrideSellPrice !== null ? 'Override Price:' : 'Customer Total:'}
+                          </span>
+                          <span className="font-bold text-lg">{formatCurrency(customerFacingTotal)}</span>
                         </div>
+                        {overrideEnabled && overrideSellPrice !== null && (
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Calculated price:</span>
+                            <span className="line-through">{formatCurrency(grandTotalWithCustomItems)}</span>
+                          </div>
+                        )}
                         {showCostView && (
                           <div className="flex justify-between text-emerald-600">
                             <span>Total Profit:</span>
