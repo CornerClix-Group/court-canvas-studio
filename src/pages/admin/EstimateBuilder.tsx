@@ -1376,8 +1376,8 @@ export default function EstimateBuilder() {
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{Math.round((MIN_PROFIT_MARGIN - 1) * 100)}%</span>
                     <span>{Math.round((MAX_PROFIT_MARGIN - 1) * 100)}%</span>
+                  </div>
                 </div>
-
                 {/* Sell Price Override */}
                 <div className="space-y-3 border-t pt-4">
                   <div className="flex items-center justify-between">
