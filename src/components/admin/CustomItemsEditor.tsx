@@ -164,9 +164,9 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                   <h4 className="font-medium">Add Custom Item</h4>
                   <Select 
                     value={pricingMode} 
-                    onValueChange={(val: 'direct' | 'markup') => setPricingMode(val)}
+                    onValueChange={(val: 'direct' | 'markup' | 'at_cost') => setPricingMode(val)}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[200px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -180,6 +180,12 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                         <span className="flex items-center gap-2">
                           <Percent className="w-4 h-4" />
                           Cost + Markup
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="at_cost">
+                        <span className="flex items-center gap-2">
+                          <HandCoins className="w-4 h-4" />
+                          At Cost (Pass-Through)
                         </span>
                       </SelectItem>
                     </SelectContent>
@@ -213,6 +219,45 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                         placeholder="0.00"
                         className="pl-9"
                       />
+                    </div>
+                  </div>
+                ) : pricingMode === 'at_cost' ? (
+                  /* At Cost (Pass-Through) Mode */
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="vendorName">Vendor / Source (internal only)</Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="vendorName"
+                            value={vendorName}
+                            onChange={(e) => setVendorName(e.target.value)}
+                            placeholder="e.g., Selkirk, Home Depot"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="vendorCost">Cost (passed through at $0 markup) *</Label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="vendorCost"
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={vendorCost}
+                            onChange={(e) => setVendorCost(e.target.value ? parseFloat(e.target.value) : '')}
+                            placeholder="0.00"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-md bg-muted/50 border text-sm text-muted-foreground">
+                      <HandCoins className="w-4 h-4 inline mr-2" />
+                      Customer will see this item at <strong>{formatCurrency(calculateCustomerPrice())}</strong> with a note "(at our cost)" — no markup applied.
                     </div>
                   </div>
                 ) : (
@@ -274,6 +319,24 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                     </div>
                   </>
                 )}
+
+                {/* Alternate Deduction Toggle */}
+                <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/30">
+                  <Switch
+                    checked={isAlternate}
+                    onCheckedChange={setIsAlternate}
+                    id="isAlternate"
+                  />
+                  <div>
+                    <Label htmlFor="isAlternate" className="cursor-pointer flex items-center gap-2">
+                      <ArrowDownCircle className="w-4 h-4" />
+                      This is an alternate (deduction)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      The price will be shown as a deduction the customer can optionally select
+                    </p>
+                  </div>
+                </div>
 
                 {/* Internal Notes */}
                 <div className="space-y-2">
