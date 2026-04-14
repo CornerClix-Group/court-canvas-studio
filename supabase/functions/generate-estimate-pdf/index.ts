@@ -1,584 +1,677 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, rgb, StandardFonts, degrees, PDFFont, PDFPage } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage } from "https://esm.sh/pdf-lib@1.17.1";
 
-// Brand-focused company info
-const COMPANY_INFO = {
-  brandName: "CourtPro Augusta",
-  tagline: "Professional Court Construction",
-  legalName: "A CourtHaus Construction, LLC Company",
-  address: { street: "500 Furys Ferry Rd.", suite: "Suite 107", city: "Augusta", state: "GA", zip: "30907" },
+const COMPANY = {
+  brand: "CourtPro Augusta",
+  legal: "CourtHaus Construction, LLC dba CourtPro Augusta",
+  llcNumber: "GA LLC #25207576",
   phone: "(706) 309-1993",
   email: "estimates@courtproaugusta.com",
   website: "courtproaugusta.com",
+  address: "500 Furys Ferry Rd, Ste 107, Augusta, GA 30907",
+  preparedBy: "Troy Akers, Owner",
 };
 
 // Brand colors
-const COLORS = {
-  navy: rgb(0.12, 0.23, 0.37),
-  navyLight: rgb(0.18, 0.35, 0.53),
-  green: rgb(0.02, 0.59, 0.41),
-  greenDark: rgb(0.02, 0.36, 0.29),
-  lightBlue: rgb(0.58, 0.77, 0.99),
-  lightGray: rgb(0.95, 0.97, 1.0),
-  lightSage: rgb(0.94, 0.98, 0.94),
-  white: rgb(1, 1, 1),
-  black: rgb(0.1, 0.1, 0.1),
-  gray: rgb(0.4, 0.4, 0.4),
-};
+const NAVY = rgb(0.118, 0.165, 0.227); // #1E2A3A
+const YELLOW = rgb(0.831, 0.878, 0.125); // #D4E020
+const WHITE = rgb(1, 1, 1);
+const GRAY = rgb(0.4, 0.4, 0.4);
+const LIGHT_GRAY = rgb(0.867, 0.867, 0.867); // #DDDDDD
+const LINE_GRAY = rgb(0.933, 0.933, 0.933); // #EEEEEE
+const FOOTER_GRAY = rgb(0.6, 0.6, 0.6); // #999999
 
-// Marketing content
-const MARKETING_POINTS = [
-  "200+ Courts Completed - Trusted by homeowners, schools & clubs",
-  "Premium Materials - Laykold surfaces used by US Open & ATP",
-  "Local Expertise - Serving Augusta & the CSRA",
-];
-
-const QUALITY_STATEMENT = "Your court is more than pavement - it's where memories are made. We use only premium Laykold surfacing systems, the same materials trusted by the US Open and professional tournaments worldwide.";
+const PAGE_W = 612;
+const PAGE_H = 792;
+const LEFT = 50;
+const RIGHT = 562;
+const CONTENT_W = RIGHT - LEFT;
+const FOOTER_SAFE = 50; // nothing below this Y
+const FULL_HEADER_H = 80;
+const COMPACT_HEADER_H = 55;
+const ACCENT_H = 3;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const formatCurrency = (amount: number): string => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
-const formatDate = (dateStr: string): string => new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+const fmt = (n: number): string => "$" + Math.round(n).toLocaleString("en-US");
+const fmtDate = (s: string): string =>
+  new Date(s).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-// Draw branded header with navy bar
-function drawBrandedHeader(page: PDFPage, fonts: { bold: PDFFont; regular: PDFFont }, width: number) {
-  // Navy header bar
-  page.drawRectangle({
-    x: 0,
-    y: 742,
-    width: width,
-    height: 50,
-    color: COLORS.navy,
-  });
-
-  // Brand name - large and prominent
-  page.drawText(COMPANY_INFO.brandName, {
-    x: 50,
-    y: 762,
-    size: 24,
-    font: fonts.bold,
-    color: COLORS.white,
-  });
-
-  // Tagline
-  page.drawText(COMPANY_INFO.tagline, {
-    x: 50,
-    y: 748,
-    size: 10,
-    font: fonts.regular,
-    color: COLORS.lightBlue,
-  });
-
-  // Contact on right side
-  page.drawText(COMPANY_INFO.phone, {
-    x: 450,
-    y: 762,
-    size: 11,
-    font: fonts.bold,
-    color: COLORS.white,
-  });
-  page.drawText(COMPANY_INFO.email, {
-    x: 425,
-    y: 748,
-    size: 9,
-    font: fonts.regular,
-    color: COLORS.lightBlue,
-  });
+interface Fonts {
+  bold: PDFFont;
+  regular: PDFFont;
 }
 
-// Draw marketing section
-function drawMarketingSection(page: PDFPage, y: number, fonts: { bold: PDFFont; regular: PDFFont }): number {
-  const headerHeight = 24;
-  
-  // Section header with green background - positioned so bottom edge is at y
-  page.drawRectangle({
-    x: 50,
-    y: y - headerHeight,
-    width: 512,
-    height: headerHeight,
-    color: COLORS.green,
-  });
-
-  page.drawText("WHY CHOOSE COURTPRO?", {
-    x: 60,
-    y: y - headerHeight + 8,
-    size: 12,
-    font: fonts.bold,
-    color: COLORS.white,
-  });
-
-  // Move y to bottom of header (content starts here)
-  y -= headerHeight;
-
-  // Calculate dynamic height based on content
-  const numPoints = MARKETING_POINTS.length;
-  const contentHeight = numPoints * 16 + 12; // 16px per line + padding
-
-  // Light sage background for content - connects seamlessly to header
-  page.drawRectangle({
-    x: 50,
-    y: y - contentHeight,
-    width: 512,
-    height: contentHeight,
-    color: COLORS.lightSage,
-  });
-
-  // Green accent line on left edge
-  page.drawRectangle({
-    x: 50,
-    y: y - contentHeight,
-    width: 4,
-    height: contentHeight,
-    color: COLORS.green,
-  });
-
-  // Trust points - start with top padding
-  y -= 6;
-  for (const point of MARKETING_POINTS) {
-    page.drawText("* " + point, {
-      x: 62,
-      y: y - 10,
-      size: 10,
-      font: fonts.regular,
-      color: COLORS.black,
-    });
-    y -= 16;
-  }
-
-  y -= 6; // Bottom padding
-
-  return y;
+interface PageCtx {
+  doc: PDFDocument;
+  fonts: Fonts;
+  page: PDFPage;
+  y: number;
+  pageNum: number;
+  totalPages: number; // filled in at the end
 }
 
-// Draw quality statement
-function drawQualityStatement(page: PDFPage, y: number, fonts: { bold: PDFFont; regular: PDFFont }): number {
-  const boxHeight = 58;
-  
-  // Box background
-  page.drawRectangle({
-    x: 50,
-    y: y - boxHeight + 5,
-    width: 512,
-    height: boxHeight,
-    color: COLORS.lightGray,
-    borderColor: COLORS.green,
-    borderWidth: 1,
-  });
+// ─── HEADER ────────────────────────────────────────────────────────────────
 
-  // Quote mark integrated with first line
-  page.drawText('"', {
-    x: 58,
-    y: y - 12,
-    size: 20,
-    font: fonts.bold,
-    color: COLORS.green,
-  });
-
-  // Statement lines with proper spacing
-  const line1 = "Your court is more than pavement - it's where memories are made.";
-  const line2 = "We use only premium Laykold surfacing systems, the same materials";
-  const line3 = "trusted by the US Open and professional tournaments worldwide.";
-
-  page.drawText(line1, { x: 75, y: y - 16, size: 9, font: fonts.regular, color: COLORS.gray });
-  page.drawText(line2, { x: 75, y: y - 30, size: 9, font: fonts.regular, color: COLORS.gray });
-  page.drawText(line3, { x: 75, y: y - 44, size: 9, font: fonts.regular, color: COLORS.gray });
-
-  return y - boxHeight - 8;
+function drawFullHeader(page: PDFPage, fonts: Fonts) {
+  // Navy bar
+  page.drawRectangle({ x: 0, y: PAGE_H - FULL_HEADER_H, width: PAGE_W, height: FULL_HEADER_H, color: NAVY });
+  // Brand name
+  page.drawText(COMPANY.brand, { x: LEFT, y: PAGE_H - 30, size: 22, font: fonts.bold, color: WHITE });
+  page.drawText("Professional Court Construction", { x: LEFT, y: PAGE_H - 45, size: 9, font: fonts.regular, color: rgb(0.7, 0.8, 0.9) });
+  // Contact right-aligned
+  const rightCol = 380;
+  page.drawText(COMPANY.phone, { x: rightCol, y: PAGE_H - 25, size: 10, font: fonts.bold, color: WHITE });
+  page.drawText(COMPANY.email, { x: rightCol, y: PAGE_H - 38, size: 8, font: fonts.regular, color: rgb(0.7, 0.8, 0.9) });
+  page.drawText(COMPANY.website, { x: rightCol, y: PAGE_H - 50, size: 8, font: fonts.regular, color: rgb(0.7, 0.8, 0.9) });
+  page.drawText(COMPANY.address, { x: rightCol, y: PAGE_H - 62, size: 7, font: fonts.regular, color: rgb(0.7, 0.8, 0.9) });
+  // Yellow accent
+  page.drawRectangle({ x: 0, y: PAGE_H - FULL_HEADER_H - ACCENT_H, width: PAGE_W, height: ACCENT_H, color: YELLOW });
 }
 
-// Draw footer
-function drawFooter(page: PDFPage, fonts: { bold: PDFFont; regular: PDFFont }) {
-  // Footer background
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width: 612,
-    height: 40,
-    color: COLORS.navy,
-  });
-
-  // Legal name (small, bottom left)
-  page.drawText(COMPANY_INFO.legalName, {
-    x: 50,
-    y: 22,
-    size: 8,
-    font: fonts.regular,
-    color: COLORS.lightBlue,
-  });
-
-  // Address (bottom center)
-  const fullAddress = `${COMPANY_INFO.address.street} ${COMPANY_INFO.address.suite}, ${COMPANY_INFO.address.city}, ${COMPANY_INFO.address.state} ${COMPANY_INFO.address.zip}`;
-  page.drawText(fullAddress, {
-    x: 50,
-    y: 10,
-    size: 8,
-    font: fonts.regular,
-    color: COLORS.lightBlue,
-  });
-
-  // Website (bottom right)
-  page.drawText(COMPANY_INFO.website, {
-    x: 480,
-    y: 16,
-    size: 9,
-    font: fonts.bold,
-    color: COLORS.white,
-  });
+function drawCompactHeader(page: PDFPage, fonts: Fonts) {
+  page.drawRectangle({ x: 0, y: PAGE_H - COMPACT_HEADER_H, width: PAGE_W, height: COMPACT_HEADER_H, color: NAVY });
+  page.drawText(COMPANY.brand, { x: LEFT, y: PAGE_H - 35, size: 16, font: fonts.bold, color: WHITE });
+  page.drawRectangle({ x: 0, y: PAGE_H - COMPACT_HEADER_H - ACCENT_H, width: PAGE_W, height: ACCENT_H, color: YELLOW });
 }
 
-function groupItemsForCustomer(items: any[], customItems: any[] = []) {
-  const groups: Record<string, { items: any[]; label: string; details: string }> = {
-    surfacePrep: { items: [], label: "Surface Preparation", details: "Professional surface preparation including cleaning, crack repair, and priming" },
-    surfacing: { items: [], label: "Court Surfacing System", details: "Premium court surfacing with cushion layers and color coats" },
-    striping: { items: [], label: "Professional Line Striping", details: "Complete court line marking" },
-    baseWork: { items: [], label: "Site Preparation & Base Work", details: "Substrate preparation and base installation" },
-  };
-  const addons: any[] = [];
+// ─── FOOTER (placeholder — page numbers filled at end) ─────────────────
 
-  items.forEach((item) => {
-    const desc = item.description.toLowerCase();
-    if (desc.includes("pressure") || desc.includes("wash") || desc.includes("crack") || desc.includes("prime") || desc.includes("prep")) groups.surfacePrep.items.push(item);
-    else if (desc.includes("line") || desc.includes("striping")) groups.striping.items.push(item);
-    else if (desc.includes("base") || desc.includes("substrate")) groups.baseWork.items.push(item);
-    else if (desc.includes("granule") || desc.includes("color") || desc.includes("resurfacer") || desc.includes("laykold") || desc.includes("surfacing") || desc.includes("cushion")) groups.surfacing.items.push(item);
-    else addons.push(item);
-  });
-
-  const result: { description: string; details: string; total: number }[] = [];
-  Object.values(groups).forEach((g) => {
-    if (g.items.length > 0) result.push({ description: g.label, details: g.details, total: g.items.reduce((sum, i) => sum + i.total, 0) });
-  });
-  addons.forEach((item) => result.push({ description: item.description, details: item.quantity > 1 ? `Quantity: ${item.quantity}` : "", total: item.total }));
-
-  if (customItems && customItems.length > 0) {
-    customItems.forEach((item) => {
-      result.push({
-        description: item.description,
-        details: "",
-        total: Number(item.customer_price) || 0,
-      });
-    });
-  }
-
-  return result;
+function drawFooterPlaceholder(page: PDFPage, fonts: Fonts) {
+  const footerText = `${COMPANY.legal} | ${COMPANY.llcNumber} | Fully Licensed & Insured`;
+  const tw = fonts.regular.widthOfTextAtSize(footerText, 7);
+  page.drawText(footerText, { x: (PAGE_W - tw) / 2, y: 25, size: 7, font: fonts.regular, color: FOOTER_GRAY });
 }
 
-async function generateLumpSumPdf(estimate: any, supabase: any, exclusions: any[] = []): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.create();
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const fonts = { bold: helveticaBold, regular: helvetica };
+// ─── PAGE MANAGEMENT ───────────────────────────────────────────────────
 
-  const page = pdfDoc.addPage([612, 792]);
-  const leftMargin = 50;
-  let y = 720;
+function startPage1(ctx: PageCtx): void {
+  ctx.page = ctx.doc.addPage([PAGE_W, PAGE_H]);
+  ctx.pageNum = 1;
+  drawFullHeader(ctx.page, ctx.fonts);
+  drawFooterPlaceholder(ctx.page, ctx.fonts);
+  ctx.y = PAGE_H - FULL_HEADER_H - ACCENT_H - 22;
+}
 
-  // Approved watermark
-  if (estimate.status === "approved") {
-    page.drawText("APPROVED", { x: 150, y: 400, size: 72, font: helveticaBold, color: rgb(0, 0.5, 0), opacity: 0.15, rotate: degrees(45) });
-  }
+function newPage(ctx: PageCtx): void {
+  ctx.page = ctx.doc.addPage([PAGE_W, PAGE_H]);
+  ctx.pageNum++;
+  drawCompactHeader(ctx.page, ctx.fonts);
+  drawFooterPlaceholder(ctx.page, ctx.fonts);
+  ctx.y = PAGE_H - COMPACT_HEADER_H - ACCENT_H - 16;
+}
 
-  // Branded header
-  drawBrandedHeader(page, fonts, 612);
+function ensureSpace(ctx: PageCtx, needed: number): void {
+  if (ctx.y - needed < FOOTER_SAFE) newPage(ctx);
+}
 
-  // Estimate info box
-  page.drawRectangle({ x: leftMargin, y: y - 45, width: 512, height: 50, color: COLORS.lightGray });
-  page.drawText(`ESTIMATE ${estimate.estimate_number}`, { x: leftMargin + 15, y: y - 15, size: 14, font: helveticaBold, color: COLORS.navy });
-  page.drawText(`Date: ${formatDate(estimate.created_at)}`, { x: leftMargin + 15, y: y - 32, size: 10, font: helvetica, color: COLORS.gray });
-  if (estimate.valid_until) {
-    page.drawText(`Valid Until: ${formatDate(estimate.valid_until)}`, { x: 350, y: y - 32, size: 10, font: helvetica, color: COLORS.gray });
-  }
+// ─── TEXT HELPERS ───────────────────────────────────────────────────────
 
-  y -= 65;
-
-  // Customer Info - "Prepared For" box
-  page.drawText("PREPARED FOR", { x: leftMargin, y, size: 11, font: helveticaBold, color: COLORS.green });
-  y -= 16;
-  const c = estimate.customers;
-  if (c) {
-    if (c.company_name) {
-      page.drawText(c.company_name, { x: leftMargin, y, size: 11, font: helveticaBold, color: COLORS.black });
-      y -= 14;
-    }
-    page.drawText(c.contact_name, { x: leftMargin, y, size: 10, font: helvetica, color: COLORS.black });
-    y -= 12;
-    if (c.address) {
-      page.drawText(c.address, { x: leftMargin, y, size: 10, font: helvetica, color: COLORS.gray });
-      y -= 12;
-    }
-    if (c.city || c.state) {
-      page.drawText(`${c.city || ""}, ${c.state || ""} ${c.zip || ""}`, { x: leftMargin, y, size: 10, font: helvetica, color: COLORS.gray });
-      y -= 12;
+function wrapText(text: string, font: PDFFont, size: number, maxW: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? line + " " + word : word;
+    if (font.widthOfTextAtSize(test, size) > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
     }
   }
-  y -= 15;
+  if (line) lines.push(line);
+  return lines;
+}
 
-  // Project Scope Section Header
-  page.drawRectangle({ x: leftMargin, y: y - 5, width: 512, height: 24, color: COLORS.navy });
-  page.drawText("YOUR PROJECT INCLUDES", { x: leftMargin + 15, y: y + 2, size: 12, font: helveticaBold, color: COLORS.white });
-  y -= 30;
+function drawWrappedText(ctx: PageCtx, text: string, x: number, size: number, font: PDFFont, color: any, maxW: number, lineH: number): void {
+  const lines = wrapText(text, font, size, maxW);
+  for (const line of lines) {
+    ensureSpace(ctx, lineH + 4);
+    ctx.page.drawText(line, { x, y: ctx.y, size, font, color });
+    ctx.y -= lineH;
+  }
+}
 
-  // Scope bullets
-  const scopeBullets = estimate.estimate_scope_bullets || [];
-  if (scopeBullets.length > 0) {
-    scopeBullets.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+function drawRightAligned(page: PDFPage, text: string, y: number, size: number, font: PDFFont, color: any): void {
+  const tw = font.widthOfTextAtSize(text, size);
+  page.drawText(text, { x: RIGHT - tw, y, size, font, color });
+}
 
-    for (const bullet of scopeBullets) {
-      const text = bullet.bullet_text;
-      const maxWidth = 480;
-      const words = text.split(" ");
-      let line = "- ";
+// ─── SECTION HELPERS ───────────────────────────────────────────────────
 
-      for (const word of words) {
-        const testLine = line + word + " ";
-        const width = helvetica.widthOfTextAtSize(testLine, 10);
-        if (width > maxWidth && line !== "- ") {
-          page.drawText(line.trim(), { x: leftMargin + 10, y, size: 10, font: helvetica, color: COLORS.black });
-          y -= 14;
-          line = "   " + word + " ";
+function drawSectionBar(ctx: PageCtx, title: string, badgeText?: string): void {
+  ensureSpace(ctx, 30);
+  ctx.y -= 12; // clearance above
+  const barH = 18;
+  ctx.page.drawRectangle({ x: LEFT, y: ctx.y - barH, width: CONTENT_W, height: barH, color: NAVY });
+  ctx.page.drawText(title, { x: LEFT + 8, y: ctx.y - barH + 5, size: 9, font: ctx.fonts.bold, color: WHITE });
+  if (badgeText) {
+    const titleW = ctx.fonts.bold.widthOfTextAtSize(title, 9);
+    const bx = LEFT + 8 + titleW + 12;
+    const bw = ctx.fonts.bold.widthOfTextAtSize(badgeText, 7) + 10;
+    ctx.page.drawRectangle({ x: bx, y: ctx.y - barH + 3, width: bw, height: 12, color: YELLOW });
+    ctx.page.drawText(badgeText, { x: bx + 5, y: ctx.y - barH + 5, size: 7, font: ctx.fonts.bold, color: NAVY });
+  }
+  ctx.y -= barH + 6;
+}
+
+function drawTotalBar(ctx: PageCtx, label: string, amount: number): void {
+  ctx.y -= 20; // clearance above total bar
+  ensureSpace(ctx, 30);
+  const barH = 22;
+  ctx.page.drawRectangle({ x: LEFT, y: ctx.y - barH, width: CONTENT_W, height: barH, color: NAVY });
+  ctx.page.drawText(label, { x: LEFT + 10, y: ctx.y - barH + 7, size: 10, font: ctx.fonts.bold, color: WHITE });
+  const priceText = fmt(amount);
+  const pw = ctx.fonts.bold.widthOfTextAtSize(priceText, 13);
+  ctx.page.drawText(priceText, { x: RIGHT - 10 - pw, y: ctx.y - barH + 5, size: 13, font: ctx.fonts.bold, color: YELLOW });
+  ctx.y -= barH + 20;
+}
+
+function drawScopeItem(ctx: PageCtx, text: string, showIncluded = true): void {
+  const itemH = 14;
+  ensureSpace(ctx, itemH + 6);
+  const lines = wrapText(text, ctx.fonts.regular, 8.5, showIncluded ? CONTENT_W - 80 : CONTENT_W - 16);
+  for (let i = 0; i < lines.length; i++) {
+    ensureSpace(ctx, itemH);
+    ctx.page.drawText(lines[i], { x: LEFT + 8, y: ctx.y, size: 8.5, font: ctx.fonts.regular, color: GRAY });
+    if (i === 0 && showIncluded) {
+      drawRightAligned(ctx.page, "Included", ctx.y, 8, ctx.fonts.regular, rgb(0.5, 0.5, 0.5));
+    }
+    ctx.y -= 11;
+  }
+  // Separator line
+  ctx.page.drawRectangle({ x: LEFT + 8, y: ctx.y + 7, width: CONTENT_W - 16, height: 0.3, color: LINE_GRAY });
+  ctx.y -= 3;
+}
+
+function drawBullet(ctx: PageCtx, text: string): void {
+  ensureSpace(ctx, 14);
+  const lines = wrapText("- " + text, ctx.fonts.regular, 8, CONTENT_W - 16);
+  for (const line of lines) {
+    ensureSpace(ctx, 12);
+    ctx.page.drawText(line, { x: LEFT + 8, y: ctx.y, size: 8, font: ctx.fonts.regular, color: GRAY });
+    ctx.y -= 11;
+  }
+}
+
+// ─── MAIN PDF GENERATION ───────────────────────────────────────────────
+
+async function generateEstimatePdf(estimate: any, _supabase: any): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const fonts: Fonts = { bold, regular };
+
+  const ctx: PageCtx = { doc, fonts, page: null as any, y: 0, pageNum: 0, totalPages: 0 };
+
+  const customer = estimate.customers;
+  const items: any[] = (estimate.estimate_items || []).sort((a: any, b: any) => a.sort_order - b.sort_order);
+  const customItems: any[] = (estimate.estimate_custom_items || []).sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+  const scopeBullets: any[] = (estimate.estimate_scope_bullets || []).sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+  const exclusions: any[] = estimate._exclusions || [];
+  const options: any[] = (estimate.estimate_options || []).sort((a: any, b: any) => a.sort_order - b.sort_order);
+  const phases: any[] = (estimate.estimate_phases || []).sort((a: any, b: any) => a.sort_order - b.sort_order);
+  const isMultiOption = options.length > 1;
+  const isPhased = estimate.is_phased && phases.length > 0;
+  const displayFormat = estimate.display_format || "scope_detail";
+
+  // Determine estimate total per option
+  function getOptionTotal(opt: any): number {
+    if (opt.override_sell_price != null) return Number(opt.override_sell_price);
+    // Sum shared items + option-specific items + relevant custom items
+    const sharedItemsTotal = items.filter(i => !i.option_id && !i.is_alternate).reduce((s, i) => s + Number(i.total), 0);
+    const optionItemsTotal = items.filter(i => i.option_id === opt.id && !i.is_alternate).reduce((s, i) => s + Number(i.total), 0);
+    const sharedCustomTotal = customItems.filter(ci => !ci.option_id && !ci.is_alternate).reduce((s, ci) => s + Number(ci.customer_price), 0);
+    const optionCustomTotal = customItems.filter(ci => ci.option_id === opt.id && !ci.is_alternate).reduce((s, ci) => s + Number(ci.customer_price), 0);
+    return sharedItemsTotal + optionItemsTotal + sharedCustomTotal + optionCustomTotal;
+  }
+
+  // Single option total
+  function getSingleTotal(): number {
+    if (estimate.override_sell_price != null) return Number(estimate.override_sell_price);
+    const itemsTotal = items.filter(i => !i.is_alternate).reduce((s, i) => s + Number(i.total), 0);
+    const customTotal = customItems.filter(ci => !ci.is_alternate).reduce((s, ci) => s + Number(ci.customer_price), 0);
+    return itemsTotal + customTotal;
+  }
+
+  // ─── PAGE 1: Project Info, Scope, Options ───────────────────────────
+
+  startPage1(ctx);
+
+  // Title block
+  const titleText = "Court Resurfacing Estimate"; // Could be dynamic
+  ctx.page.drawText(titleText, { x: LEFT, y: ctx.y, size: 18, font: bold, color: NAVY });
+  drawRightAligned(ctx.page, `Estimate #${estimate.estimate_number}`, ctx.y + 2, 9, bold, NAVY);
+  ctx.y -= 18;
+
+  // Prepared for
+  const infoLines: string[] = [];
+  if (customer) {
+    infoLines.push(`Prepared for: ${customer.company_name || customer.contact_name}`);
+    if (customer.company_name && customer.contact_name) infoLines.push(customer.contact_name);
+    const addrParts = [customer.address, customer.city, customer.state, customer.zip].filter(Boolean);
+    if (addrParts.length > 0) infoLines.push(addrParts.join(", "));
+  }
+  const validDays = estimate.valid_until
+    ? Math.max(1, Math.round((new Date(estimate.valid_until).getTime() - new Date(estimate.created_at).getTime()) / 86400000))
+    : 30;
+  infoLines.push(`Date: ${fmtDate(estimate.created_at)} | Estimate Valid for ${validDays} Days`);
+
+  for (const line of infoLines) {
+    ctx.page.drawText(line, { x: LEFT, y: ctx.y, size: 9, font: regular, color: rgb(0.4, 0.4, 0.4) });
+    ctx.y -= 13;
+  }
+
+  // Divider
+  ctx.y -= 2;
+  ctx.page.drawRectangle({ x: LEFT, y: ctx.y, width: CONTENT_W, height: 0.5, color: LIGHT_GRAY });
+  ctx.y -= 16;
+
+  // Project Overview
+  ctx.page.drawText("Project Overview", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+  ctx.y -= 14;
+
+  // Build dynamic overview text from estimate data
+  const overviewParts: string[] = [];
+  if (estimate.notes) overviewParts.push(estimate.notes);
+  if (overviewParts.length === 0) {
+    // Auto-generate a brief overview from scope bullets
+    const firstBullets = scopeBullets.slice(0, 3).map((b: any) => b.bullet_text);
+    if (firstBullets.length > 0) overviewParts.push(firstBullets.join(". ") + ".");
+    else overviewParts.push("Professional court construction services as detailed in the scope of work below.");
+  }
+
+  for (const text of overviewParts) {
+    drawWrappedText(ctx, text, LEFT, 8.5, regular, GRAY, CONTENT_W, 11);
+  }
+  ctx.y -= 8;
+
+  // ─── SHARED SCOPE OF WORK ──────────────────────────────────────────
+
+  const sharedItems = items.filter(i => !i.option_id && !i.is_alternate);
+  const sharedCustom = customItems.filter(ci => !ci.option_id && !ci.is_alternate && ci.pricing_mode !== "at_cost");
+
+  if (sharedItems.length > 0 || sharedCustom.length > 0 || scopeBullets.length > 0) {
+    const sectionName = isMultiOption ? "Scope of Work - Base Scope (Included in All Options)" : "Scope of Work";
+    drawSectionBar(ctx, sectionName);
+
+    // Display format determines what to show
+    if (displayFormat === "lump_sum") {
+      // Show scope bullets only
+      for (const bullet of scopeBullets) {
+        drawScopeItem(ctx, bullet.bullet_text, false);
+      }
+    } else {
+      // scope_detail or detailed_scope: show line items
+      for (const item of sharedItems) {
+        if (displayFormat === "detailed_scope") {
+          // Show with dollar amounts
+          ensureSpace(ctx, 16);
+          ctx.page.drawText(item.description, { x: LEFT + 8, y: ctx.y, size: 8.5, font: regular, color: GRAY });
+          drawRightAligned(ctx.page, fmt(item.total), ctx.y, 8.5, bold, NAVY);
+          ctx.y -= 11;
+          ctx.page.drawRectangle({ x: LEFT + 8, y: ctx.y + 7, width: CONTENT_W - 16, height: 0.3, color: LINE_GRAY });
+          ctx.y -= 3;
         } else {
-          line = testLine;
+          // scope_detail: descriptions with "Included"
+          drawScopeItem(ctx, item.description, true);
         }
       }
-      if (line.trim()) {
-        page.drawText(line.trim(), { x: leftMargin + 10, y, size: 10, font: helvetica, color: COLORS.black });
-        y -= 16;
+      for (const ci of sharedCustom) {
+        if (displayFormat === "detailed_scope") {
+          ensureSpace(ctx, 16);
+          ctx.page.drawText(ci.description, { x: LEFT + 8, y: ctx.y, size: 8.5, font: regular, color: GRAY });
+          drawRightAligned(ctx.page, fmt(ci.customer_price), ctx.y, 8.5, bold, NAVY);
+          ctx.y -= 11;
+          ctx.page.drawRectangle({ x: LEFT + 8, y: ctx.y + 7, width: CONTENT_W - 16, height: 0.3, color: LINE_GRAY });
+          ctx.y -= 3;
+        } else {
+          drawScopeItem(ctx, ci.description, true);
+        }
       }
+    }
+  }
+
+  // ─── OPTION SECTIONS ───────────────────────────────────────────────
+
+  if (isMultiOption) {
+    for (let oi = 0; oi < options.length; oi++) {
+      const opt = options[oi];
+      const badge = opt.is_recommended ? "RECOMMENDED" : undefined;
+      drawSectionBar(ctx, opt.option_name || `Option ${oi + 1}`, badge);
+
+      if (opt.option_description) {
+        drawWrappedText(ctx, opt.option_description, LEFT + 8, 8, regular, GRAY, CONTENT_W - 16, 11);
+        ctx.y -= 4;
+      }
+
+      // Option-specific items
+      const optItems = items.filter(i => i.option_id === opt.id && !i.is_alternate);
+      const optCustom = customItems.filter(ci => ci.option_id === opt.id && !ci.is_alternate && ci.pricing_mode !== "at_cost");
+
+      for (const item of optItems) {
+        if (displayFormat === "detailed_scope") {
+          ensureSpace(ctx, 16);
+          ctx.page.drawText(item.description, { x: LEFT + 8, y: ctx.y, size: 8.5, font: regular, color: GRAY });
+          drawRightAligned(ctx.page, fmt(item.total), ctx.y, 8.5, bold, NAVY);
+          ctx.y -= 11;
+          ctx.page.drawRectangle({ x: LEFT + 8, y: ctx.y + 7, width: CONTENT_W - 16, height: 0.3, color: LINE_GRAY });
+          ctx.y -= 3;
+        } else {
+          drawScopeItem(ctx, item.description, displayFormat !== "lump_sum");
+        }
+      }
+      for (const ci of optCustom) {
+        if (displayFormat === "detailed_scope") {
+          ensureSpace(ctx, 16);
+          ctx.page.drawText(ci.description, { x: LEFT + 8, y: ctx.y, size: 8.5, font: regular, color: GRAY });
+          drawRightAligned(ctx.page, fmt(ci.customer_price), ctx.y, 8.5, bold, NAVY);
+          ctx.y -= 11;
+          ctx.page.drawRectangle({ x: LEFT + 8, y: ctx.y + 7, width: CONTENT_W - 16, height: 0.3, color: LINE_GRAY });
+          ctx.y -= 3;
+        } else {
+          drawScopeItem(ctx, ci.description, displayFormat !== "lump_sum");
+        }
+      }
+
+      const optTotal = getOptionTotal(opt);
+      drawTotalBar(ctx, `OPTION ${oi + 1} TOTAL`, optTotal);
     }
   } else {
-    page.drawText("- Complete professional court construction services", { x: leftMargin + 10, y, size: 10, font: helvetica, color: COLORS.black });
-    y -= 18;
+    // Single option — show total bar
+    const total = getSingleTotal();
+    drawTotalBar(ctx, "PROJECT TOTAL", total);
   }
 
-  y -= 10;
+  // ─── PAGE 2+: Additional Info ──────────────────────────────────────
 
-  // Project Investment Box - prominent with green accent
-  page.drawRectangle({ x: leftMargin, y: y - 55, width: 512, height: 60, color: COLORS.lightGray, borderColor: COLORS.green, borderWidth: 3 });
-  page.drawText("PROJECT INVESTMENT", { x: leftMargin + 20, y: y - 20, size: 14, font: helveticaBold, color: COLORS.navy });
-  page.drawText(formatCurrency(estimate.total), { x: 380, y: y - 30, size: 28, font: helveticaBold, color: COLORS.green });
-
-  y -= 70;
-
-  // Flexible Payment Options badge - positioned below with proper gap
-  page.drawRectangle({ x: leftMargin, y: y - 50, width: 350, height: 45, color: COLORS.greenDark });
-  page.drawText("FLEXIBLE PAYMENT OPTIONS", { x: leftMargin + 12, y: y - 15, size: 12, font: helveticaBold, color: COLORS.white });
-  page.drawText("Klarna - Pay in 4 or spread over time!", { x: leftMargin + 12, y: y - 28, size: 9, font: helvetica, color: rgb(0.82, 0.95, 0.85) });
-  page.drawText("Apple Pay | Cash App | Cards | Bank Transfer (No Fee!)", { x: leftMargin + 12, y: y - 40, size: 8, font: helvetica, color: rgb(0.7, 0.9, 0.75) });
-
-  y -= 60;
-
-  // Exclusions section if space allows
-  if (exclusions.length > 0 && y > 200) {
-    page.drawText("EXCLUSIONS & ASSUMPTIONS", { x: leftMargin, y, size: 9, font: helveticaBold, color: COLORS.gray });
-    y -= 12;
-    for (const ex of exclusions) {
-      if (y < 60) break;
-      page.drawText("- " + (ex.exclusion_text || ""), { x: leftMargin + 5, y, size: 8, font: helvetica, color: COLORS.gray });
-      y -= 11;
+  // At-Cost Items
+  const atCostItems = customItems.filter(ci => ci.pricing_mode === "at_cost");
+  if (atCostItems.length > 0) {
+    ensureSpace(ctx, 60);
+    ctx.page.drawText("Items Provided at Cost", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+    ctx.y -= 16;
+    for (const ci of atCostItems) {
+      ensureSpace(ctx, 20);
+      ctx.page.drawText(ci.description, { x: LEFT + 8, y: ctx.y, size: 8.5, font: regular, color: GRAY });
+      drawRightAligned(ctx.page, fmt(ci.customer_price), ctx.y, 8.5, bold, NAVY);
+      ctx.y -= 12;
+      if (ci.notes) {
+        drawWrappedText(ctx, ci.notes, LEFT + 16, 7.5, regular, rgb(0.5, 0.5, 0.5), CONTENT_W - 32, 10);
+      }
     }
-    y -= 5;
+    ensureSpace(ctx, 14);
+    ctx.page.drawText("Items above are offered at our cost as a convenience.", { x: LEFT + 8, y: ctx.y, size: 7.5, font: regular, color: rgb(0.5, 0.5, 0.5) });
+    ctx.y -= 18;
   }
 
-  // Marketing section if space allows
-  if (y > 180) {
-    y = drawMarketingSection(page, y, fonts);
+  // Alternates
+  const alternateItems = items.filter(i => i.is_alternate);
+  const alternateCustom = customItems.filter(ci => ci.is_alternate);
+  const allAlternates = [...alternateItems, ...alternateCustom];
+  if (allAlternates.length > 0) {
+    ensureSpace(ctx, 50);
+    ctx.page.drawText("Alternates", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+    ctx.y -= 16;
+    for (const alt of allAlternates) {
+      ensureSpace(ctx, 16);
+      const desc = alt.description || alt.bullet_text || "Alternate";
+      const price = Number(alt.total || alt.customer_price || 0);
+      ctx.page.drawText(desc, { x: LEFT + 8, y: ctx.y, size: 8.5, font: regular, color: GRAY });
+      drawRightAligned(ctx.page, price < 0 ? `-${fmt(Math.abs(price))}` : fmt(price), ctx.y, 8.5, bold, NAVY);
+      ctx.y -= 14;
+    }
+
+    // If multi-option, show the math
+    if (isMultiOption) {
+      ctx.y -= 4;
+      const altDeduction = allAlternates.reduce((s, a) => s + Math.abs(Number(a.total || a.customer_price || 0)), 0);
+      for (let oi = 0; oi < options.length; oi++) {
+        const optTotal = getOptionTotal(options[oi]);
+        ensureSpace(ctx, 14);
+        ctx.page.drawText(`${options[oi].option_name || `Option ${oi + 1}`} with alternate: ${fmt(optTotal - altDeduction)}`, {
+          x: LEFT + 8, y: ctx.y, size: 8.5, font: regular, color: GRAY,
+        });
+        ctx.y -= 12;
+      }
+    }
+    ctx.y -= 10;
   }
 
-  // Quality statement if space allows
-  if (y > 120) {
-    y = drawQualityStatement(page, y, fonts);
+  // Phases
+  if (isPhased) {
+    ensureSpace(ctx, 50);
+    ctx.page.drawText("Project Phases", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+    ctx.y -= 16;
+    for (const phase of phases) {
+      ensureSpace(ctx, 30);
+      ctx.page.drawText(phase.phase_name, { x: LEFT + 8, y: ctx.y, size: 9, font: bold, color: NAVY });
+      ctx.y -= 12;
+      if (phase.suggested_timeline) {
+        ctx.page.drawText(`Timeline: ${phase.suggested_timeline}`, { x: LEFT + 16, y: ctx.y, size: 8, font: regular, color: GRAY });
+        ctx.y -= 11;
+      }
+      if (phase.phase_description) {
+        drawWrappedText(ctx, phase.phase_description, LEFT + 16, 8, regular, GRAY, CONTENT_W - 32, 11);
+      }
+      // Calculate phase subtotal
+      const phaseItems = items.filter(i => i.phase_id === phase.id && !i.is_alternate);
+      const phaseCustom = customItems.filter(ci => ci.phase_id === phase.id && !ci.is_alternate);
+      const phaseTotal = phaseItems.reduce((s, i) => s + Number(i.total), 0) + phaseCustom.reduce((s, ci) => s + Number(ci.customer_price), 0);
+      if (phaseTotal > 0) {
+        ctx.page.drawText(`Subtotal: ${fmt(phaseTotal)}`, { x: LEFT + 16, y: ctx.y, size: 8.5, font: bold, color: NAVY });
+        ctx.y -= 14;
+      }
+    }
+    // Phase disclaimer
+    ensureSpace(ctx, 20);
+    ctx.page.drawText("Note: Phase 1 pricing is guaranteed. Phase 2+ pricing is subject to reconfirmation at time of scheduling.", {
+      x: LEFT + 8, y: ctx.y, size: 7, font: regular, color: rgb(0.5, 0.5, 0.5),
+    });
+    ctx.y -= 18;
   }
 
-  // Footer
-  drawFooter(page, fonts);
+  // Scope Notes
+  const scopeNotes = [
+    "All work performed to ASBA (American Sports Builders Association) standards.",
+    "Estimated project timeline: 5-10 business days, weather permitting.",
+    "Newly applied surfaces require 24-48 hours cure time before play.",
+    "Color selections to be confirmed prior to material ordering.",
+  ];
+  ensureSpace(ctx, 50);
+  ctx.page.drawText("Scope Notes", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+  ctx.y -= 14;
+  for (const note of scopeNotes) {
+    drawBullet(ctx, note);
+  }
+  ctx.y -= 8;
 
-  // Embed site photos on additional pages
-  const attachments = estimate.estimate_attachments?.slice(0, 4) || [];
+  // Exclusions
+  if (exclusions.length > 0) {
+    ensureSpace(ctx, 40);
+    ctx.page.drawText("Exclusions", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+    ctx.y -= 14;
+    for (const ex of exclusions) {
+      drawBullet(ctx, ex.exclusion_text || "");
+    }
+    ctx.y -= 8;
+  }
+
+  // Payment Terms
+  ensureSpace(ctx, 60);
+  ctx.page.drawText("Payment Terms", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+  ctx.y -= 14;
+  const paymentTerms = [
+    "50% deposit required to schedule project.",
+    "Balance due upon completion of work.",
+    "Accepted methods: Check, ACH/Bank Transfer (no fee), Credit Card, Apple Pay, Cash App.",
+    `This estimate is valid for ${validDays} days from the date above.`,
+  ];
+  for (const term of paymentTerms) {
+    drawBullet(ctx, term);
+  }
+  ctx.y -= 10;
+
+  // ─── ACCEPTANCE PAGE ──────────────────────────────────────────────
+
+  newPage(ctx);
+
+  ctx.page.drawText("Acceptance", { x: LEFT, y: ctx.y, size: 14, font: bold, color: NAVY });
+  ctx.y -= 16;
+  ctx.page.drawText("By signing below, you authorize CourtPro Augusta to proceed with the selected option.", {
+    x: LEFT, y: ctx.y, size: 9, font: regular, color: GRAY,
+  });
+  ctx.y -= 24;
+
+  // Option selection checkboxes (multi-option)
+  if (isMultiOption) {
+    ctx.page.drawText("Select one:", { x: LEFT, y: ctx.y, size: 10, font: bold, color: NAVY });
+    ctx.y -= 20;
+    for (let oi = 0; oi < options.length; oi++) {
+      const opt = options[oi];
+      const optTotal = getOptionTotal(opt);
+      ensureSpace(ctx, 24);
+      // Checkbox square
+      ctx.page.drawRectangle({ x: LEFT + 10, y: ctx.y - 10, width: 12, height: 12, borderColor: NAVY, borderWidth: 0.8, color: WHITE });
+      ctx.page.drawText(`${opt.option_name || `Option ${oi + 1}`}  -  ${fmt(optTotal)}`, {
+        x: LEFT + 28, y: ctx.y - 8, size: 9, font: regular, color: GRAY,
+      });
+      ctx.y -= 24;
+    }
+    ctx.y -= 8;
+  }
+
+  // Alternate selection
+  if (allAlternates.length > 0) {
+    ensureSpace(ctx, 30);
+    ctx.page.drawText("Alternate (check if applicable):", { x: LEFT, y: ctx.y, size: 10, font: bold, color: NAVY });
+    ctx.y -= 20;
+    for (const alt of allAlternates) {
+      ensureSpace(ctx, 24);
+      ctx.page.drawRectangle({ x: LEFT + 10, y: ctx.y - 10, width: 12, height: 12, borderColor: NAVY, borderWidth: 0.8, color: WHITE });
+      const desc = alt.description || "Alternate";
+      const price = Number(alt.total || alt.customer_price || 0);
+      ctx.page.drawText(`${desc}  (${price < 0 ? "-" : ""}${fmt(Math.abs(price))})`, {
+        x: LEFT + 28, y: ctx.y - 8, size: 9, font: regular, color: GRAY,
+      });
+      ctx.y -= 24;
+    }
+    ctx.y -= 8;
+  }
+
+  // At-cost item selection
+  if (atCostItems.length > 0) {
+    ensureSpace(ctx, 30);
+    ctx.page.drawText("At-Cost Items (check if applicable):", { x: LEFT, y: ctx.y, size: 10, font: bold, color: NAVY });
+    ctx.y -= 20;
+    for (const ci of atCostItems) {
+      ensureSpace(ctx, 24);
+      ctx.page.drawRectangle({ x: LEFT + 10, y: ctx.y - 10, width: 12, height: 12, borderColor: NAVY, borderWidth: 0.8, color: WHITE });
+      ctx.page.drawText(`${ci.description}  -  ${fmt(ci.customer_price)} each`, {
+        x: LEFT + 28, y: ctx.y - 8, size: 9, font: regular, color: GRAY,
+      });
+      ctx.y -= 24;
+    }
+    ctx.y -= 8;
+  }
+
+  // Phase approval
+  if (isPhased) {
+    ensureSpace(ctx, 30);
+    ctx.page.drawText("Phase Approval:", { x: LEFT, y: ctx.y, size: 10, font: bold, color: NAVY });
+    ctx.y -= 20;
+    for (const phase of phases) {
+      ensureSpace(ctx, 24);
+      ctx.page.drawRectangle({ x: LEFT + 10, y: ctx.y - 10, width: 12, height: 12, borderColor: NAVY, borderWidth: 0.8, color: WHITE });
+      const phaseItems2 = items.filter(i => i.phase_id === phase.id && !i.is_alternate);
+      const phaseCustom2 = customItems.filter(ci => ci.phase_id === phase.id && !ci.is_alternate);
+      const phaseTotal2 = phaseItems2.reduce((s, i) => s + Number(i.total), 0) + phaseCustom2.reduce((s, ci) => s + Number(ci.customer_price), 0);
+      ctx.page.drawText(`${phase.phase_name}  -  ${fmt(phaseTotal2)}`, {
+        x: LEFT + 28, y: ctx.y - 8, size: 9, font: regular, color: GRAY,
+      });
+      ctx.y -= 24;
+    }
+    ctx.y -= 8;
+  }
+
+  // Total Contract Amount
+  ensureSpace(ctx, 40);
+  ctx.page.drawRectangle({ x: LEFT, y: ctx.y, width: CONTENT_W, height: 0.5, color: LIGHT_GRAY });
+  ctx.y -= 20;
+  ctx.page.drawText("Total Contract Amount: $ _______________", { x: LEFT, y: ctx.y, size: 11, font: bold, color: NAVY });
+  ctx.y -= 50;
+
+  // Signature block
+  ensureSpace(ctx, 80);
+  ctx.page.drawText("Authorized Signature: __________________________  Date: ______________", {
+    x: LEFT, y: ctx.y, size: 9, font: regular, color: GRAY,
+  });
+  ctx.y -= 25;
+  ctx.page.drawText("Print Name: _________________________________  Title: ______________", {
+    x: LEFT, y: ctx.y, size: 9, font: regular, color: GRAY,
+  });
+  ctx.y -= 40;
+
+  // Prepared By
+  ctx.page.drawRectangle({ x: LEFT, y: ctx.y + 5, width: CONTENT_W, height: 0.5, color: LIGHT_GRAY });
+  ctx.y -= 10;
+  ctx.page.drawText("Prepared by:", { x: LEFT, y: ctx.y, size: 9, font: bold, color: NAVY });
+  ctx.y -= 13;
+  ctx.page.drawText(`${COMPANY.preparedBy} - ${COMPANY.brand}`, { x: LEFT, y: ctx.y, size: 9, font: regular, color: GRAY });
+  ctx.y -= 13;
+  ctx.page.drawText(`${COMPANY.phone} | ${COMPANY.email}`, { x: LEFT, y: ctx.y, size: 9, font: regular, color: GRAY });
+
+  // ─── SITE PHOTOS (if any) ─────────────────────────────────────────
+
+  const attachments = (estimate.estimate_attachments || []).slice(0, 6);
   if (attachments.length > 0) {
-    let imgPage = pdfDoc.addPage([612, 792]);
-    let imgY = 742;
-
-    // Header for documentation page
-    drawBrandedHeader(imgPage, fonts, 612);
-
-    imgPage.drawText("SITE DOCUMENTATION", { x: 50, y: 700, size: 16, font: helveticaBold, color: COLORS.navy });
-    imgY = 680;
+    newPage(ctx);
+    ctx.page.drawText("Site Documentation", { x: LEFT, y: ctx.y, size: 14, font: bold, color: NAVY });
+    ctx.y -= 20;
 
     for (const att of attachments) {
       try {
-        const { data } = await supabase.storage.from("estimate-attachments").download(att.file_path);
+        const { data } = await _supabase.storage.from("estimate-attachments").download(att.file_path);
         if (!data) continue;
         const bytes = new Uint8Array(await data.arrayBuffer());
-        const img = att.file_name.toLowerCase().endsWith(".png") ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-        const scale = Math.min(500 / img.width, 280 / img.height, 1);
-        const w = img.width * scale,
-          h = img.height * scale;
-        if (imgY - h - 60 < 50) {
-          imgPage = pdfDoc.addPage([612, 792]);
-          drawBrandedHeader(imgPage, fonts, 612);
-          imgY = 700;
+        const img = att.file_name.toLowerCase().endsWith(".png") ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+        const scale = Math.min(CONTENT_W / img.width, 280 / img.height, 1);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ensureSpace(ctx, h + 30);
+        ctx.page.drawImage(img, { x: (PAGE_W - w) / 2, y: ctx.y - h, width: w, height: h });
+        ctx.y -= h + 10;
+        if (att.caption) {
+          ctx.page.drawText(att.caption, { x: LEFT, y: ctx.y, size: 8, font: regular, color: GRAY });
+          ctx.y -= 14;
         }
-        imgPage.drawImage(img, { x: (612 - w) / 2, y: imgY - h, width: w, height: h });
-        imgY -= h + 15;
-        imgPage.drawText(att.caption || att.file_name, { x: 50, y: imgY, size: 10, font: helvetica, color: COLORS.gray });
-        imgY -= 25;
+        ctx.y -= 10;
       } catch (e) {
-        console.error("Image error:", e);
+        console.error("Image embed error:", e);
       }
     }
-
-    drawFooter(imgPage, fonts);
   }
 
-  return await pdfDoc.save();
+  // ─── PAGE NUMBERS ─────────────────────────────────────────────────
+
+  const pages = doc.getPages();
+  const totalPages = pages.length;
+  for (let i = 0; i < totalPages; i++) {
+    const p = pages[i];
+    const text = `Page ${i + 1} of ${totalPages}`;
+    const tw = regular.widthOfTextAtSize(text, 7);
+    p.drawText(text, { x: (PAGE_W - tw) / 2, y: 14, size: 7, font: regular, color: FOOTER_GRAY });
+  }
+
+  return await doc.save();
 }
 
-async function generateDetailedScopePdf(estimate: any, supabase: any, exclusions: any[] = []): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.create();
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const fonts = { bold: helveticaBold, regular: helvetica };
-
-  const page = pdfDoc.addPage([612, 792]);
-  const leftMargin = 50;
-  let y = 720;
-
-  // Approved watermark
-  if (estimate.status === "approved") {
-    page.drawText("APPROVED", { x: 150, y: 400, size: 72, font: helveticaBold, color: rgb(0, 0.5, 0), opacity: 0.15, rotate: degrees(45) });
-  }
-
-  // Branded header
-  drawBrandedHeader(page, fonts, 612);
-
-  // Estimate info box
-  page.drawRectangle({ x: leftMargin, y: y - 45, width: 512, height: 50, color: COLORS.lightGray });
-  page.drawText(`ESTIMATE ${estimate.estimate_number}`, { x: leftMargin + 15, y: y - 15, size: 14, font: helveticaBold, color: COLORS.navy });
-  page.drawText(`Date: ${formatDate(estimate.created_at)}`, { x: leftMargin + 15, y: y - 32, size: 10, font: helvetica, color: COLORS.gray });
-  if (estimate.valid_until) {
-    page.drawText(`Valid Until: ${formatDate(estimate.valid_until)}`, { x: 350, y: y - 32, size: 10, font: helvetica, color: COLORS.gray });
-  }
-
-  y -= 65;
-
-  // Customer Info
-  page.drawText("PREPARED FOR", { x: leftMargin, y, size: 11, font: helveticaBold, color: COLORS.green });
-  y -= 16;
-  const c = estimate.customers;
-  if (c) {
-    if (c.company_name) {
-      page.drawText(c.company_name, { x: leftMargin, y, size: 11, font: helveticaBold, color: COLORS.black });
-      y -= 14;
-    }
-    page.drawText(c.contact_name, { x: leftMargin, y, size: 10, font: helvetica, color: COLORS.black });
-    y -= 12;
-    if (c.address) {
-      page.drawText(c.address, { x: leftMargin, y, size: 10, font: helvetica, color: COLORS.gray });
-      y -= 12;
-    }
-    if (c.city || c.state) {
-      page.drawText(`${c.city || ""}, ${c.state || ""} ${c.zip || ""}`, { x: leftMargin, y, size: 10, font: helvetica, color: COLORS.gray });
-      y -= 12;
-    }
-  }
-  y -= 12;
-
-  // Scope of Work Section
-  page.drawRectangle({ x: leftMargin, y: y - 5, width: 512, height: 24, color: COLORS.navy });
-  page.drawText("SCOPE OF WORK", { x: leftMargin + 15, y: y + 2, size: 12, font: helveticaBold, color: COLORS.white });
-  y -= 30;
-
-  const customerItems = groupItemsForCustomer(estimate.estimate_items || [], estimate.estimate_custom_items || []);
-  for (const item of customerItems) {
-    page.drawText(item.description, { x: leftMargin, y, size: 10, font: helveticaBold, color: COLORS.black });
-    y -= 12;
-    if (item.details) {
-      page.drawText(`  ${item.details}`, { x: leftMargin, y, size: 9, font: helvetica, color: COLORS.gray });
-      y -= 11;
-    }
-    page.drawText(`  ${formatCurrency(item.total)}`, { x: leftMargin, y, size: 10, font: helveticaBold, color: COLORS.green });
-    y -= 18;
-  }
-
-  y -= 5;
-
-  // Total box
-  page.drawRectangle({ x: leftMargin, y: y - 35, width: 512, height: 40, color: COLORS.lightGray, borderColor: COLORS.green, borderWidth: 2 });
-  page.drawText("TOTAL", { x: leftMargin + 20, y: y - 20, size: 14, font: helveticaBold, color: COLORS.navy });
-  page.drawText(formatCurrency(estimate.total), { x: 420, y: y - 22, size: 20, font: helveticaBold, color: COLORS.green });
-
-  y -= 55;
-
-  // Flexible Payment Options badge
-  page.drawRectangle({ x: leftMargin, y: y - 5, width: 350, height: 45, color: COLORS.greenDark });
-  page.drawText("FLEXIBLE PAYMENT OPTIONS", { x: leftMargin + 12, y: y + 22, size: 12, font: helveticaBold, color: COLORS.white });
-  page.drawText("Klarna - Pay in 4 or spread over time!", { x: leftMargin + 12, y: y + 8, size: 9, font: helvetica, color: rgb(0.82, 0.95, 0.85) });
-  page.drawText("Apple Pay | Cash App | Cards | Bank Transfer (No Fee!)", { x: leftMargin + 12, y: y - 5, size: 8, font: helvetica, color: rgb(0.7, 0.9, 0.75) });
-
-  y -= 65;
-
-  // Exclusions section if space allows
-  if (exclusions.length > 0 && y > 200) {
-    page.drawText("EXCLUSIONS & ASSUMPTIONS", { x: leftMargin, y, size: 9, font: helveticaBold, color: COLORS.gray });
-    y -= 12;
-    for (const ex of exclusions) {
-      if (y < 60) break;
-      page.drawText("- " + (ex.exclusion_text || ""), { x: leftMargin + 5, y, size: 8, font: helvetica, color: COLORS.gray });
-      y -= 11;
-    }
-    y -= 5;
-  }
-
-  // Marketing section if space allows
-  if (y > 180) {
-    y = drawMarketingSection(page, y, fonts);
-  }
-
-  // Footer
-  drawFooter(page, fonts);
-
-  // Embed site photos
-  const attachments = estimate.estimate_attachments?.slice(0, 4) || [];
-  if (attachments.length > 0) {
-    let imgPage = pdfDoc.addPage([612, 792]);
-    let imgY = 742;
-
-    drawBrandedHeader(imgPage, fonts, 612);
-    imgPage.drawText("SITE DOCUMENTATION", { x: 50, y: 700, size: 16, font: helveticaBold, color: COLORS.navy });
-    imgY = 680;
-
-    for (const att of attachments) {
-      try {
-        const { data } = await supabase.storage.from("estimate-attachments").download(att.file_path);
-        if (!data) continue;
-        const bytes = new Uint8Array(await data.arrayBuffer());
-        const img = att.file_name.toLowerCase().endsWith(".png") ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-        const scale = Math.min(500 / img.width, 280 / img.height, 1);
-        const w = img.width * scale,
-          h = img.height * scale;
-        if (imgY - h - 60 < 50) {
-          imgPage = pdfDoc.addPage([612, 792]);
-          drawBrandedHeader(imgPage, fonts, 612);
-          imgY = 700;
-        }
-        imgPage.drawImage(img, { x: (612 - w) / 2, y: imgY - h, width: w, height: h });
-        imgY -= h + 15;
-        imgPage.drawText(att.caption || att.file_name, { x: 50, y: imgY, size: 10, font: helvetica, color: COLORS.gray });
-        imgY -= 25;
-      } catch (e) {
-        console.error("Image error:", e);
-      }
-    }
-
-    drawFooter(imgPage, fonts);
-  }
-
-  return await pdfDoc.save();
-}
+// ─── HANDLER ────────────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -595,40 +688,22 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check if this is a service-to-service call using the service role key
     const isServiceCall = token === supabaseServiceKey;
 
     if (!isServiceCall) {
-      // Validate user JWT for direct API calls
       const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-
-      const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
-
-      if (claimsError || !claimsData?.claims) {
+      const { data: claimsData, error: claimsError } = await userSupabase.auth.getUser(token);
+      if (claimsError || !claimsData?.user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-
-      const userId = claimsData.claims.sub;
-
-      const { data: roles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-
-      if (rolesError) {
-        console.error("Error checking roles:", rolesError);
-        return new Response(JSON.stringify({ error: "Failed to verify permissions" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-
-      const hasAccess = roles?.some((r) => ["owner", "admin", "staff", "sales", "project_manager"].includes(r.role));
-
+      const userId = claimsData.user.id;
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      const hasAccess = roles?.some((r: any) => ["owner", "admin", "staff", "sales", "project_manager"].includes(r.role));
       if (!hasAccess) {
-        return new Response(JSON.stringify({ error: "Forbidden - Insufficient permissions" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-
-      console.log(`Generating PDF by user: ${userId}`);
-    } else {
-      console.log("Generating PDF via service-to-service call");
     }
 
     const { estimateId } = await req.json();
@@ -638,13 +713,13 @@ serve(async (req) => {
 
     const { data: estimate, error } = await supabase
       .from("estimates")
-      .select(`*, customers(*), estimate_items(*), estimate_attachments(*), estimate_custom_items(*), estimate_scope_bullets(*), estimate_exclusions(*)`)
+      .select(`*, customers(*), estimate_items(*), estimate_attachments(*), estimate_custom_items(*), estimate_scope_bullets(*), estimate_exclusions(*), estimate_options(*), estimate_phases(*)`)
       .eq("id", estimateId)
       .single();
 
     if (error) throw new Error(error.message);
 
-    // Also fetch default exclusions if no estimate-specific ones
+    // Fetch default exclusions if none specific
     let exclusions = estimate.estimate_exclusions || [];
     if (exclusions.length === 0) {
       const { data: defaults } = await supabase
@@ -654,20 +729,15 @@ serve(async (req) => {
         .order("sort_order");
       exclusions = defaults || [];
     }
+    estimate._exclusions = exclusions;
 
-    estimate.estimate_items?.sort((a: any, b: any) => a.sort_order - b.sort_order);
-    estimate.estimate_attachments?.sort((a: any, b: any) => a.sort_order - b.sort_order);
-
-    const displayFormat = estimate.display_format || "detailed_scope";
-    console.log(`Using display format: ${displayFormat}`);
-
-    const pdfBytes = displayFormat === "lump_sum" ? await generateLumpSumPdf(estimate, supabase, exclusions) : await generateDetailedScopePdf(estimate, supabase, exclusions);
-
+    const pdfBytes = await generateEstimatePdf(estimate, supabase);
     const base64Pdf = btoa(String.fromCharCode(...pdfBytes));
 
-    return new Response(JSON.stringify({ success: true, pdf: base64Pdf, fileName: `${estimate.estimate_number}.pdf`, hasAttachments: estimate.estimate_attachments?.length > 0 }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: true, pdf: base64Pdf, fileName: `${estimate.estimate_number}.pdf`, hasAttachments: (estimate.estimate_attachments?.length || 0) > 0 }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error: any) {
     console.error("Error generating PDF:", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
