@@ -1625,7 +1625,7 @@ export default function EstimateBuilder() {
                         {scopeBullets.length > 3 && <li>...</li>}
                       </ul>
                       <p className="font-semibold mt-2">
-                        Project Investment: {formatCurrency(grandTotalWithCustomItems)}
+                        Project Investment: {formatCurrency(customerFacingTotal)}
                       </p>
                     </div>
                   </div>
@@ -1669,7 +1669,7 @@ export default function EstimateBuilder() {
                         </div>
                         <div className="flex justify-between font-semibold text-foreground pt-1 border-t">
                           <span>Total</span>
-                          <span>{formatCurrency(grandTotalWithCustomItems)}</span>
+                          <span>{formatCurrency(customerFacingTotal)}</span>
                         </div>
                       </div>
                     </div>
