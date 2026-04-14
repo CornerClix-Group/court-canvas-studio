@@ -77,6 +77,9 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
     if (pricingMode === 'direct') {
       return typeof directPrice === 'number' ? directPrice : 0;
     }
+    if (pricingMode === 'at_cost') {
+      return typeof vendorCost === 'number' ? vendorCost : 0;
+    }
     if (typeof vendorCost === 'number') {
       return vendorCost * (1 + markupPercent / 100);
     }
@@ -86,18 +89,21 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
   const handleAddItem = () => {
     if (!description.trim()) return;
     
-    const customerPrice = calculateCustomerPrice();
-    if (customerPrice <= 0) return;
+    const rawPrice = calculateCustomerPrice();
+    if (rawPrice <= 0) return;
+
+    const customerPrice = isAlternate ? -Math.abs(rawPrice) : rawPrice;
 
     const newItem: CustomItem = {
       id: crypto.randomUUID(),
       description: description.trim(),
       vendorName: vendorName.trim() || undefined,
-      vendorCost: pricingMode === 'markup' && typeof vendorCost === 'number' ? vendorCost : undefined,
+      vendorCost: (pricingMode === 'markup' || pricingMode === 'at_cost') && typeof vendorCost === 'number' ? vendorCost : undefined,
       markupPercent: pricingMode === 'markup' ? markupPercent : 0,
       customerPrice,
       notes: notes.trim() || undefined,
       pricingMode,
+      isAlternate,
     };
 
     onChange([...items, newItem]);
