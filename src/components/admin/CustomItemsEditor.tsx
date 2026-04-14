@@ -24,7 +24,9 @@ import {
   ChevronUp,
   DollarSign,
   Percent,
-  Building2
+  Building2,
+  ArrowDownCircle,
+  HandCoins
 } from "lucide-react";
 
 export interface CustomItem {
@@ -50,8 +52,8 @@ const DEFAULT_MARKUP = 15;
 export function CustomItemsEditor({ items, onChange, showCostView = false }: CustomItemsEditorProps) {
   const [isOpen, setIsOpen] = useState(items.length > 0);
   const [isAdding, setIsAdding] = useState(false);
-  const [pricingMode, setPricingMode] = useState<'direct' | 'markup'>('direct');
-  
+  const [pricingMode, setPricingMode] = useState<'direct' | 'markup' | 'at_cost'>('direct');
+  const [isAlternate, setIsAlternate] = useState(false);
   // Form fields
   const [description, setDescription] = useState('');
   const [vendorName, setVendorName] = useState('');
