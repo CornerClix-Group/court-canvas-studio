@@ -387,8 +387,11 @@ export type Database = {
           description: string
           estimate_id: string | null
           id: string
+          is_alternate: boolean
           markup_percent: number | null
           notes: string | null
+          option_id: string | null
+          phase_id: string | null
           pricing_mode: string
           sort_order: number | null
           updated_at: string
@@ -401,8 +404,11 @@ export type Database = {
           description: string
           estimate_id?: string | null
           id?: string
+          is_alternate?: boolean
           markup_percent?: number | null
           notes?: string | null
+          option_id?: string | null
+          phase_id?: string | null
           pricing_mode?: string
           sort_order?: number | null
           updated_at?: string
@@ -415,8 +421,11 @@ export type Database = {
           description?: string
           estimate_id?: string | null
           id?: string
+          is_alternate?: boolean
           markup_percent?: number | null
           notes?: string | null
+          option_id?: string | null
+          phase_id?: string | null
           pricing_mode?: string
           sort_order?: number | null
           updated_at?: string
@@ -429,6 +438,20 @@ export type Database = {
             columns: ["estimate_id"]
             isOneToOne: false
             referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_custom_items_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_custom_items_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_phases"
             referencedColumns: ["id"]
           },
         ]
@@ -474,6 +497,9 @@ export type Database = {
           description: string
           estimate_id: string
           id: string
+          is_alternate: boolean
+          option_id: string | null
+          phase_id: string | null
           quantity: number
           sort_order: number
           total: number
@@ -485,6 +511,9 @@ export type Database = {
           description: string
           estimate_id: string
           id?: string
+          is_alternate?: boolean
+          option_id?: string | null
+          phase_id?: string | null
           quantity?: number
           sort_order?: number
           total?: number
@@ -496,6 +525,9 @@ export type Database = {
           description?: string
           estimate_id?: string
           id?: string
+          is_alternate?: boolean
+          option_id?: string | null
+          phase_id?: string | null
           quantity?: number
           sort_order?: number
           total?: number
@@ -505,6 +537,99 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_items_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_items_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_options: {
+        Row: {
+          created_at: string
+          estimate_id: string
+          id: string
+          is_recommended: boolean
+          option_description: string | null
+          option_name: string
+          override_sell_price: number | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          estimate_id: string
+          id?: string
+          is_recommended?: boolean
+          option_description?: string | null
+          option_name: string
+          override_sell_price?: number | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          is_recommended?: boolean
+          option_description?: string | null
+          option_name?: string
+          override_sell_price?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_options_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_phases: {
+        Row: {
+          created_at: string
+          estimate_id: string
+          id: string
+          phase_description: string | null
+          phase_name: string
+          sort_order: number
+          suggested_timeline: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimate_id: string
+          id?: string
+          phase_description?: string | null
+          phase_name: string
+          sort_order?: number
+          suggested_timeline?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          phase_description?: string | null
+          phase_name?: string
+          sort_order?: number
+          suggested_timeline?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_phases_estimate_id_fkey"
             columns: ["estimate_id"]
             isOneToOne: false
             referencedRelation: "estimates"
@@ -553,10 +678,12 @@ export type Database = {
           display_format: string | null
           estimate_number: string
           id: string
+          is_phased: boolean
           lead_id: string | null
           lost_reason: string | null
           notes: string | null
           outcome: string | null
+          override_sell_price: number | null
           sent_at: string | null
           status: string
           subtotal: number
@@ -574,10 +701,12 @@ export type Database = {
           display_format?: string | null
           estimate_number: string
           id?: string
+          is_phased?: boolean
           lead_id?: string | null
           lost_reason?: string | null
           notes?: string | null
           outcome?: string | null
+          override_sell_price?: number | null
           sent_at?: string | null
           status?: string
           subtotal?: number
@@ -595,10 +724,12 @@ export type Database = {
           display_format?: string | null
           estimate_number?: string
           id?: string
+          is_phased?: boolean
           lead_id?: string | null
           lost_reason?: string | null
           notes?: string | null
           outcome?: string | null
+          override_sell_price?: number | null
           sent_at?: string | null
           status?: string
           subtotal?: number
