@@ -381,7 +381,21 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                     className="flex items-start justify-between p-3 bg-muted/50 rounded-lg border"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.description}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{item.description}</p>
+                        {item.isAlternate && (
+                          <Badge variant="outline" className="text-xs border-destructive text-destructive shrink-0">
+                            <ArrowDownCircle className="w-3 h-3 mr-1" />
+                            Alternate
+                          </Badge>
+                        )}
+                        {item.pricingMode === 'at_cost' && (
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            <HandCoins className="w-3 h-3 mr-1" />
+                            At Cost
+                          </Badge>
+                        )}
+                      </div>
                       {showCostView && item.pricingMode === 'markup' && (
                         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                           {item.vendorName && (
@@ -392,14 +406,30 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                           )}
                           <span>Cost: {formatCurrency(item.vendorCost || 0)}</span>
                           <span>+{item.markupPercent}%</span>
-                          <span className="text-green-600 font-medium">
+                          <span className="text-emerald-600 font-medium">
                             Profit: {formatCurrency(item.customerPrice - (item.vendorCost || 0))}
                           </span>
+                        </div>
+                      )}
+                      {showCostView && item.pricingMode === 'at_cost' && (
+                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          {item.vendorName && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              {item.vendorName}
+                            </span>
+                          )}
+                          <span>Pass-through — $0 markup</span>
                         </div>
                       )}
                       {!showCostView && item.pricingMode === 'markup' && (
                         <p className="text-sm text-muted-foreground mt-0.5">
                           {item.vendorName && `${item.vendorName} • `}Cost + {item.markupPercent}% markup
+                        </p>
+                      )}
+                      {!showCostView && item.pricingMode === 'at_cost' && (
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {item.vendorName && `${item.vendorName} • `}Provided at our cost
                         </p>
                       )}
                       {item.pricingMode === 'direct' && (
