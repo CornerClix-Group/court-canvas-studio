@@ -69,6 +69,7 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
     setMarkupPercent(DEFAULT_MARKUP);
     setDirectPrice('');
     setNotes('');
+    setIsAlternate(false);
     setIsAdding(false);
   };
 
