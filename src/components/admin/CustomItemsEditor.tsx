@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,9 @@ import {
   ChevronUp,
   DollarSign,
   Percent,
-  Building2
+  Building2,
+  ArrowDownCircle,
+  HandCoins
 } from "lucide-react";
 
 export interface CustomItem {
@@ -35,7 +38,8 @@ export interface CustomItem {
   markupPercent: number;
   customerPrice: number;
   notes?: string;
-  pricingMode: 'direct' | 'markup';
+  pricingMode: 'direct' | 'markup' | 'at_cost';
+  isAlternate?: boolean;
 }
 
 interface CustomItemsEditorProps {
@@ -49,8 +53,8 @@ const DEFAULT_MARKUP = 15;
 export function CustomItemsEditor({ items, onChange, showCostView = false }: CustomItemsEditorProps) {
   const [isOpen, setIsOpen] = useState(items.length > 0);
   const [isAdding, setIsAdding] = useState(false);
-  const [pricingMode, setPricingMode] = useState<'direct' | 'markup'>('direct');
-  
+  const [pricingMode, setPricingMode] = useState<'direct' | 'markup' | 'at_cost'>('direct');
+  const [isAlternate, setIsAlternate] = useState(false);
   // Form fields
   const [description, setDescription] = useState('');
   const [vendorName, setVendorName] = useState('');
@@ -66,12 +70,16 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
     setMarkupPercent(DEFAULT_MARKUP);
     setDirectPrice('');
     setNotes('');
+    setIsAlternate(false);
     setIsAdding(false);
   };
 
   const calculateCustomerPrice = () => {
     if (pricingMode === 'direct') {
       return typeof directPrice === 'number' ? directPrice : 0;
+    }
+    if (pricingMode === 'at_cost') {
+      return typeof vendorCost === 'number' ? vendorCost : 0;
     }
     if (typeof vendorCost === 'number') {
       return vendorCost * (1 + markupPercent / 100);
@@ -82,18 +90,21 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
   const handleAddItem = () => {
     if (!description.trim()) return;
     
-    const customerPrice = calculateCustomerPrice();
-    if (customerPrice <= 0) return;
+    const rawPrice = calculateCustomerPrice();
+    if (rawPrice <= 0) return;
+
+    const customerPrice = isAlternate ? -Math.abs(rawPrice) : rawPrice;
 
     const newItem: CustomItem = {
       id: crypto.randomUUID(),
       description: description.trim(),
       vendorName: vendorName.trim() || undefined,
-      vendorCost: pricingMode === 'markup' && typeof vendorCost === 'number' ? vendorCost : undefined,
+      vendorCost: (pricingMode === 'markup' || pricingMode === 'at_cost') && typeof vendorCost === 'number' ? vendorCost : undefined,
       markupPercent: pricingMode === 'markup' ? markupPercent : 0,
       customerPrice,
       notes: notes.trim() || undefined,
       pricingMode,
+      isAlternate,
     };
 
     onChange([...items, newItem]);
@@ -154,9 +165,9 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                   <h4 className="font-medium">Add Custom Item</h4>
                   <Select 
                     value={pricingMode} 
-                    onValueChange={(val: 'direct' | 'markup') => setPricingMode(val)}
+                    onValueChange={(val: 'direct' | 'markup' | 'at_cost') => setPricingMode(val)}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[200px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -170,6 +181,12 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                         <span className="flex items-center gap-2">
                           <Percent className="w-4 h-4" />
                           Cost + Markup
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="at_cost">
+                        <span className="flex items-center gap-2">
+                          <HandCoins className="w-4 h-4" />
+                          At Cost (Pass-Through)
                         </span>
                       </SelectItem>
                     </SelectContent>
@@ -203,6 +220,45 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                         placeholder="0.00"
                         className="pl-9"
                       />
+                    </div>
+                  </div>
+                ) : pricingMode === 'at_cost' ? (
+                  /* At Cost (Pass-Through) Mode */
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="vendorName">Vendor / Source (internal only)</Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="vendorName"
+                            value={vendorName}
+                            onChange={(e) => setVendorName(e.target.value)}
+                            placeholder="e.g., Selkirk, Home Depot"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="vendorCost">Cost (passed through at $0 markup) *</Label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="vendorCost"
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={vendorCost}
+                            onChange={(e) => setVendorCost(e.target.value ? parseFloat(e.target.value) : '')}
+                            placeholder="0.00"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-md bg-muted/50 border text-sm text-muted-foreground">
+                      <HandCoins className="w-4 h-4 inline mr-2" />
+                      Customer will see this item at <strong>{formatCurrency(calculateCustomerPrice())}</strong> with a note "(at our cost)" — no markup applied.
                     </div>
                   </div>
                 ) : (
@@ -265,6 +321,24 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                   </>
                 )}
 
+                {/* Alternate Deduction Toggle */}
+                <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/30">
+                  <Switch
+                    checked={isAlternate}
+                    onCheckedChange={setIsAlternate}
+                    id="isAlternate"
+                  />
+                  <div>
+                    <Label htmlFor="isAlternate" className="cursor-pointer flex items-center gap-2">
+                      <ArrowDownCircle className="w-4 h-4" />
+                      This is an alternate (deduction)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      The price will be shown as a deduction the customer can optionally select
+                    </p>
+                  </div>
+                </div>
+
                 {/* Internal Notes */}
                 <div className="space-y-2">
                   <Label htmlFor="notes">Internal Notes (not shown to customer)</Label>
@@ -307,7 +381,21 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                     className="flex items-start justify-between p-3 bg-muted/50 rounded-lg border"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.description}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{item.description}</p>
+                        {item.isAlternate && (
+                          <Badge variant="outline" className="text-xs border-destructive text-destructive shrink-0">
+                            <ArrowDownCircle className="w-3 h-3 mr-1" />
+                            Alternate
+                          </Badge>
+                        )}
+                        {item.pricingMode === 'at_cost' && (
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            <HandCoins className="w-3 h-3 mr-1" />
+                            At Cost
+                          </Badge>
+                        )}
+                      </div>
                       {showCostView && item.pricingMode === 'markup' && (
                         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                           {item.vendorName && (
@@ -318,14 +406,30 @@ export function CustomItemsEditor({ items, onChange, showCostView = false }: Cus
                           )}
                           <span>Cost: {formatCurrency(item.vendorCost || 0)}</span>
                           <span>+{item.markupPercent}%</span>
-                          <span className="text-green-600 font-medium">
+                          <span className="text-emerald-600 font-medium">
                             Profit: {formatCurrency(item.customerPrice - (item.vendorCost || 0))}
                           </span>
+                        </div>
+                      )}
+                      {showCostView && item.pricingMode === 'at_cost' && (
+                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          {item.vendorName && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              {item.vendorName}
+                            </span>
+                          )}
+                          <span>Pass-through — $0 markup</span>
                         </div>
                       )}
                       {!showCostView && item.pricingMode === 'markup' && (
                         <p className="text-sm text-muted-foreground mt-0.5">
                           {item.vendorName && `${item.vendorName} • `}Cost + {item.markupPercent}% markup
+                        </p>
+                      )}
+                      {!showCostView && item.pricingMode === 'at_cost' && (
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {item.vendorName && `${item.vendorName} • `}Provided at our cost
                         </p>
                       )}
                       {item.pricingMode === 'direct' && (

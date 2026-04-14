@@ -64,7 +64,8 @@ import {
   AlertCircle,
   Eye,
   List,
-  Check
+  Check,
+  DollarSign
 } from "lucide-react";
 
 const projectIcons: Record<string, LucideIcon> = {
@@ -137,6 +138,8 @@ export default function EstimateBuilder() {
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
   const [displayFormat, setDisplayFormat] = useState<EstimateDisplayFormat>('lump_sum');
   const [scopeBullets, setScopeBullets] = useState<string[]>([]);
+  const [overrideSellPrice, setOverrideSellPrice] = useState<number | null>(null);
+  const [overrideEnabled, setOverrideEnabled] = useState(false);
 
   // Calculate total sq ft
   const totalSqFt = useMemo(() => {
@@ -175,6 +178,12 @@ export default function EstimateBuilder() {
   const grandTotalWithCustomItems = useMemo(() => {
     return (calculation?.grandTotal || 0) + customItemsTotal;
   }, [calculation?.grandTotal, customItemsTotal]);
+
+  // Customer-facing price uses override if set
+  const customerFacingTotal = useMemo(() => {
+    if (overrideEnabled && overrideSellPrice !== null) return overrideSellPrice;
+    return grandTotalWithCustomItems;
+  }, [overrideEnabled, overrideSellPrice, grandTotalWithCustomItems]);
 
   // Generate scope bullets when calculation changes
   useEffect(() => {
@@ -240,7 +249,8 @@ export default function EstimateBuilder() {
           estimate_number: estimateNumber,
           customer_id: customerId,
           subtotal: grandTotalWithCustomItems,
-          total: grandTotalWithCustomItems,
+          total: customerFacingTotal,
+          override_sell_price: overrideEnabled ? overrideSellPrice : null,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
           display_format: displayFormat,
@@ -279,7 +289,8 @@ export default function EstimateBuilder() {
           markup_percent: item.markupPercent,
           customer_price: item.customerPrice,
           notes: item.notes || null,
-          pricing_mode: item.pricingMode,
+          pricing_mode: item.pricingMode === 'at_cost' ? 'at_cost' : item.pricingMode,
+          is_alternate: item.isAlternate || false,
           sort_order: index,
         }));
 
@@ -372,7 +383,8 @@ export default function EstimateBuilder() {
           estimate_number: estimateNumber,
           customer_id: customerId,
           subtotal: grandTotalWithCustomItems,
-          total: grandTotalWithCustomItems,
+          total: customerFacingTotal,
+          override_sell_price: overrideEnabled ? overrideSellPrice : null,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
           display_format: displayFormat,
@@ -411,7 +423,8 @@ export default function EstimateBuilder() {
           markup_percent: item.markupPercent,
           customer_price: item.customerPrice,
           notes: item.notes || null,
-          pricing_mode: item.pricingMode,
+          pricing_mode: item.pricingMode === 'at_cost' ? 'at_cost' : item.pricingMode,
+          is_alternate: item.isAlternate || false,
           sort_order: index,
         }));
 
@@ -533,7 +546,8 @@ export default function EstimateBuilder() {
           estimate_number: estimateNumber,
           customer_id: customerId,
           subtotal: grandTotalWithCustomItems,
-          total: grandTotalWithCustomItems,
+          total: customerFacingTotal,
+          override_sell_price: overrideEnabled ? overrideSellPrice : null,
           notes: notes || `${PROJECT_TYPES[projectType as keyof typeof PROJECT_TYPES]?.name || projectType} - ${calculation.summary.system.name}`,
           status: "draft",
           display_format: displayFormat,
@@ -577,7 +591,8 @@ export default function EstimateBuilder() {
           markup_percent: item.markupPercent,
           customer_price: item.customerPrice,
           notes: item.notes || null,
-          pricing_mode: item.pricingMode,
+          pricing_mode: item.pricingMode === 'at_cost' ? 'at_cost' : item.pricingMode,
+          is_alternate: item.isAlternate || false,
           sort_order: index,
         }));
 
@@ -1376,6 +1391,55 @@ export default function EstimateBuilder() {
                     <span>{Math.round((MAX_PROFIT_MARGIN - 1) * 100)}%</span>
                   </div>
                 </div>
+                {/* Sell Price Override */}
+                <div className="space-y-3 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={overrideEnabled}
+                        onCheckedChange={(checked) => {
+                          setOverrideEnabled(checked);
+                          if (!checked) setOverrideSellPrice(null);
+                        }}
+                        id="overrideToggle"
+                      />
+                      <Label htmlFor="overrideToggle" className="cursor-pointer text-base font-medium">
+                        Override sell price
+                      </Label>
+                    </div>
+                    {overrideEnabled && overrideSellPrice !== null && calculation && (() => {
+                      const directCost = calculation.costTotal + customItems.reduce((sum, item) => sum + (item.vendorCost || item.customerPrice), 0);
+                      const effectiveMarginPct = directCost > 0 ? ((overrideSellPrice - directCost) / directCost) * 100 : 0;
+                      const marginColor = effectiveMarginPct < 15 ? 'bg-destructive text-destructive-foreground' : effectiveMarginPct < 30 ? 'bg-yellow-500 text-white' : 'bg-emerald-600 text-white';
+                      return (
+                        <Badge className={`${marginColor}`}>
+                          Effective margin: {effectiveMarginPct.toFixed(1)}%
+                        </Badge>
+                      );
+                    })()}
+                  </div>
+                  {overrideEnabled && (
+                    <div className="space-y-2">
+                      <Label htmlFor="overridePrice">Customer-facing sell price</Label>
+                      <div className="relative max-w-xs">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="overridePrice"
+                          type="number"
+                          min={0}
+                          step={100}
+                          value={overrideSellPrice ?? ''}
+                          onChange={(e) => setOverrideSellPrice(e.target.value ? parseFloat(e.target.value) : null)}
+                          placeholder={formatCurrency(grandTotalWithCustomItems)}
+                          className="pl-9 text-lg font-semibold"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Calculated price: {formatCurrency(grandTotalWithCustomItems)}. Override only changes what the customer sees — internal cost tracking stays the same.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Profit Summary */}
                 {calculation && (
@@ -1443,9 +1507,17 @@ export default function EstimateBuilder() {
                           </div>
                         )}
                         <div className="border-t pt-2 flex justify-between">
-                          <span className="font-semibold">Customer Total:</span>
-                          <span className="font-bold text-lg">{formatCurrency(grandTotalWithCustomItems)}</span>
+                          <span className="font-semibold">
+                            {overrideEnabled && overrideSellPrice !== null ? 'Override Price:' : 'Customer Total:'}
+                          </span>
+                          <span className="font-bold text-lg">{formatCurrency(customerFacingTotal)}</span>
                         </div>
+                        {overrideEnabled && overrideSellPrice !== null && (
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Calculated price:</span>
+                            <span className="line-through">{formatCurrency(grandTotalWithCustomItems)}</span>
+                          </div>
+                        )}
                         {showCostView && (
                           <div className="flex justify-between text-emerald-600">
                             <span>Total Profit:</span>
