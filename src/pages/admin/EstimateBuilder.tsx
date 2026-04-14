@@ -289,7 +289,8 @@ export default function EstimateBuilder() {
           markup_percent: item.markupPercent,
           customer_price: item.customerPrice,
           notes: item.notes || null,
-          pricing_mode: item.pricingMode,
+          pricing_mode: item.pricingMode === 'at_cost' ? 'at_cost' : item.pricingMode,
+          is_alternate: item.isAlternate || false,
           sort_order: index,
         }));
 
@@ -422,7 +423,8 @@ export default function EstimateBuilder() {
           markup_percent: item.markupPercent,
           customer_price: item.customerPrice,
           notes: item.notes || null,
-          pricing_mode: item.pricingMode,
+          pricing_mode: item.pricingMode === 'at_cost' ? 'at_cost' : item.pricingMode,
+          is_alternate: item.isAlternate || false,
           sort_order: index,
         }));
 
@@ -589,7 +591,8 @@ export default function EstimateBuilder() {
           markup_percent: item.markupPercent,
           customer_price: item.customerPrice,
           notes: item.notes || null,
-          pricing_mode: item.pricingMode,
+          pricing_mode: item.pricingMode === 'at_cost' ? 'at_cost' : item.pricingMode,
+          is_alternate: item.isAlternate || false,
           sort_order: index,
         }));
 
