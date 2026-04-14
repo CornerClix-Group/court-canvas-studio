@@ -1376,7 +1376,56 @@ export default function EstimateBuilder() {
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{Math.round((MIN_PROFIT_MARGIN - 1) * 100)}%</span>
                     <span>{Math.round((MAX_PROFIT_MARGIN - 1) * 100)}%</span>
+                </div>
+
+                {/* Sell Price Override */}
+                <div className="space-y-3 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={overrideEnabled}
+                        onCheckedChange={(checked) => {
+                          setOverrideEnabled(checked);
+                          if (!checked) setOverrideSellPrice(null);
+                        }}
+                        id="overrideToggle"
+                      />
+                      <Label htmlFor="overrideToggle" className="cursor-pointer text-base font-medium">
+                        Override sell price
+                      </Label>
+                    </div>
+                    {overrideEnabled && overrideSellPrice !== null && calculation && (() => {
+                      const directCost = calculation.costTotal + customItems.reduce((sum, item) => sum + (item.vendorCost || item.customerPrice), 0);
+                      const effectiveMarginPct = directCost > 0 ? ((overrideSellPrice - directCost) / directCost) * 100 : 0;
+                      const marginColor = effectiveMarginPct < 15 ? 'bg-destructive text-destructive-foreground' : effectiveMarginPct < 30 ? 'bg-yellow-500 text-white' : 'bg-emerald-600 text-white';
+                      return (
+                        <Badge className={`${marginColor}`}>
+                          Effective margin: {effectiveMarginPct.toFixed(1)}%
+                        </Badge>
+                      );
+                    })()}
                   </div>
+                  {overrideEnabled && (
+                    <div className="space-y-2">
+                      <Label htmlFor="overridePrice">Customer-facing sell price</Label>
+                      <div className="relative max-w-xs">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="overridePrice"
+                          type="number"
+                          min={0}
+                          step={100}
+                          value={overrideSellPrice ?? ''}
+                          onChange={(e) => setOverrideSellPrice(e.target.value ? parseFloat(e.target.value) : null)}
+                          placeholder={formatCurrency(grandTotalWithCustomItems)}
+                          className="pl-9 text-lg font-semibold"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Calculated price: {formatCurrency(grandTotalWithCustomItems)}. Override only changes what the customer sees — internal cost tracking stays the same.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Profit Summary */}
