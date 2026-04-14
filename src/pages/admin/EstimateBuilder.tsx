@@ -136,7 +136,7 @@ export default function EstimateBuilder() {
   const [profitMargin, setProfitMargin] = useState<number>(DEFAULT_PROFIT_MARGIN);
   const [showCostView, setShowCostView] = useState<boolean>(false);
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
-  const [displayFormat, setDisplayFormat] = useState<EstimateDisplayFormat>('lump_sum');
+  const [displayFormat, setDisplayFormat] = useState<EstimateDisplayFormat>('scope_detail' as EstimateDisplayFormat);
   const [scopeBullets, setScopeBullets] = useState<string[]>([]);
   const [overrideSellPrice, setOverrideSellPrice] = useState<number | null>(null);
   const [overrideEnabled, setOverrideEnabled] = useState(false);
@@ -1589,7 +1589,52 @@ export default function EstimateBuilder() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Scope Detail Option (Default) */}
+                  <div
+                    className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      displayFormat === ('scope_detail' as EstimateDisplayFormat)
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-muted-foreground'
+                    }`}
+                    onClick={() => setDisplayFormat('scope_detail' as EstimateDisplayFormat)}
+                  >
+                    {displayFormat === ('scope_detail' as EstimateDisplayFormat) && (
+                      <div className="absolute top-2 right-2">
+                        <Check className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Eye className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Scope Detail</p>
+                        <p className="text-xs text-muted-foreground">Default</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Detailed descriptions with "Included" labels. No dollar amounts per line — just the total.
+                    </p>
+                    <div className="text-xs space-y-1 p-2 bg-muted/50 rounded">
+                      <p className="font-medium">Preview:</p>
+                      <div className="space-y-1 text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Pressure washing & prep</span>
+                          <span className="text-xs italic">Included</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Surfacing system</span>
+                          <span className="text-xs italic">Included</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-foreground pt-1 border-t">
+                          <span>Total</span>
+                          <span>{formatCurrency(customerFacingTotal)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Lump Sum Option */}
                   <div
                     className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
@@ -1605,16 +1650,16 @@ export default function EstimateBuilder() {
                       </div>
                     )}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <FileText className="w-5 h-5 text-primary" />
+                      <div className="p-2 rounded-full bg-muted">
+                        <FileText className="w-5 h-5 text-foreground" />
                       </div>
                       <div>
                         <p className="font-semibold">Lump Sum</p>
-                        <p className="text-xs text-muted-foreground">Recommended</p>
+                        <p className="text-xs text-muted-foreground">Simple</p>
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Clean, marketing-focused format with bullet points and a single total price.
+                      Bullet points and a single total price. No line item breakdown.
                     </p>
                     <div className="text-xs space-y-1 p-2 bg-muted/50 rounded">
                       <p className="font-medium">Preview:</p>
@@ -1649,12 +1694,12 @@ export default function EstimateBuilder() {
                         <List className="w-5 h-5 text-foreground" />
                       </div>
                       <div>
-                        <p className="font-semibold">Detailed Scope</p>
+                        <p className="font-semibold">Line Items</p>
                         <p className="text-xs text-muted-foreground">On Request</p>
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Grouped categories with subtotals. Shows more detail without exposing unit costs.
+                      Full line-item breakdown with individual prices. Most detail for the customer.
                     </p>
                     <div className="text-xs space-y-1 p-2 bg-muted/50 rounded">
                       <p className="font-medium">Preview:</p>
