@@ -64,7 +64,8 @@ import {
   AlertCircle,
   Eye,
   List,
-  Check
+  Check,
+  DollarSign
 } from "lucide-react";
 
 const projectIcons: Record<string, LucideIcon> = {
