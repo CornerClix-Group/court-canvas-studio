@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -78,6 +78,7 @@ export default function DesignYourCourt() {
       toast({ variant: "destructive", title: "Required fields", description: "Name and email are required." });
       return;
     }
+
     setSubmitting(true);
     try {
       const { error } = await supabase.functions.invoke("submit-court-design", {
@@ -89,11 +90,12 @@ export default function DesignYourCourt() {
           line_color: lineColor,
         },
       });
+
       if (error) throw error;
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      toast({ variant: "destructive", title: "Submission failed", description: "Please try again or call (706) 309-1993." });
+      toast({ variant: "destructive", title: "Submission failed", description: "Please try again or email estimates@courtproaugusta.com." });
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +112,6 @@ export default function DesignYourCourt() {
       <Header />
 
       <main className="bg-background">
-        {/* Hero */}
         <section className="bg-gradient-to-b from-primary/5 to-background border-b">
           <div className="max-w-6xl mx-auto px-4 py-12 md:py-16 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
@@ -125,10 +126,8 @@ export default function DesignYourCourt() {
           </div>
         </section>
 
-        {/* Designer */}
         <section className="max-w-7xl mx-auto px-4 py-8 md:py-12">
           <div className="grid lg:grid-cols-[1fr_380px] gap-8">
-            {/* Preview */}
             <div className="space-y-4">
               <Card className="p-4 md:p-6 bg-muted/30">
                 <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
@@ -165,7 +164,7 @@ export default function DesignYourCourt() {
                     view={view}
                   />
                 </div>
-                <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground gap-3 flex-wrap">
                   <span>
                     Inner: <strong className="text-foreground">Laykold {innerColor}</strong> · Outer:{" "}
                     <strong className="text-foreground">Laykold {outerColor}</strong> · Lines:{" "}
@@ -185,21 +184,18 @@ export default function DesignYourCourt() {
                 </div>
               </Card>
 
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={() => setLeadOpen(true)}
-              >
+              <Button size="lg" className="w-full" onClick={() => setLeadOpen(true)}>
                 Get a free quote on this design
               </Button>
             </div>
 
-            {/* Controls */}
             <div className="space-y-6">
               <Card className="p-5">
                 <Label className="text-sm font-semibold mb-2 block">Court type</Label>
                 <Select value={courtType} onValueChange={(v) => setCourtType(v as CourtType)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {COURT_TYPE_LIST.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
@@ -278,8 +274,15 @@ export default function DesignYourCourt() {
 
       <Footer />
 
-      {/* Lead capture dialog */}
-      <Dialog open={leadOpen} onOpenChange={(o) => { if (!submitting) { setLeadOpen(o); if (!o) setSubmitted(false); } }}>
+      <Dialog
+        open={leadOpen}
+        onOpenChange={(o) => {
+          if (!submitting) {
+            setLeadOpen(o);
+            if (!o) setSubmitted(false);
+          }
+        }}
+      >
         <DialogContent className="max-w-lg">
           {submitted ? (
             <div className="text-center py-6">
@@ -288,7 +291,7 @@ export default function DesignYourCourt() {
               </div>
               <h3 className="text-xl font-bold mb-2">Design sent!</h3>
               <p className="text-sm text-muted-foreground mb-5">
-                We saved your design and we'll be in touch within 1 business day with a custom quote.
+                We saved your design and we&apos;ll be in touch within 1 business day with a custom quote.
               </p>
               <Button onClick={() => setLeadOpen(false)} className="w-full">Got it</Button>
             </div>
@@ -297,20 +300,30 @@ export default function DesignYourCourt() {
               <DialogHeader>
                 <DialogTitle>Get a free quote</DialogTitle>
                 <DialogDescription>
-                  We'll save your design and follow up with pricing for your project.
+                  We&apos;ll save your design and follow up with pricing for your project.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-3 py-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <Label htmlFor="full_name">Full name *</Label>
-                    <Input id="full_name" required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+                    <Input
+                      id="full_name"
+                      required
+                      value={form.full_name}
+                      onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                    />
                   </div>
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    />
                   </div>
-                </div>
-                <div>
-                  <Label htmlFor="email">Email *</Label>
-                  <Input id="email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
                 <div>
                   <Label htmlFor="street">Site address (optional)</Label>
@@ -323,7 +336,12 @@ export default function DesignYourCourt() {
                   </div>
                   <div>
                     <Label htmlFor="state">State</Label>
-                    <Input id="state" maxLength={2} value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value.toUpperCase() })} />
+                    <Input
+                      id="state"
+                      maxLength={2}
+                      value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value.toUpperCase() })}
+                    />
                   </div>
                   <div>
                     <Label htmlFor="zip">ZIP</Label>
@@ -332,10 +350,15 @@ export default function DesignYourCourt() {
                 </div>
                 <div>
                   <Label htmlFor="project_notes">Anything else? (optional)</Label>
-                  <Textarea id="project_notes" rows={3} value={form.project_notes} onChange={(e) => setForm({ ...form, project_notes: e.target.value })} />
+                  <Textarea
+                    id="project_notes"
+                    rows={3}
+                    value={form.project_notes}
+                    onChange={(e) => setForm({ ...form, project_notes: e.target.value })}
+                  />
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  By submitting you agree to be contacted by CourtPro Augusta about your project. No spam.
+                  By submitting you agree to be contacted by CourtPro Augusta about your project.
                 </p>
               </div>
               <DialogFooter>
@@ -343,7 +366,13 @@ export default function DesignYourCourt() {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…</> : "Send my design"}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…
+                    </>
+                  ) : (
+                    "Send my design"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
