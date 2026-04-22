@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FAQ from "@/components/FAQ";
-import Chatbot from "@/components/Chatbot";
+
 import CookieBanner from "@/components/CookieBanner";
 import SEOHead from "@/components/SEOHead";
 
@@ -27,7 +27,7 @@ const FAQPage = () => {
         <FAQ />
       </main>
       <Footer />
-      <Chatbot />
+      
       <CookieBanner />
     </div>
   );
