@@ -8,7 +8,8 @@ import Testimonials from "@/components/Testimonials";
 import ProjectGallery from "@/components/ProjectGallery";
 import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
-import Chatbot from "@/components/Chatbot";
+// Chatbot replaced by LeadConnector widget (loaded globally in index.html)
+// import Chatbot from "@/components/Chatbot";
 import CookieBanner from "@/components/CookieBanner";
 import FAQ from "@/components/FAQ";
 import MobileFloatingCTA from "@/components/MobileFloatingCTA";
@@ -78,7 +79,7 @@ const Index = () => {
         <ContactForm />
       </main>
       <Footer />
-      <Chatbot />
+      {/* <Chatbot /> replaced by LeadConnector widget */}
       <MobileFloatingCTA />
       <CookieBanner />
     </div>
