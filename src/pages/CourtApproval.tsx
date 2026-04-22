@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -196,10 +196,10 @@ export default function CourtApproval() {
 
   return (
     <>
-      <Helmet>
-        <title>Court Color Approval | CourtPro Augusta</title>
-        <meta name="robots" content="noindex,nofollow" />
-      </Helmet>
+      <SEOHead
+        title="Court Color Approval | CourtPro Augusta"
+        description="Review and approve your court color design."
+      />
 
       <div className="min-h-screen bg-muted/30">
         <header className="bg-card border-b border-border">

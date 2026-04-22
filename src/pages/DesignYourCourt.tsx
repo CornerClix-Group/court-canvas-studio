@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
+import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -102,14 +102,11 @@ export default function DesignYourCourt() {
 
   return (
     <>
-      <Helmet>
-        <title>Design Your Court | CourtPro Augusta</title>
-        <meta
-          name="description"
-          content="Visualize your dream tennis, pickleball, or basketball court with official Laykold colors. Build your design and request a free quote from CourtPro Augusta."
-        />
-        <link rel="canonical" href="https://courtproaugusta.com/design-your-court" />
-      </Helmet>
+      <SEOHead
+        title="Design Your Court | CourtPro Augusta"
+        description="Visualize your dream tennis, pickleball, or basketball court with official Laykold colors. Build your design and request a free quote from CourtPro Augusta."
+        canonical="https://courtproaugusta.com/design-your-court"
+      />
 
       <Header />
 
