@@ -1867,7 +1867,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_court_by_number: {
+        Args: {
+          _approved: boolean
+          _court_id: string
+          _initials: string
+          _project_number: string
+        }
+        Returns: Json
+      }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      finalize_project_approval: {
+        Args: { _approval_ip: string; _project_number: string }
+        Returns: Json
+      }
       has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean
@@ -1883,6 +1896,17 @@ export type Database = {
       is_manager_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_sales_or_above: { Args: { _user_id: string }; Returns: boolean }
+      update_court_colors_by_number: {
+        Args: {
+          _court_id: string
+          _court_label: string
+          _inner_color: string
+          _line_color: string
+          _outer_color: string
+          _project_number: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
