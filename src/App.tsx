@@ -38,6 +38,7 @@ import MaterialCalculator from "./pages/admin/MaterialCalculator";
 import ContractorPortal from "./pages/admin/ContractorPortal";
 import ContractorJobDetail from "./pages/admin/ContractorJobDetail";
 import BidDocuments from "./pages/admin/BidDocuments";
+import LeadConnectorWidget from "./components/LeadConnectorWidget";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <LeadConnectorWidget />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/privacy" element={<Privacy />} />
