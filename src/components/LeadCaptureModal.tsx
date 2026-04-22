@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { hashEmail, setLeadCookie, setUserProperties, trackEvent } from "@/lib/analytics";
@@ -22,11 +21,9 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
     city: "",
     state: "",
     sport: courtType,
-    smsOptIn: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,28 +31,19 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
     setIsSubmitting(true);
 
     try {
-      // Hash the email for GA4
       const emailHash = hashEmail(formData.email);
-      
-      // Set cookie
       setLeadCookie(emailHash);
-      
-      // Set GA4 user properties
       setUserProperties(emailHash);
-      
-      // Fire GA4 event
+
       trackEvent("lead_submitted", {
         sport: formData.sport,
         city: formData.city,
         state: formData.state,
       });
 
-      // Submit lead via secure edge function (forwards to n8n server-side)
-      const { error } = await supabase.functions.invoke('submit-lead', {
+      const { error } = await supabase.functions.invoke("submit-lead", {
         body: {
           ...formData,
-          sms_opt_in: formData.smsOptIn,
-          sms_opt_in_timestamp: formData.smsOptIn ? new Date().toISOString() : null,
           lead_hash: emailHash,
           timestamp: new Date().toISOString(),
         },
@@ -119,43 +107,6 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
               placeholder="john@example.com"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone (Optional)</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="(555) 123-4567"
-            />
-          </div>
-          {formData.phone && (
-            <div className="p-3 bg-muted/50 rounded-lg border border-border space-y-2">
-              <p className="text-[10px] font-semibold text-foreground">
-                CourtPro Augusta SMS Communications
-              </p>
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="smsOptIn"
-                  checked={formData.smsOptIn}
-                  onCheckedChange={(checked) => setFormData({ ...formData, smsOptIn: checked === true })}
-                  className="mt-0.5"
-                />
-                <Label htmlFor="smsOptIn" className="text-[10px] font-medium cursor-pointer leading-relaxed">
-                  I agree to receive recurring automated promotional and informational text messages 
-                  (e.g., project updates, estimates, and appointment reminders) from CourtPro Augusta 
-                  at the phone number provided. Consent is not a condition of purchase. 
-                  Msg frequency varies (approx. 1–10 msgs/month). Msg &amp; data rates may apply. 
-                  Reply STOP to cancel, HELP for help.
-                </Label>
-              </div>
-              <p className="text-[9px] text-muted-foreground leading-relaxed">
-                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>{" · "}
-                <a href="/terms" className="text-primary hover:underline">Terms</a>{" · "}
-                <a href="/sms-terms" className="text-primary hover:underline">SMS Terms</a>
-              </p>
-            </div>
-          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="city">City *</Label>
@@ -172,7 +123,7 @@ const LeadCaptureModal = ({ open, onOpenChange, courtType, onSuccess }: LeadCapt
               <Input
                 id="state"
                 value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
                 required
                 placeholder="GA"
                 maxLength={2}

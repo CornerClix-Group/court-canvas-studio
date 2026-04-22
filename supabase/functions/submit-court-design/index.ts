@@ -14,7 +14,7 @@ const MAX_REQUESTS_PER_WINDOW = 5;
 const designSchema = z.object({
   full_name: z.string().min(1).max(120),
   email: z.string().email().max(255),
-  phone: z.string().min(7).max(40),
+  phone: z.string().max(40).optional().default(""),
   street: z.string().max(200).optional().default(""),
   city: z.string().max(120).optional().default(""),
   state: z.string().max(40).optional().default(""),

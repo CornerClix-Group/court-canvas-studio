@@ -1,22 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-/**
- * LeadConnector (GoHighLevel) chat widget loader.
- *
- * Per A2P 10DLC compliance: the widget can NOT be embedded on any page that
- * also collects phone numbers / SMS opt-ins. We therefore only mount it on
- * informational pages with no lead-capture forms.
- *
- * Allowed routes are explicitly whitelisted below — keep this list tight.
- */
-const ALLOWED_ROUTES = [
-  "/privacy",
-  "/terms",
-  "/sms-terms",
-  "/pay-success", // success pages collect nothing
-];
-
+const BLOCKED_PREFIXES = ["/admin"];
 const WIDGET_ID = "69e80f7b7ca09b0738e6b647";
 const SCRIPT_ID = "leadconnector-chat-widget-script";
 
@@ -24,21 +9,18 @@ const LeadConnectorWidget = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const isAllowed = ALLOWED_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(`${route}/`)
+    const isBlocked = BLOCKED_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
     );
 
     const removeWidget = () => {
       document.getElementById(SCRIPT_ID)?.remove();
-      // The widget injects a custom element + container; remove both if present.
       document
-        .querySelectorAll(
-          'lc-chat-widget, [id^="lc_chat-widget"], #lc_chat_widget'
-        )
+        .querySelectorAll('lc-chat-widget, [id^="lc_chat-widget"], #lc_chat_widget')
         .forEach((el) => el.remove());
     };
 
-    if (!isAllowed) {
+    if (isBlocked) {
       removeWidget();
       return;
     }
@@ -55,10 +37,6 @@ const LeadConnectorWidget = () => {
     );
     script.setAttribute("data-widget-id", WIDGET_ID);
     document.body.appendChild(script);
-
-    return () => {
-      removeWidget();
-    };
   }, [pathname]);
 
   return null;

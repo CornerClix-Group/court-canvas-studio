@@ -55,7 +55,6 @@ export default function DesignYourCourt() {
   const [form, setForm] = useState({
     full_name: "",
     email: "",
-    phone: "",
     street: "",
     city: "",
     state: "",
@@ -75,8 +74,8 @@ export default function DesignYourCourt() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.full_name || !form.email || !form.phone) {
-      toast({ variant: "destructive", title: "Required fields", description: "Name, email, and phone are required." });
+    if (!form.full_name || !form.email) {
+      toast({ variant: "destructive", title: "Required fields", description: "Name and email are required." });
       return;
     }
     setSubmitting(true);
@@ -307,9 +306,6 @@ export default function DesignYourCourt() {
                     <Label htmlFor="full_name">Full name *</Label>
                     <Input id="full_name" required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
                   </div>
-                  <div>
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input id="phone" type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                   </div>
                 </div>
                 <div>

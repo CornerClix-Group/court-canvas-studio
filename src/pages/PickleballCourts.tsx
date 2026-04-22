@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
-import Chatbot from "@/components/Chatbot";
+
 import CookieBanner from "@/components/CookieBanner";
 import MobileFloatingCTA from "@/components/MobileFloatingCTA";
 import RelatedServices from "@/components/RelatedServices";
@@ -107,7 +107,7 @@ const PickleballCourts = () => {
         <ContactForm />
       </main>
       <Footer />
-      <Chatbot />
+      
       <MobileFloatingCTA />
       <CookieBanner />
     </div>
