@@ -276,6 +276,68 @@ export type Database = {
         }
         Relationships: []
       }
+      design_submissions: {
+        Row: {
+          city: string | null
+          court_type: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          inner_color: string
+          lead_id: string | null
+          line_color: string
+          outer_color: string
+          phone: string
+          project_notes: string | null
+          state: string | null
+          street: string | null
+          zip: string | null
+        }
+        Insert: {
+          city?: string | null
+          court_type: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          inner_color: string
+          lead_id?: string | null
+          line_color: string
+          outer_color: string
+          phone: string
+          project_notes?: string | null
+          state?: string | null
+          street?: string | null
+          zip?: string | null
+        }
+        Update: {
+          city?: string | null
+          court_type?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          inner_color?: string
+          lead_id?: string | null
+          line_color?: string
+          outer_color?: string
+          phone?: string
+          project_notes?: string | null
+          state?: string | null
+          street?: string | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_submissions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           bounced_at: string | null
@@ -1253,6 +1315,62 @@ export type Database = {
         }
         Relationships: []
       }
+      project_courts: {
+        Row: {
+          approved: boolean
+          approved_at: string | null
+          approved_initials: string | null
+          court_label: string
+          court_type: string
+          created_at: string
+          id: string
+          inner_color: string
+          line_color: string
+          outer_color: string
+          project_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_initials?: string | null
+          court_label: string
+          court_type: string
+          created_at?: string
+          id?: string
+          inner_color?: string
+          line_color?: string
+          outer_color?: string
+          project_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_initials?: string | null
+          court_label?: string
+          court_type?: string
+          created_at?: string
+          id?: string
+          inner_color?: string
+          line_color?: string
+          outer_color?: string
+          project_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_courts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_materials: {
         Row: {
           allocated_at: string | null
@@ -1428,8 +1546,13 @@ export type Database = {
           actual_completion_date: string | null
           actual_start_date: string | null
           assigned_to: string | null
+          color_approval_ip: string | null
+          color_approval_pdf_url: string | null
+          color_approval_status: string
+          color_approved_at: string | null
           contract_value: number | null
           created_at: string
+          customer_email: string | null
           customer_id: string | null
           estimate_id: string | null
           id: string
@@ -1437,6 +1560,7 @@ export type Database = {
           location_id: string | null
           notes: string | null
           project_name: string
+          project_notes: string | null
           project_number: string | null
           scheduled_start_date: string | null
           site_address: string | null
@@ -1455,8 +1579,13 @@ export type Database = {
           actual_completion_date?: string | null
           actual_start_date?: string | null
           assigned_to?: string | null
+          color_approval_ip?: string | null
+          color_approval_pdf_url?: string | null
+          color_approval_status?: string
+          color_approved_at?: string | null
           contract_value?: number | null
           created_at?: string
+          customer_email?: string | null
           customer_id?: string | null
           estimate_id?: string | null
           id?: string
@@ -1464,6 +1593,7 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           project_name: string
+          project_notes?: string | null
           project_number?: string | null
           scheduled_start_date?: string | null
           site_address?: string | null
@@ -1482,8 +1612,13 @@ export type Database = {
           actual_completion_date?: string | null
           actual_start_date?: string | null
           assigned_to?: string | null
+          color_approval_ip?: string | null
+          color_approval_pdf_url?: string | null
+          color_approval_status?: string
+          color_approved_at?: string | null
           contract_value?: number | null
           created_at?: string
+          customer_email?: string | null
           customer_id?: string | null
           estimate_id?: string | null
           id?: string
@@ -1491,6 +1626,7 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           project_name?: string
+          project_notes?: string | null
           project_number?: string | null
           scheduled_start_date?: string | null
           site_address?: string | null
@@ -1731,7 +1867,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_court_by_number: {
+        Args: {
+          _approved: boolean
+          _court_id: string
+          _initials: string
+          _project_number: string
+        }
+        Returns: Json
+      }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      finalize_project_approval: {
+        Args: { _approval_ip: string; _project_number: string }
+        Returns: Json
+      }
       has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean
@@ -1747,6 +1896,17 @@ export type Database = {
       is_manager_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_sales_or_above: { Args: { _user_id: string }; Returns: boolean }
+      update_court_colors_by_number: {
+        Args: {
+          _court_id: string
+          _court_label: string
+          _inner_color: string
+          _line_color: string
+          _outer_color: string
+          _project_number: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
