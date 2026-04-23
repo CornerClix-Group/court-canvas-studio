@@ -46,10 +46,13 @@ const COMPANY_INFO = {
 
 const MERCURY_BANK = {
   beneficiary: "CourtHaus Construction, LLC",
+  beneficiaryAddress: "1024 Peninsula Crossing, Evans, GA 30809",
   routing: "091311229",
   account: "202577193172",
+  accountKind: "Checking",
   bankName: "Choice Financial Group",
   bankAddress: "4501 23rd Avenue S, Fargo, ND 58104",
+  swift: "CHFGUS44021",
 };
 
 export default function Pay() {
@@ -351,10 +354,13 @@ export default function Pay() {
                 <div className="space-y-2">
                   {[
                     { label: "Beneficiary Name", value: MERCURY_BANK.beneficiary },
-                    { label: "Routing Number", value: MERCURY_BANK.routing },
+                    { label: "Beneficiary Address", value: MERCURY_BANK.beneficiaryAddress },
+                    { label: "Routing Number (ABA)", value: MERCURY_BANK.routing },
                     { label: "Account Number", value: MERCURY_BANK.account },
+                    { label: "Account Type", value: MERCURY_BANK.accountKind },
                     { label: "Bank Name", value: MERCURY_BANK.bankName },
                     { label: "Bank Address", value: MERCURY_BANK.bankAddress },
+                    { label: "SWIFT / BIC (international)", value: MERCURY_BANK.swift },
                     { label: "Memo / Reference", value: memo },
                   ].map(({ label, value }) => (
                     <div
