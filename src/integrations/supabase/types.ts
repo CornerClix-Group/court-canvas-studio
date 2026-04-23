@@ -1900,6 +1900,24 @@ export type Database = {
         Returns: Json
       }
       generate_invoice_number: { Args: never; Returns: string }
+      get_courts_for_approval: {
+        Args: { _project_number: string }
+        Returns: {
+          approved: boolean
+          approved_at: string
+          approved_initials: string
+          court_label: string
+          court_type: string
+          created_at: string
+          id: string
+          inner_color: string
+          line_color: string
+          outer_color: string
+          project_id: string
+          sort_order: number
+          updated_at: string
+        }[]
+      }
       get_project_for_approval: {
         Args: { _project_number: string }
         Returns: {
