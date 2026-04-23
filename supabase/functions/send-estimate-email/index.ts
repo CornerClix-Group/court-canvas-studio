@@ -281,12 +281,15 @@ function generateLumpSumEmailHTML(estimate: Estimate, scopeBullets: ScopeBullet[
         <tr>
           <td style="padding: 0 30px 20px 30px;">
             <div style="background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); border-radius: 8px; padding: 20px; text-align: center;">
-              <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Flexible Payment Options</h3>
+              <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Payment Methods</h3>
               <p style="color: #cffafe; margin: 0; font-size: 14px;">
-                Finance with Klarna - Pay in 4 or spread over time
+                🏦 <strong>Bank Transfer (ACH) — No fee, recommended</strong>
               </p>
-              <p style="color: #a5f3fc; margin: 8px 0 0 0; font-size: 12px;">
-                Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
+              <p style="color: #a5f3fc; margin: 6px 0 0 0; font-size: 13px;">
+                💳 Credit/Debit Card — 3% convenience fee applies
+              </p>
+              <p style="color: #a5f3fc; margin: 6px 0 0 0; font-size: 13px;">
+                ✉️ Check — mail to the address on your estimate
               </p>
             </div>
           </td>
@@ -486,12 +489,15 @@ function generateDetailedScopeEmailHTML(estimate: Estimate, lineItems: LineItem[
         <tr>
           <td style="padding: 0 30px 20px 30px;">
             <div style="background: linear-gradient(135deg, #059669 0%, #0891b2 100%); border-radius: 8px; padding: 20px; text-align: center;">
-              <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Flexible Payment Options</h3>
+              <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Payment Methods</h3>
               <p style="color: #d1fae5; margin: 0; font-size: 14px;">
-                Finance with Klarna - Pay in 4 or spread over time
+                🏦 <strong>Bank Transfer (ACH) — No fee, recommended</strong>
               </p>
-              <p style="color: #a7f3d0; margin: 8px 0 0 0; font-size: 12px;">
-                Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
+              <p style="color: #a7f3d0; margin: 6px 0 0 0; font-size: 13px;">
+                💳 Credit/Debit Card — 3% convenience fee applies
+              </p>
+              <p style="color: #a7f3d0; margin: 6px 0 0 0; font-size: 13px;">
+                ✉️ Check — mail to the address on your estimate
               </p>
             </div>
           </td>

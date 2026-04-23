@@ -862,6 +862,24 @@ export type Database = {
           },
         ]
       }
+      invoice_number_sequences: {
+        Row: {
+          last_seq: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          last_seq?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          last_seq?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount_paid: number | null
@@ -1881,6 +1899,7 @@ export type Database = {
         Args: { _approval_ip: string; _project_number: string }
         Returns: Json
       }
+      generate_invoice_number: { Args: never; Returns: string }
       has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean

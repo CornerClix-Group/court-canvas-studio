@@ -541,7 +541,7 @@ function drawPaymentOptions(
     color: COLORS.teal,
   });
 
-  page.drawText("FLEXIBLE PAYMENT OPTIONS", {
+  page.drawText("PAYMENT METHODS", {
     x: 60,
     y: y - 15,
     size: 12,
@@ -549,7 +549,7 @@ function drawPaymentOptions(
     color: COLORS.white,
   });
 
-  page.drawText("Klarna - Pay in 4 or Finance | Apple Pay | Cash App | Amazon Pay | Cards", {
+  page.drawText("Bank Transfer/ACH (no fee - recommended) | Check | Credit/Debit Card (3% fee)", {
     x: 60,
     y: y - 30,
     size: 9,

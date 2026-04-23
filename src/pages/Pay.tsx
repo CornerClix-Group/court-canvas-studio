@@ -228,75 +228,40 @@ export default function Pay() {
         </Card>
 
         {/* Payment Options */}
-        <div className="grid gap-6">
-          {/* PRIMARY: ACH Bank Transfer - No Fee */}
-          <Card className="border-2 border-green-500 bg-green-50">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Pay by Check */}
+          <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Landmark className="h-5 w-5 text-green-600" />
-                  <CardTitle className="text-lg text-green-800">
-                    Pay with Bank Transfer (Recommended)
-                  </CardTitle>
-                </div>
-                <span className="text-xs font-semibold bg-green-600 text-white px-2 py-1 rounded">
-                  NO FEE
-                </span>
+              <div className="flex items-center gap-2">
+                <Building className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg">Pay by Check</CardTitle>
               </div>
-              <CardDescription className="text-green-700">
-                ACH Direct Debit — fastest and lowest cost
-              </CardDescription>
+              <CardDescription>No additional fees</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm mb-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Invoice Amount:</span>
-                  <span>{formatCurrency(amountDue)}</span>
-                </div>
-                <div className="flex justify-between text-green-600 font-medium">
-                  <span>Convenience Fee:</span>
-                  <span>$0.00 ✓</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-semibold text-green-800 text-base">
-                  <span>Total:</span>
-                  <span>{formatCurrency(amountDue)}</span>
-                </div>
+              <div className="bg-muted rounded-lg p-4 mb-4">
+                <p className="font-semibold mb-2">Amount: {formatCurrency(amountDue)}</p>
+                <p className="text-sm text-muted-foreground mb-3">Make check payable to:</p>
+                <p className="font-medium">{COMPANY_INFO.name}</p>
+                <p className="text-sm text-muted-foreground">{COMPANY_INFO.address}</p>
+                <p className="text-sm text-muted-foreground">
+                  {COMPANY_INFO.city}, {COMPANY_INFO.state} {COMPANY_INFO.zip}
+                </p>
               </div>
-              <Button
-                onClick={() => handlePayOnline("ach")}
-                disabled={processingPayment !== null}
-                className="w-full mb-3 bg-green-600 hover:bg-green-700"
-                size="lg"
-              >
-                {processingPayment === "ach" ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Landmark className="mr-2 h-4 w-4" />
-                    Pay {formatCurrency(amountDue)} with Bank Transfer
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-green-700 text-center">
-                Securely connect your bank account. Funds typically clear within 3–5 business days.
+              <p className="text-xs text-muted-foreground">
+                Please include invoice number {invoice.invoice_number} on your check.
               </p>
             </CardContent>
           </Card>
 
-          {/* SECONDARY: Card (3% convenience fee) */}
-          <Card>
+          {/* Pay Online - Card/Wallet */}
+          <Card className="border-primary">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg">Pay with Card</CardTitle>
+                <CreditCard className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Pay with Card or Wallet</CardTitle>
               </div>
-              <CardDescription>
-                Credit or debit card — 3% convenience fee applies
-              </CardDescription>
+              <CardDescription>Credit card, Apple Pay, Cash App, Klarna</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm mb-4">
@@ -314,11 +279,11 @@ export default function Pay() {
                   <span>{formatCurrency(totalWithFee)}</span>
                 </div>
               </div>
-              <Button
-                onClick={() => handlePayOnline("card")}
+
+              <Button 
+                onClick={() => handlePayOnline("card")} 
                 disabled={processingPayment !== null}
-                variant="outline"
-                className="w-full"
+                className="w-full mb-4"
                 size="lg"
               >
                 {processingPayment === "card" ? (
@@ -329,36 +294,66 @@ export default function Pay() {
                 ) : (
                   <>
                     <CreditCard className="mr-2 h-4 w-4" />
-                    Pay {formatCurrency(totalWithFee)} with Card
+                    Pay {formatCurrency(totalWithFee)}
                   </>
                 )}
               </Button>
+
+              <div className="text-xs text-muted-foreground text-center space-y-1">
+                <p>💳 Cards • 📱 Apple Pay, Cash App, Amazon Pay</p>
+                <p>📅 Klarna - Pay in 4 or finance over time</p>
+              </div>
             </CardContent>
           </Card>
 
-          {/* TERTIARY: Pay by Check (manual) */}
-          <Card>
+          {/* Pay Online - ACH Bank Transfer (No Fee) */}
+          <Card className="border-green-500 bg-green-50">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg">Pay by Check</CardTitle>
+                <Landmark className="h-5 w-5 text-green-600" />
+                <CardTitle className="text-lg text-green-800">Pay with Bank Transfer</CardTitle>
               </div>
-              <CardDescription>No fee — mail your check to the address below</CardDescription>
+              <CardDescription className="text-green-700">ACH Direct Debit - No convenience fee!</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted rounded-lg p-4">
-                <p className="font-semibold mb-2">
-                  Amount: {formatCurrency(amountDue)}
-                </p>
-                <p className="text-sm text-muted-foreground mb-3">Make check payable to:</p>
-                <p className="font-medium">{COMPANY_INFO.name}</p>
-                <p className="text-sm text-muted-foreground">{COMPANY_INFO.address}</p>
-                <p className="text-sm text-muted-foreground">
-                  {COMPANY_INFO.city}, {COMPANY_INFO.state} {COMPANY_INFO.zip}
-                </p>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Please write invoice number {invoice.invoice_number} on your check.
-                </p>
+              <div className="space-y-2 text-sm mb-4">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Invoice Amount:</span>
+                  <span>{formatCurrency(amountDue)}</span>
+                </div>
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Convenience Fee:</span>
+                  <span>$0.00 ✓</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold text-green-800">
+                  <span>Total:</span>
+                  <span>{formatCurrency(amountDue)}</span>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handlePayOnline("ach")} 
+                disabled={processingPayment !== null}
+                className="w-full mb-4 bg-green-600 hover:bg-green-700"
+                size="lg"
+              >
+                {processingPayment === "ach" ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Landmark className="mr-2 h-4 w-4" />
+                    Pay {formatCurrency(amountDue)} - No Fee
+                  </>
+                )}
+              </Button>
+
+              <div className="text-xs text-green-700 text-center space-y-1">
+                <p className="font-medium">🏦 Connect your bank account securely</p>
+                <p>Funds are debited directly - no processing fee</p>
               </div>
             </CardContent>
           </Card>

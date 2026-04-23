@@ -509,7 +509,7 @@ async function generateEstimatePdf(estimate: any, _supabase: any): Promise<Uint8
   const paymentTerms = [
     "50% deposit required to schedule project.",
     "Balance due upon completion of work.",
-    "Accepted methods: Check, ACH/Bank Transfer (no fee), Credit Card, Apple Pay, Cash App.",
+    "Accepted methods: Bank Transfer/ACH (no fee — recommended), Check, or Credit/Debit Card (3% fee).",
     `This estimate is valid for ${validDays} days from the date above.`,
   ];
   for (const term of paymentTerms) {
