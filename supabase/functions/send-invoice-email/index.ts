@@ -193,14 +193,14 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl
             </div>
           </div>
           
-          <!-- Flexible Payment Options Banner -->
+          <!-- Payment Options Banner -->
           <div style="margin-top: 24px; background: linear-gradient(135deg, #059669 0%, #0891b2 100%); padding: 20px; border-radius: 12px; text-align: center;">
-            <h3 style="margin: 0 0 8px 0; color: white; font-size: 18px; font-weight: bold;">💳 Flexible Payment Options</h3>
+            <h3 style="margin: 0 0 8px 0; color: white; font-size: 18px; font-weight: bold;">🏦 Bank Transfer — No Fee</h3>
             <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 14px;">
-              Finance with Klarna - Pay in 4 or spread over time
+              Pay by ACH bank transfer with no convenience fee — recommended for fastest, lowest-cost payment.
             </p>
             <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
-              Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
+              Credit/debit card also accepted (3% convenience fee applies)
             </p>
           </div>
 
@@ -222,7 +222,7 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl
               💳 View Payment Options
             </a>
             <p style="margin: 16px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
-              Cards & wallets include 3% fee • 🏦 <strong>Bank transfer has NO fee!</strong>
+              🏦 <strong>Bank transfer — NO fee</strong> • Cards include 3% convenience fee
             </p>
           </div>
 

@@ -175,7 +175,7 @@ serve(async (req) => {
     }
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-      payment_method_types: isACH ? ["us_bank_account"] : ["card", "klarna", "cashapp", "amazon_pay", "link"],
+      payment_method_types: isACH ? ["us_bank_account"] : ["card", "link"],
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/pay/${paymentToken}/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -194,13 +194,6 @@ serve(async (req) => {
       sessionConfig.customer = stripeCustomerId;
     } else if (customerEmail) {
       sessionConfig.customer_email = customerEmail;
-    }
-
-    // Add shipping address for Affirm compatibility
-    if (customerAddress) {
-      sessionConfig.shipping_address_collection = {
-        allowed_countries: ["US"],
-      };
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
