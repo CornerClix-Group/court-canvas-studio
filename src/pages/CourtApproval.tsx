@@ -87,11 +87,9 @@ export default function CourtApproval() {
       return;
     }
     setProject(p as ProjectRow);
+    // Fetch courts via SECURITY DEFINER RPC (no public table access).
     const { data: cts } = await supabase
-      .from("project_courts")
-      .select("*")
-      .eq("project_id", p.id)
-      .order("sort_order", { ascending: true });
+      .rpc("get_courts_for_approval", { _project_number: num.trim() });
     setCourts((cts as CourtRow[]) || []);
     setLoading(false);
     if (params.projectNumber !== num) {

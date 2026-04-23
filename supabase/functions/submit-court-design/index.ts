@@ -126,10 +126,14 @@ serve(async (req) => {
 
     if (subErr) console.error("Design submission insert error:", subErr);
 
-    // 3. Trigger AI score (fire and forget)
+    // 3. Trigger AI score (fire and forget) — pass service-role key so the
+    //    score-lead function recognises this as an internal call.
     if (leadRow?.id) {
       supabase.functions
-        .invoke("score-lead", { body: { leadId: leadRow.id } })
+        .invoke("score-lead", {
+          body: { leadId: leadRow.id },
+          headers: { Authorization: `Bearer ${supabaseServiceKey}` },
+        })
         .catch((e) => console.error("score-lead error:", e));
     }
 
