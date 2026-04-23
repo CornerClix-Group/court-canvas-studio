@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Star, Zap, Crown } from "lucide-react";
 import { SURFACING_SYSTEMS } from "@/lib/pricingConstants";
 import { calculateMaterials, type CourtConfig } from "@/lib/courtCalculator";
+import { usePricingConfig } from "@/hooks/usePricingConfig";
 
 interface SystemTierComparisonProps {
   baseConfig: Omit<CourtConfig, 'systemId'>;
@@ -26,11 +27,13 @@ export function SystemTierComparison({
   selectedSystem, 
   onSelectSystem 
 }: SystemTierComparisonProps) {
+  const { data: pricingConfig } = usePricingConfig();
+
   const tierCalculations = useMemo(() => {
     return TIER_SYSTEMS.map(systemId => {
       const system = SURFACING_SYSTEMS[systemId];
       const config: CourtConfig = { ...baseConfig, systemId };
-      const calculation = calculateMaterials(config);
+      const calculation = calculateMaterials(config, pricingConfig);
       return {
         systemId,
         system,
@@ -38,7 +41,7 @@ export function SystemTierComparison({
         tierInfo: tierLabels[systemId],
       };
     });
-  }, [baseConfig]);
+  }, [baseConfig, pricingConfig]);
 
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);

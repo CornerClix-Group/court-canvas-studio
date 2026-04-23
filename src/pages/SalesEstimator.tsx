@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { usePricingConfig } from "@/hooks/usePricingConfig";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   PRICING,
   PROJECT_TYPES, 
@@ -195,9 +196,10 @@ export default function SalesEstimator() {
     }
   };
 
-  const handleSaveQuote = () => {
+  const handleSaveQuote = async () => {
     if (!calculation) return;
-    
+
+    // Keep local copy for instant UI feedback
     const quote = {
       id: Date.now(),
       projectName,
@@ -209,14 +211,41 @@ export default function SalesEstimator() {
       total: calculation.clientPrice,
       createdAt: new Date().toISOString(),
     };
-    
     const savedQuotes = JSON.parse(localStorage.getItem('courtpro_quotes') || '[]');
     savedQuotes.unshift(quote);
     localStorage.setItem('courtpro_quotes', JSON.stringify(savedQuotes.slice(0, 50)));
-    
+
+    // Submit to backend so we actually capture the lead
+    if (email && contactName) {
+      try {
+        const { error } = await supabase.functions.invoke("submit-lead", {
+          body: {
+            name: contactName,
+            email: email,
+            sport: 'estimator',
+            source: 'estimator',
+            project_name: projectName || undefined,
+            estimated_total: calculation.clientPrice,
+            total_sqft: totalSqFt,
+            number_of_courts: numberOfCourts,
+            project_type: projectType,
+            notes: `Self-service estimate generated via /estimator wizard.`,
+          },
+        });
+
+        if (error) {
+          console.error("Lead submit error:", error);
+        }
+      } catch (err) {
+        console.error("Lead submit exception:", err);
+      }
+    }
+
     toast({
       title: "Quote Saved",
-      description: "Quote saved to local storage",
+      description: email && contactName
+        ? "We've saved your quote and will follow up soon."
+        : "Quote saved locally. Add your email to get follow-up support.",
     });
   };
 

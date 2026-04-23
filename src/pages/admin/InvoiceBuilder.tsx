@@ -126,12 +126,22 @@ export default function InvoiceBuilder() {
   }, [customerId]);
 
   const generateInvoiceNumber = async () => {
-    const year = new Date().getFullYear();
-    const { count } = await supabase
-      .from("invoices")
-      .select("*", { count: "exact", head: true });
+    const { data, error } = await supabase.rpc("generate_invoice_number");
 
-    setInvoiceNumber(`INV-${year}-${String((count || 0) + 1).padStart(4, "0")}`);
+    if (error || !data) {
+      console.error("Failed to generate invoice number:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not generate invoice number. Please try again.",
+      });
+      // Fallback: timestamp-based so the UI doesn't stay empty
+      const timestamp = Date.now().toString(36).toUpperCase();
+      setInvoiceNumber(`INV-${timestamp}`);
+      return;
+    }
+
+    setInvoiceNumber(data);
   };
 
   const loadInvoice = async (invoiceId: string) => {

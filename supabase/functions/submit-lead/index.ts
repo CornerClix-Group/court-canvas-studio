@@ -16,11 +16,19 @@ const leadSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.string().email().max(255),
   phone: z.string().max(20).optional().default(""),
-  city: z.string().min(1).max(100),
-  state: z.string().min(1).max(2),
+  city: z.string().min(1).max(100).optional().default(""),
+  state: z.string().min(1).max(2).optional().default(""),
   sport: z.string().min(1).max(50),
   lead_hash: z.string().max(100).optional(),
   timestamp: z.string().optional(),
+  // Optional estimator fields — present when lead comes from /estimator
+  source: z.string().max(50).optional(),
+  project_name: z.string().max(200).optional(),
+  estimated_total: z.number().optional(),
+  total_sqft: z.number().optional(),
+  number_of_courts: z.number().optional(),
+  project_type: z.string().max(50).optional(),
+  notes: z.string().max(2000).optional(),
 });
 
 const handler = async (req: Request): Promise<Response> => {
@@ -97,6 +105,41 @@ const handler = async (req: Request): Promise<Response> => {
       email: leadData.email.substring(0, 20),
       sport: leadData.sport
     });
+
+    // Write to leads table FIRST, so the lead is safe in our DB even if
+    // downstream integrations (n8n) fail.
+    const leadSource = leadData.source || (leadData.sport === 'estimator' ? 'estimator' : 'website');
+
+    const composedNotes = [
+      leadData.notes,
+      leadData.project_name ? `Project: ${leadData.project_name}` : null,
+      leadData.estimated_total ? `Estimator quote: $${leadData.estimated_total.toFixed(2)}` : null,
+      leadData.total_sqft ? `Total sq ft: ${leadData.total_sqft}` : null,
+      leadData.number_of_courts ? `Courts: ${leadData.number_of_courts}` : null,
+    ].filter(Boolean).join(' | ') || null;
+
+    const { data: insertedLead, error: leadInsertError } = await supabase
+      .from('leads')
+      .insert({
+        name: leadData.name,
+        email: leadData.email,
+        phone: leadData.phone || null,
+        city: leadData.city || null,
+        state: leadData.state || null,
+        project_type: leadData.project_type || leadData.sport || null,
+        source: leadSource,
+        status: 'new',
+        notes: composedNotes,
+      })
+      .select()
+      .single();
+
+    if (leadInsertError) {
+      console.error("Failed to insert lead to DB:", leadInsertError);
+      // Do NOT fail the request — n8n forward still provides a backup path
+    } else {
+      console.log("Lead saved to DB:", insertedLead?.id);
+    }
 
     // Forward to n8n webhook (server-side, secure)
     const n8nWebhookUrl = Deno.env.get("N8N_WEBHOOK_URL");

@@ -193,14 +193,17 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl
             </div>
           </div>
           
-          <!-- Flexible Payment Options Banner -->
+          <!-- Payment Methods Banner -->
           <div style="margin-top: 24px; background: linear-gradient(135deg, #059669 0%, #0891b2 100%); padding: 20px; border-radius: 12px; text-align: center;">
-            <h3 style="margin: 0 0 8px 0; color: white; font-size: 18px; font-weight: bold;">💳 Flexible Payment Options</h3>
-            <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 14px;">
-              Finance with Klarna - Pay in 4 or spread over time
+            <h3 style="margin: 0 0 8px 0; color: white; font-size: 18px; font-weight: bold;">💳 Payment Methods</h3>
+            <p style="margin: 0; color: rgba(255,255,255,0.95); font-size: 14px;">
+              🏦 <strong>Bank Transfer (ACH) — No fee, recommended</strong>
             </p>
-            <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
-              Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
+            <p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.85); font-size: 13px;">
+              💳 Credit/Debit Card — 3% convenience fee applies
+            </p>
+            <p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.85); font-size: 13px;">
+              ✉️ Check — mail to the address on your invoice
             </p>
           </div>
 
@@ -222,7 +225,7 @@ const generateInvoiceHTML = (invoice: Invoice, lineItems: LineItem[], paymentUrl
               💳 View Payment Options
             </a>
             <p style="margin: 16px 0 0 0; color: rgba(255,255,255,0.8); font-size: 12px;">
-              Cards & wallets include 3% fee • 🏦 <strong>Bank transfer has NO fee!</strong>
+              🏦 <strong>Bank transfer is free</strong> • Card payments include a 3% fee
             </p>
           </div>
 
