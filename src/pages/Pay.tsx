@@ -46,10 +46,13 @@ const COMPANY_INFO = {
 
 const MERCURY_BANK = {
   beneficiary: "CourtHaus Construction, LLC",
+  beneficiaryAddress: "1024 Peninsula Crossing, Evans, GA 30809",
   routing: "091311229",
   account: "202577193172",
+  accountKind: "Checking",
   bankName: "Choice Financial Group",
   bankAddress: "4501 23rd Avenue S, Fargo, ND 58104",
+  swift: "CHFGUS44021",
 };
 
 export default function Pay() {
