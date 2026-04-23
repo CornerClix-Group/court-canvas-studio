@@ -72,11 +72,13 @@ export default function CourtApproval() {
   const loadProject = async (num: string) => {
     if (!num) return;
     setLoading(true);
-    const { data: p, error: pErr } = await supabase
-      .from("projects")
-      .select("id, project_number, project_name, customer_email, color_approval_status, color_approved_at")
-      .eq("project_number", num.trim())
-      .maybeSingle();
+    // Use SECURITY DEFINER RPC to fetch only the minimal, approval-flow-safe
+    // project fields (no customer email, no address, no contract value, no notes).
+    const { data: rows, error: pErr } = await supabase
+      .rpc("get_project_for_approval", { _project_number: num.trim() });
+    const p = Array.isArray(rows) && rows.length > 0
+      ? { ...rows[0], customer_email: null }
+      : null;
     if (pErr || !p) {
       toast({ variant: "destructive", title: "Project not found", description: "Check the project code on your email." });
       setProject(null);
