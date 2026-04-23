@@ -47,11 +47,15 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: project, error: pErr } = await supabase
-      .from("projects")
-      .select("*, customers(contact_name, company_name, email)")
-      .eq("project_number", project_number)
-      .single();
+    // Fetch only the approval-safe fields. Customer PII, contract value,
+    // GPS coordinates, internal notes, and site addresses are intentionally
+    // excluded since this endpoint is publicly callable with just a
+    // project_number.
+    const { data: rows, error: pErr } = await supabase.rpc(
+      "get_project_for_approval_pdf",
+      { _project_number: project_number }
+    );
+    const project = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
     if (pErr || !project) throw new Error("Project not found");
 
     const { data: courts, error: cErr } = await supabase
@@ -85,15 +89,9 @@ serve(async (req) => {
     y -= 22;
     page.drawText(`${project.project_name || ""}`, { x: 40, y, size: 12, font: helv, color: NAVY });
     y -= 18;
-    const cust = project.customers as { contact_name?: string; company_name?: string } | null;
-    if (cust) {
-      page.drawText(`Customer: ${cust.company_name || cust.contact_name || ""}`, { x: 40, y, size: 11, font: helv, color: GREY });
-      y -= 16;
-    }
-    if (project.site_address) {
-      page.drawText(`Site: ${project.site_address}, ${project.site_city || ""} ${project.site_state || ""}`, { x: 40, y, size: 11, font: helv, color: GREY });
-      y -= 16;
-    }
+    // Customer name, site address, and other PII intentionally omitted from
+    // the public approval PDF. Internal team can pull a fully-detailed
+    // version from the admin app.
     page.drawText(`Generated: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`, { x: 40, y, size: 11, font: helv, color: GREY });
     y -= 24;
     page.drawText(`Status: ${project.color_approval_status === "approved" ? "FULLY APPROVED" : "PARTIAL APPROVAL"}`, {

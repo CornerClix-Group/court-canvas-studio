@@ -9,6 +9,11 @@ const corsHeaders = {
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const MASTER_ADMIN_EMAIL = "troy@courtproaugusta.com";
 
+const esc = (s: unknown): string =>
+  String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string)
+  );
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,6 +23,30 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Require authenticated admin/staff caller to prevent spoofed admin alerts.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roles } = await supabase
+      .from("user_roles").select("role").eq("user_id", userData.user.id);
+    const allowed = (roles || []).some((r: { role: string }) =>
+      ["owner", "admin", "staff"].includes(r.role));
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { action, entityType, entityName, performedBy, details } = await req.json();
 
@@ -78,40 +107,40 @@ serve(async (req) => {
                       <tr>
                         <td style="padding: 8px 0;">
                           <strong style="color: #666666;">Action:</strong>
-                          <span style="color: #333333; margin-left: 8px;">${actionLabel}</span>
+                          <span style="color: #333333; margin-left: 8px;">${esc(actionLabel)}</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0;">
                           <strong style="color: #666666;">Type:</strong>
-                          <span style="color: #333333; margin-left: 8px;">${entityLabel}</span>
+                          <span style="color: #333333; margin-left: 8px;">${esc(entityLabel)}</span>
                         </td>
                       </tr>
                       ${entityName ? `
                       <tr>
                         <td style="padding: 8px 0;">
                           <strong style="color: #666666;">Name/ID:</strong>
-                          <span style="color: #333333; margin-left: 8px;">${entityName}</span>
+                          <span style="color: #333333; margin-left: 8px;">${esc(entityName)}</span>
                         </td>
                       </tr>
                       ` : ""}
                       <tr>
                         <td style="padding: 8px 0;">
                           <strong style="color: #666666;">Performed By:</strong>
-                          <span style="color: #333333; margin-left: 8px;">${performedBy}</span>
+                          <span style="color: #333333; margin-left: 8px;">${esc(performedBy)}</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0;">
                           <strong style="color: #666666;">Time:</strong>
-                          <span style="color: #333333; margin-left: 8px;">${timestamp}</span>
+                          <span style="color: #333333; margin-left: 8px;">${esc(timestamp)}</span>
                         </td>
                       </tr>
                       ${details ? `
                       <tr>
                         <td style="padding: 8px 0;">
                           <strong style="color: #666666;">Details:</strong>
-                          <span style="color: #333333; margin-left: 8px;">${JSON.stringify(details)}</span>
+                          <span style="color: #333333; margin-left: 8px;">${esc(JSON.stringify(details))}</span>
                         </td>
                       </tr>
                       ` : ""}
