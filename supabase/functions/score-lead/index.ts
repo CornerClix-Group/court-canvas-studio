@@ -17,6 +17,33 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Auth: allow service-role (internal fire-and-forget) OR owner/admin/staff user.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    const isServiceRole = token && token === supabaseServiceKey;
+    if (!isServiceRole) {
+      if (!token) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+      if (userErr || !userData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: roles } = await supabase
+        .from("user_roles").select("role").eq("user_id", userData.user.id);
+      const allowed = (roles || []).some((r: { role: string }) =>
+        ["owner", "admin", "staff"].includes(r.role));
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { leadId } = await req.json();
     if (!leadId) throw new Error("leadId is required");
 
