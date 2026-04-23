@@ -354,10 +354,13 @@ export default function Pay() {
                 <div className="space-y-2">
                   {[
                     { label: "Beneficiary Name", value: MERCURY_BANK.beneficiary },
-                    { label: "Routing Number", value: MERCURY_BANK.routing },
+                    { label: "Beneficiary Address", value: MERCURY_BANK.beneficiaryAddress },
+                    { label: "Routing Number (ABA)", value: MERCURY_BANK.routing },
                     { label: "Account Number", value: MERCURY_BANK.account },
+                    { label: "Account Type", value: MERCURY_BANK.accountKind },
                     { label: "Bank Name", value: MERCURY_BANK.bankName },
                     { label: "Bank Address", value: MERCURY_BANK.bankAddress },
+                    { label: "SWIFT / BIC (international)", value: MERCURY_BANK.swift },
                     { label: "Memo / Reference", value: memo },
                   ].map(({ label, value }) => (
                     <div
