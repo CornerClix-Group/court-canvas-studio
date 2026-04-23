@@ -137,14 +137,17 @@ export function generateInvoiceEmailHTML(invoice: InvoiceForEmail, lineItems: Li
       </div>
     </div>
     
-    <!-- Flexible Payment Options Banner -->
-    <div style="margin-top: 24px; background: linear-gradient(135deg, #059669 0%, #0891b2 100%); padding: 20px; border-radius: 8px; text-align: center;">
-      <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">💳 Flexible Payment Options</h3>
-      <p style="color: #d1fae5; margin: 0; font-size: 14px;">
-        Finance with Klarna - Pay in 4 or spread over time
+    <!-- Pay Online CTA (Primary) -->
+    <div style="margin-top: 24px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 32px; border-radius: 12px; text-align: center;">
+      <h3 style="margin: 0 0 8px 0; color: #ffffff; font-size: 20px; font-weight: bold;">Pay Online — Fast & Secure</h3>
+      <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.95); font-size: 14px;">
+        🏦 <strong>Bank Transfer (ACH) — No Fee, Recommended</strong>
       </p>
-      <p style="color: #a7f3d0; margin: 8px 0 0 0; font-size: 12px;">
-        Cards, Apple Pay, Cash App, Amazon Pay • 🏦 <strong>Bank Transfer - No Fee!</strong>
+      <a href="#" style="display: inline-block; background: #ffffff; color: #059669; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        💳 View Payment Options
+      </a>
+      <p style="margin: 16px 0 0 0; color: rgba(255,255,255,0.85); font-size: 12px;">
+        Bank transfer is free • Cards, Apple Pay, Cash App, Klarna available (3% fee)
       </p>
     </div>
 
@@ -155,14 +158,18 @@ export function generateInvoiceEmailHTML(invoice: InvoiceForEmail, lineItems: Li
     </div>
     ` : ''}
 
-    <div style="margin-top: 30px; background: #f0fdf4; padding: 20px; border-radius: 8px; border: 1px solid #bbf7d0;">
-      <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 16px;">Payment Instructions</h3>
-      <p style="margin: 0; color: #166534;">Please make checks payable to <strong>${COMPANY_INFO.name}</strong> and mail to:</p>
-      <p style="margin: 10px 0 0 0; color: #166534; font-weight: 500;">
-        ${COMPANY_INFO.address}<br>
-        ${COMPANY_INFO.city}, ${COMPANY_INFO.state} ${COMPANY_INFO.zip}
+    <!-- Or Pay by Check (Secondary) -->
+    <div style="margin-top: 24px; background: #f0f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #0369a1;">
+      <h3 style="margin: 0 0 10px 0; color: #0369a1; font-size: 14px; font-weight: bold;">Prefer to Mail a Check?</h3>
+      <p style="margin: 0; color: #4b5563; font-size: 14px;">
+        Make checks payable to <strong>${COMPANY_INFO.name}</strong> and mail to:<br>
+        <strong>${COMPANY_INFO.address}, ${COMPANY_INFO.city}, ${COMPANY_INFO.state} ${COMPANY_INFO.zip}</strong><br>
+        Reference invoice <strong>${invoice.invoice_number}</strong> with your payment.
       </p>
-      <p style="margin: 15px 0 0 0; color: #166534;">For questions, contact us at <strong>${COMPANY_INFO.phone}</strong> or <strong>${COMPANY_INFO.email}</strong></p>
+    </div>
+
+    <div style="margin-top: 16px; text-align: center; padding: 12px; color: #6b7280; font-size: 13px;">
+      Questions? Contact us at <strong>${COMPANY_INFO.phone}</strong> or <strong>${COMPANY_INFO.email}</strong>
     </div>
   </div>
 
